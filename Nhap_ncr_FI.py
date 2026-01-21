@@ -118,10 +118,19 @@ with tab_chon:
     
     if selected_loi != "-- Chọn --":
         final_ten_loi = selected_loi
-        # Auto fill mức độ
+        # Auto determine default severity
         auto_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
-        st.info(f"Mức độ: {auto_muc_do}")
-        final_muc_do = auto_muc_do
+        if auto_muc_do not in ["Nhẹ", "Nặng", "Nghiêm trọng"]:
+            auto_muc_do = "Nhẹ"
+            
+        # Allow override using Pills (horizontal selection)
+        # Use key based on errors to reset when error changes, or just rely on default
+        # Using radio horizontal as safe fallback or pills
+        final_muc_do = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default=auto_muc_do, selection_mode="single", key="pills_muc_do_chon")
+        
+        # Fallback if pills returns None (unselected)
+        if not final_muc_do:
+            final_muc_do = auto_muc_do
         final_so_luong = so_luong_chon
 
 with tab_moi:
