@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import json
 from datetime import datetime
 
 # --- CẤU HÌNH TRANG ---
@@ -12,8 +13,14 @@ def init_gspread():
     """Khởi tạo gspread client từ secrets"""
     try:
         # Lấy service account credentials từ secrets
-        credentials_dict = dict(st.secrets["connections"]["gsheets"]["service_account"])
+        # Vì trong TOML để là string triple quotes nên cần parse JSON
+        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
         
+        if isinstance(creds_str, str):
+            credentials_dict = json.loads(creds_str)
+        else:
+            credentials_dict = creds_str
+            
         # Tạo credentials object và authorize
         gc = gspread.service_account_from_dict(credentials_dict)
         return gc
