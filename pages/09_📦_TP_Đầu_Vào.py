@@ -5,8 +5,8 @@ import json
 from datetime import datetime
 
 # --- CONFIGURATION ---
-REQUIRED_DEPT = 'cat_ban'
-PAGE_TITLE = "QC Input - Cắt Bàn"
+REQUIRED_DEPT = 'tp_dau_vao'
+PAGE_TITLE = "QC Input - TP Đầu Vào"
 
 st.set_page_config(page_title=PAGE_TITLE, page_icon="🏭", layout="centered")
 
@@ -68,12 +68,24 @@ def load_master_data():
         df_config = pd.DataFrame(records)
         
         # Parse data
+        # Col A: nha_cung_cap, Col B: noi_may, Col C: nhom_loi, Col D: ten_loi
+        # ADJUSTED LOGIC FOR NEW SCHEMA
+        list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist()
         list_nha_may = df_config['noi_may'].dropna().unique().tolist()
-        list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
+        
+        # Load errors for target group 'fi' (User specified TP Dau Vao uses 'fi' error group)
+        # Note: In the sheet, different rows might have different errors.
+        if 'nhom_loi' in df_config.columns:
+            # Filter errors for 'fi' group
+            list_loi = sorted(df_config[df_config['nhom_loi'] == 'fi']['ten_loi'].dropna().unique().tolist())
+        else:
+            # Fallback if column not found (or old schema)
+            list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
+
         list_vi_tri = df_config['vi_tri_loi'].dropna().unique().tolist()
         dict_muc_do = df_config.drop_duplicates(subset=['ten_loi']).set_index('ten_loi')['muc_do'].to_dict()
         
-        return list_nha_may, list_loi, list_vi_tri, dict_muc_do
+        return list_nha_cung_cap, list_nha_may, list_loi, list_vi_tri, dict_muc_do
         
     except Exception as e:
         st.error(f"Lỗi đọc Config: {e}")
@@ -81,7 +93,7 @@ def load_master_data():
         st.code(traceback.format_exc())
         return [], [], [], {}
 
-LIST_NHA_MAY, LIST_LOI, LIST_VI_TRI, DICT_MUC_DO = load_master_data()
+LIST_NHA_CUNG_CAP, LIST_NHA_MAY, LIST_LOI, LIST_VI_TRI, DICT_MUC_DO = load_master_data()
 
 # --- SESSION STATE ---
 if "buffer_errors" not in st.session_state:
@@ -129,7 +141,8 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
          
     with c4:
-         nha_may = st.selectbox("Nơi may", [""] + LIST_NHA_MAY, disabled=disable_hd)
+         # Logic: TP Dau Vao uses Factory (Nơi may)
+         nha_may = st.selectbox("Nơi may / Nhà GC", [""] + LIST_NHA_MAY, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
 
     # Lock Logic

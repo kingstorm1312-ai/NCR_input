@@ -68,12 +68,19 @@ def load_master_data():
         df_config = pd.DataFrame(records)
         
         # Parse data
+        list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist()
         list_nha_may = df_config['noi_may'].dropna().unique().tolist()
-        list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
+        
+        # Filter errors for 'dv_npl' group
+        if 'nhom_loi' in df_config.columns:
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower() == 'dv_npl']['ten_loi'].dropna().unique().tolist())
+        else:
+            list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
+
         list_vi_tri = df_config['vi_tri_loi'].dropna().unique().tolist()
         dict_muc_do = df_config.drop_duplicates(subset=['ten_loi']).set_index('ten_loi')['muc_do'].to_dict()
         
-        return list_nha_may, list_loi, list_vi_tri, dict_muc_do
+        return list_nha_cung_cap, list_nha_may, list_loi, list_vi_tri, dict_muc_do
         
     except Exception as e:
         st.error(f"Lỗi đọc Config: {e}")
@@ -81,7 +88,7 @@ def load_master_data():
         st.code(traceback.format_exc())
         return [], [], [], {}
 
-LIST_NHA_MAY, LIST_LOI, LIST_VI_TRI, DICT_MUC_DO = load_master_data()
+LIST_NHA_CUNG_CAP, LIST_NHA_MAY, LIST_LOI, LIST_VI_TRI, DICT_MUC_DO = load_master_data()
 
 # --- SESSION STATE ---
 if "buffer_errors" not in st.session_state:
@@ -129,7 +136,7 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
          
     with c4:
-         nha_may = st.selectbox("Nơi may", [""] + LIST_NHA_MAY, disabled=disable_hd)
+         nha_may = st.selectbox("Nhà Cung Cấp", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
 
     # Lock Logic

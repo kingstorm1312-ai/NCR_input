@@ -5,8 +5,8 @@ import json
 from datetime import datetime
 
 # --- CONFIGURATION ---
-REQUIRED_DEPT = 'fi'
-PAGE_TITLE = "QC Input - FI (Thành Phẩm)"
+REQUIRED_DEPT = 'in_d'
+PAGE_TITLE = "QC Input - In Xưởng D"
 
 st.set_page_config(page_title=PAGE_TITLE, page_icon="🏭", layout="centered")
 
@@ -68,13 +68,12 @@ def load_master_data():
         df_config = pd.DataFrame(records)
         
         # Parse data
-        # Col A: nha_cung_cap, Col B: noi_may, Col C: nhom_loi, Col D: ten_loi
         list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist()
         list_nha_may = df_config['noi_may'].dropna().unique().tolist()
         
-        # Filter errors for 'fi' group
+        # Filter errors for 'In_sieu_am' group
         if 'nhom_loi' in df_config.columns:
-            list_loi = sorted(df_config[df_config['nhom_loi'] == 'fi']['ten_loi'].dropna().unique().tolist())
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower() == 'in_sieu_am']['ten_loi'].dropna().unique().tolist())
         else:
             list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
 
@@ -137,9 +136,7 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
          
     with c4:
-    with c4:
-         # FI uses Factory (Nơi may)
-         nha_may = st.selectbox("Nơi may / Nhà GC", [""] + LIST_NHA_MAY, disabled=disable_hd)
+         nha_may = st.selectbox("Nhà Cung Cấp", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
 
     # Lock Logic

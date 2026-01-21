@@ -15,8 +15,9 @@ DEPARTMENT_PAGES = {
     "may_p2": "pages/06_🧵_May_P2.py",
     "may_n4": "pages/07_🧵_May_N4.py",
     "may_a2": "pages/08_🧵_May_A2.py",
-    "in_d": "pages/09_🖨️_In_Xưởng_D.py",
-    "cat_ban": "pages/10_🔪_Cắt_Bàn.py"
+    "tp_dau_vao": "pages/09_📦_TP_Đầu_Vào.py",
+    "in_d": "pages/10_🖨️_In_Xưởng_D.py",
+    "cat_ban": "pages/11_🔪_Cắt_Bàn.py"
 }
 
 # --- PAGE SETUP ---
