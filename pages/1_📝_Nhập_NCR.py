@@ -7,6 +7,17 @@ from datetime import datetime
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="QC Mobile NCR", page_icon="📱", layout="centered")
 
+# --- AUTHENTICATION & RBAC CHECK ---
+if "user_info" not in st.session_state or st.session_state.user_info is None:
+    st.warning("🔒 Vui lòng đăng nhập tại Dashboard trước.")
+    st.stop()
+
+user = st.session_state.user_info
+# Quyền truy cập: Admin hoặc thuộc bộ phận ncr_input / all
+if user['role'] != 'admin' and user['department'] not in ['ncr_input', 'all']:
+    st.error(f"⛔ Bạn không có quyền truy cập trang này. (Department: {user['department']})")
+    st.stop()
+
 # --- KẾT NỐI GOOGLE SHEETS ---
 @st.cache_resource
 def init_gspread():
