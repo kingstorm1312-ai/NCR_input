@@ -98,6 +98,21 @@ def init_gspread():
         st.error(f"Lỗi kết nối System: {e}")
         return None
 
+@st.cache_data(ttl=600)
+def get_all_users():
+    """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
+    gc = init_gspread()
+    if not gc:
+        return []
+    
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        data = ws.get_all_records()
+        return data
+    except Exception as e:
+        return []
+
 def login_user(username, password):
     """Kiểm tra user từ sheet USERS"""
     gc = init_gspread()
@@ -243,23 +258,6 @@ else:
         st.metric("Hiệu suất", "100%", delta="+0%")
         
     st.divider()
-    
-@st.cache_data(ttl=600)
-def get_all_users():
-    """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
-    gc = init_gspread()
-    if not gc:
-        return []
-    
-    try:
-        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
-        ws = sh.worksheet("USERS")
-        data = ws.get_all_records()
-        return data
-    except Exception as e:
-        return []
-
-    # Row 2: Quick Actions
 
     # Row 2: Quick Actions
     st.subheader("🚀 Truy cập nhanh")
