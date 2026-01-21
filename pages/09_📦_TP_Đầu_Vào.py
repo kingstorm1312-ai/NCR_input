@@ -73,11 +73,10 @@ def load_master_data():
         list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist()
         list_nha_may = df_config['noi_may'].dropna().unique().tolist()
         
-        # Load errors for target group 'fi' (User specified TP Dau Vao uses 'fi' error group)
-        # Note: In the sheet, different rows might have different errors.
+        # Filter errors for 'May' group + 'chung'
         if 'nhom_loi' in df_config.columns:
-            # Filter errors for 'fi' group
-            list_loi = sorted(df_config[df_config['nhom_loi'] == 'fi']['ten_loi'].dropna().unique().tolist())
+            target_groups = ['may', 'chung']
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
         else:
             # Fallback if column not found (or old schema)
             list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())

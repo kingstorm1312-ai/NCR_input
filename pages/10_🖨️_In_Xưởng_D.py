@@ -71,9 +71,10 @@ def load_master_data():
         list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist()
         list_nha_may = df_config['noi_may'].dropna().unique().tolist()
         
-        # Filter errors for 'In_sieu_am' group
+        # Filter errors for 'In_sieu_am' group + 'chung'
         if 'nhom_loi' in df_config.columns:
-            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower() == 'in_sieu_am']['ten_loi'].dropna().unique().tolist())
+            target_groups = ['in_sieu_am', 'chung']
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
         else:
             list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
 

@@ -71,13 +71,10 @@ def load_master_data():
         list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist()
         list_nha_may = df_config['noi_may'].dropna().unique().tolist()
         
-        # Filter errors for 'dv_cuon' group (Assumption derived from context, though explicit mapping was for 'may' and 'fi', logical to assume 'dv_cuon' uses its own if exists, or just all. User listed 'dv_cuon' group in config mapping section)
-        # Mapping: `DV_Cuon` group -> `02_DV_Cuon`
+        # Filter errors for 'DV_Cuon' group + 'chung'
         if 'nhom_loi' in df_config.columns:
-            # Note: Checking exact group string from User Request: "DV_Cuon group -> 02_DV_Cuon"
-            # It's likely 'dv_cuon' (lowercase to match standard coding). Let's use lower case or try to match exactly.
-            # I will use case-insensitive check or just standard lower.
-            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower() == 'dv_cuon']['ten_loi'].dropna().unique().tolist())
+            target_groups = ['dv_cuon', 'chung']
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
         else:
             list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
 
