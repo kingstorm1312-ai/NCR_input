@@ -101,59 +101,56 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
 st.divider()
 st.subheader("Chi tiết lỗi")
 
-# Tách logic nhập lỗi mới ra Tabs để tránh giật màn hình do dropdown resize
+# Tách logic nhập lỗi mới ra Tabs để tránh giật màn hình
 tab_chon, tab_moi = st.tabs(["📋 Chọn lỗi có sẵn", "➕ Nhập lỗi mới"])
 
 final_ten_loi = ""
-final_muc_do = "Nhẹ"
-final_so_luong = 1 # Default value
+# Default values
+default_muc_do = "Nhẹ"
+final_so_luong = 1
 
+# === TAB 1: CHỌN LỖI ===
 with tab_chon:
     c1, c2 = st.columns([2, 1])
     with c1:
-        # Loại bỏ option "Lỗi mới" trong dropdown để tránh trigger re-run
         selected_loi = st.selectbox("Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="select_loi")
     with c2:
         so_luong_chon = st.number_input("SL", min_value=1, value=1, key="sl_chon")
     
     if selected_loi != "-- Chọn --":
         final_ten_loi = selected_loi
-        # Auto determine default severity
-        auto_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
-        if auto_muc_do not in ["Nhẹ", "Nặng", "Nghiêm trọng"]:
-            auto_muc_do = "Nhẹ"
-            
-        # Allow override using Pills (horizontal selection)
-        # Use key based on errors to reset when error changes, or just rely on default
-        # Using radio horizontal as safe fallback or pills
-        final_muc_do = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default=auto_muc_do, selection_mode="single", key="pills_muc_do_chon")
-        
-        # Fallback if pills returns None (unselected)
-        if not final_muc_do:
-            final_muc_do = auto_muc_do
         final_so_luong = so_luong_chon
+        # Auto determine default severity from Dict
+        default_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
+        if default_muc_do not in ["Nhẹ", "Nặng", "Nghiêm trọng"]:
+            default_muc_do = "Nhẹ"
 
+# === TAB 2: NHẬP MỚI ===
 with tab_moi:
     st.caption("Nhập tên lỗi chưa có trong danh sách:")
     new_loi_name = st.text_input("Tên lỗi mới", placeholder="Ví dụ: Rách nách...", key="new_loi_input")
-    
-    # Dùng pills cho dễ chọn trên mobile (Streamlit 1.53 hỗ trợ)
-    new_muc_do = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default="Nhẹ", selection_mode="single")
-    
     sl_moi = st.number_input("SL", min_value=1, value=1, key="sl_moi")
     
     if new_loi_name:
         final_ten_loi = new_loi_name
-        final_muc_do = new_muc_do if new_muc_do else "Nhẹ"
         final_so_luong = sl_moi
+        # Default severity for new error remains "Nhẹ"
 
-# Vị trí (chung cho cả 2 tab)
+# === VỊ TRÍ (Row 2) ===
 st.write("")
-col_vitri, col_btn = st.columns([2, 1])
+col_vitri, col_spacer = st.columns([2, 1])
 with col_vitri:
     vi_tri = st.selectbox("Vị trí", LIST_VI_TRI if LIST_VI_TRI else ["Chưa có"], key="select_vitri")
     if st.checkbox("Vị trí khác?", key="chk_vitri_khac"):
         vi_tri = st.text_input("Nhập vị trí:", key="input_vitri_khac")
+
+# === MỨC ĐỘ (Row 3 - Theo yêu cầu: Sau Vị trí) ===
+# Dùng pills cho dễ chọn trên mobile
+final_muc_do = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default=default_muc_do, selection_mode="single", key="pills_muc_do_final")
+if not final_muc_do:
+    final_muc_do = default_muc_do
+
+st.write("") # Spacer
         
 # NÚT THÊM (Chung)
 if st.button("THÊM LỖI ⬇️", use_container_width=True, type="secondary"):
