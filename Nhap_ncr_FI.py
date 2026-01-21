@@ -17,7 +17,8 @@ def init_gspread():
         creds_str = st.secrets["connections"]["gsheets"]["service_account"]
         
         if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str)
+            # strict=False allows control characters (newlines) inside strings
+            credentials_dict = json.loads(creds_str, strict=False)
         else:
             credentials_dict = creds_str
             
