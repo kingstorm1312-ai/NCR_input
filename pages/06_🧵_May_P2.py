@@ -4,10 +4,13 @@ import gspread
 import json
 from datetime import datetime
 
-# --- CẤU HÌNH TRANG ---
-st.set_page_config(page_title="QC Mobile NCR", page_icon="📱", layout="centered")
+# --- CONFIGURATION ---
+REQUIRED_DEPT = 'may_p2'
+PAGE_TITLE = "QC Input - May P2"
 
-# --- AUTHENTICATION & RBAC CHECK ---
+st.set_page_config(page_title=PAGE_TITLE, page_icon="🏭", layout="centered")
+
+# --- SECURITY CHECK (CRITICAL) ---
 if "user_info" not in st.session_state or not st.session_state.user_info:
     st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
     st.stop()
@@ -16,9 +19,11 @@ user_info = st.session_state.user_info
 user_dept = user_info.get("department")
 user_role = user_info.get("role")
 
-# ALLOW if: User is Admin/Manager OR User belongs to 'ncr_input' department
-if user_role not in ['admin', 'manager'] and user_dept != 'ncr_input':
-    st.error(f"⛔ Bạn không có quyền truy cập module này! (Dept: {user_dept})")
+# Allow access if Admin OR if Department matches exactly
+if user_role != 'admin' and user_dept != REQUIRED_DEPT:
+    st.error(f"⛔ Bạn thuộc bộ phận '{user_dept}', không có quyền truy cập vào '{REQUIRED_DEPT}'!")
+    if st.button("🔙 Quay lại trang chủ"):
+        st.switch_page("Dashboard.py")
     st.stop()
 
 # --- KẾT NỐI GOOGLE SHEETS ---
