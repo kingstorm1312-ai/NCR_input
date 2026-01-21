@@ -72,7 +72,7 @@ def login_user(username, password):
             stored_password = user.iloc[0]['password']
             if clean_pass == stored_password:
                 return {
-                    "name": user.iloc[0]['name'],
+                    "name": user.iloc[0]['full_name'],  # Fix: Column in Sheet is 'full_name'
                     "username": user.iloc[0]['username'],
                     "role": user.iloc[0]['role'],
                     "department": user.iloc[0]['department']
