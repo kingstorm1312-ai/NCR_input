@@ -259,7 +259,16 @@ if len(st.session_state.buffer_errors) > 0:
                         err['muc_do'],                      # muc_do (Theo yêu cầu: sau sl_kiem)
                         sl_lo,                              # so_luong_lo_hang
                         nguoi_lap,                          # nguoi_lap_phieu
-                        nha_may                             # noi_gay_loi
+                        nha_may,                            # noi_gay_loi
+                        # --- NEW APPROVAL COLUMNS ---
+                        'cho_truong_ca',                    # trang_thai (Initial)
+                        now.strftime("%Y-%m-%d %H:%M:%S"),  # thoi_gian_cap_nhat
+                        '',                                 # nguoi_duyet_1
+                        '',                                 # nguoi_duyet_2
+                        '',                                 # huong_giai_quyet
+                        '',                                 # nguoi_duyet_3
+                        '',                                 # nguoi_duyet_4
+                        ''                                  # ly_do_tu_choi
                     ])
                 
                 ws.append_rows(rows)
