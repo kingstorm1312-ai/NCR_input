@@ -97,19 +97,55 @@ st.title("📱 QC NCR Input")
 with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
-    col1, col2 = st.columns(2)
-    with col1:
-        so_phieu = st.text_input("Số phiếu NCR", disabled=disable_hd)
-        ma_vt = st.text_input("Mã Vật Tư", disabled=disable_hd)
-        sl_kiem = st.number_input("SL Kiểm", min_value=0, value=0, disabled=disable_hd)
-        nguoi_lap = st.text_input("Người lập", value="QC", disabled=disable_hd)
-    with col2:
-        hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
-        ten_sp = st.text_input("Tên SP", disabled=disable_hd)
-        nha_may = st.selectbox("Nơi may", [""] + LIST_NHA_MAY, disabled=disable_hd)
-        sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
+    # ROW 1
+    c1, c2 = st.columns(2)
+    with c1:
+        # Auto-fill Creator
+        current_user_name = st.session_state["user_info"]["name"]
+        nguoi_lap = st.text_input("Người lập", value=current_user_name, disabled=True)
         
-    # Move nút khóa xuống cuối (Theo yêu cầu UX)
+        # NCR Logic
+        dept_prefix = REQUIRED_DEPT.upper().replace("_", "-") # e.g. MAY_I -> MAY-I
+        current_month = datetime.now().strftime("%m")
+        ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Chỉ nhập số đuôi", disabled=disable_hd)
+        so_phieu = ""
+        if ncr_suffix:
+            so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
+            st.caption(f"👉 Mã phiếu: **{so_phieu}**")
+
+    with c2:
+        # Material Code
+        raw_ma_vt = st.text_input("Mã Vật Tư (xxxyyyyy)", disabled=disable_hd)
+        ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else ""
+        
+        # Contract Logic (Split Columns)
+        st.write("Hợp đồng (xxxx/yyZZZ)")
+        hc1, hc2, hc3 = st.columns([1.5, 1, 1.5])
+        with hc1:
+            hd_num = st.text_input("Số", placeholder="123", disabled=disable_hd)
+        with hc2:
+            hd_year = st.text_input("Năm", placeholder="26", disabled=disable_hd)
+        with hc3:
+            hd_code = st.text_input("Mã", placeholder="ABC", disabled=disable_hd)
+        
+        # Concatenate Contract
+        hop_dong = ""
+        if hd_num and hd_year and hd_code:
+            # Remove leading zeros for number simply by int->str conversion logic or keep as is if user prefers
+            clean_num = str(int(hd_num)) if hd_num.isdigit() else hd_num 
+            hop_dong = f"{clean_num}/{hd_year}{hd_code.upper()}"
+
+    # ROW 2 (Remaining fields)
+    c3, c4 = st.columns(2)
+    with c3:
+         sl_kiem = st.number_input("SL Kiểm", min_value=0, value=0, disabled=disable_hd)
+         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
+         
+    with c4:
+         nha_may = st.selectbox("Nơi may", [""] + LIST_NHA_MAY, disabled=disable_hd)
+         sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
+
+    # Lock Logic
     st.write("") # Spacer
     lock = st.checkbox("🔒 Khóa thông tin (Đã nhập xong)", value=st.session_state.header_locked)
     if lock != st.session_state.header_locked:
