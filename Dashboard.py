@@ -259,7 +259,7 @@ def get_all_users():
     except Exception as e:
         return []
 
-# ... (UI CODE) ...
+    # Row 2: Quick Actions
 
     # Row 2: Quick Actions
     st.subheader("🚀 Truy cập nhanh")
