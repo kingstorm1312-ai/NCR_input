@@ -115,11 +115,14 @@ def login_user(username, password):
         df_users['username'] = df_users['username'].astype(str).str.strip()
         df_users['password'] = df_users['password'].astype(str).str.strip()
         
-        clean_user = str(username).strip()
+        # Case specific normalized column for lookup
+        df_users['username_lower'] = df_users['username'].str.lower()
+        
+        clean_user_lower = str(username).strip().lower()
         clean_pass = str(password).strip()
         
-        # Find user
-        user = df_users[df_users['username'] == clean_user]
+        # Find user (Case Insensitive)
+        user = df_users[df_users['username_lower'] == clean_user_lower]
         
         if not user.empty:
             stored_password = user.iloc[0]['password']
