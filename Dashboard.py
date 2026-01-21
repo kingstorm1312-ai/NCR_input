@@ -244,20 +244,52 @@ else:
         
     st.divider()
     
+@st.cache_data(ttl=600)
+def get_all_users():
+    """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
+    gc = init_gspread()
+    if not gc:
+        return []
+    
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        data = ws.get_all_records()
+        return data
+    except Exception as e:
+        return []
+
+# ... (UI CODE) ...
+
     # Row 2: Quick Actions
     st.subheader("🚀 Truy cập nhanh")
     
     if user['role'] == 'admin':
-        st.info("Admin Control Panel")
-        row_a1 = st.columns(4)
-        buttons = list(DEPARTMENT_PAGES.items())
+        st.info("Admin Control Panel - Danh sách nhân sự đang hoạt động")
         
-        # Simple grid for admin
-        for i, (dept_code, page_path) in enumerate(buttons):
-            col = row_a1[i % 4]
-            with col:
-                if st.button(f"Go to {dept_code.upper()}", key=f"btn_{dept_code}", use_container_width=True):
-                    st.switch_page(page_path)
+        # Load all users
+        all_users = get_all_users()
+        if all_users:
+            df_all = pd.DataFrame(all_users)
+            
+            # Group by Department
+            if not df_all.empty and 'department' in df_all.columns:
+                unique_depts = df_all['department'].unique()
+                
+                # Display as Expanders
+                for dept in unique_depts:
+                    dept_users = df_all[df_all['department'] == dept]
+                    count = len(dept_users)
+                    
+                    with st.expander(f"📂 {dept.upper()} ({count} nhân viên)"):
+                        # Simple Table
+                        display_df = dept_users[['full_name', 'username', 'role']]
+                        st.dataframe(display_df, use_container_width=True, hide_index=True)
+            else:
+                st.warning("Không có dữ liệu nhân viên.")
+        else:
+            st.error("Không thể tải danh sách nhân viên.")
+            
     else:
         # Staff View
         dept_code = user['department']
