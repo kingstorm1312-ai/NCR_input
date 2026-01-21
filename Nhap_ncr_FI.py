@@ -170,10 +170,10 @@ if len(st.session_state.buffer_errors) > 0:
                         err['vi_tri'],                      # vi_tri_loi
                         err['sl_loi'],                      # so_luong_loi
                         sl_kiem,                            # so_luong_kiem
+                        err['muc_do'],                      # muc_do (Theo yêu cầu: sau sl_kiem)
                         sl_lo,                              # so_luong_lo_hang
                         nguoi_lap,                          # nguoi_lap_phieu
-                        nha_may,                            # noi_gay_loi
-                        err['muc_do']                       # muc_do (Optional/Extra)
+                        nha_may                             # noi_gay_loi
                     ])
                 
                 ws.append_rows(rows)
