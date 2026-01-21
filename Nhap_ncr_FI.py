@@ -73,10 +73,9 @@ if "header_locked" not in st.session_state:
 # --- GIAO DIỆN ---
 st.title("📱 QC NCR Input")
 
-# HEADER
-with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header_locked):
-    lock = st.checkbox("🔒 Khóa Header", value=st.session_state.header_locked)
-    st.session_state.header_locked = lock
+# === PHẦN 1: HEADER (THÔNG TIN PHIẾU) ===
+# Mặc định expander đóng nếu đã khóa, mở nếu chưa khóa
+with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
     col1, col2 = st.columns(2)
@@ -90,57 +89,86 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
         nha_may = st.selectbox("Nơi may", [""] + LIST_NHA_MAY, disabled=disable_hd)
         sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
+        
+    # Move nút khóa xuống cuối (Theo yêu cầu UX)
+    st.write("") # Spacer
+    lock = st.checkbox("🔒 Khóa thông tin (Đã nhập xong)", value=st.session_state.header_locked)
+    if lock != st.session_state.header_locked:
+        st.session_state.header_locked = lock
+        st.rerun()
 
-# CHI TIẾT
+# === PHẦN 2: CHI TIẾT LỖI ===
 st.divider()
 st.subheader("Chi tiết lỗi")
 
-c_loi, c_vitri, c_sl = st.columns([2, 1.5, 1])
+# Tách logic nhập lỗi mới ra Tabs để tránh giật màn hình do dropdown resize
+tab_chon, tab_moi = st.tabs(["📋 Chọn lỗi có sẵn", "➕ Nhập lỗi mới"])
 
-with c_loi:
-    input_loi = st.selectbox("Tên lỗi", ["-- Chọn --"] + LIST_LOI + ["➕ Lỗi mới..."])
-    final_ten_loi, final_muc_do = "", "Nhẹ"
+final_ten_loi = ""
+final_muc_do = "Nhẹ"
+final_so_luong = 1 # Default value
+
+with tab_chon:
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        # Loại bỏ option "Lỗi mới" trong dropdown để tránh trigger re-run
+        selected_loi = st.selectbox("Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="select_loi")
+    with c2:
+        so_luong_chon = st.number_input("SL", min_value=1, value=1, key="sl_chon")
     
-    if input_loi == "➕ Lỗi mới...":
-        final_ten_loi = st.text_input("Nhập tên lỗi:")
-        final_muc_do = st.selectbox("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"])
-    elif input_loi != "-- Chọn --":
-        final_ten_loi = input_loi
-        auto_muc_do = DICT_MUC_DO.get(final_ten_loi, "")
-        if auto_muc_do:
-            st.info(f"Mức độ: {auto_muc_do}")
-            final_muc_do = auto_muc_do
-        else:
-            final_muc_do = st.selectbox("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"])
+    if selected_loi != "-- Chọn --":
+        final_ten_loi = selected_loi
+        # Auto fill mức độ
+        auto_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
+        st.info(f"Mức độ: {auto_muc_do}")
+        final_muc_do = auto_muc_do
+        final_so_luong = so_luong_chon
 
-with c_vitri:
-    vi_tri = st.selectbox("Vị trí", LIST_VI_TRI if LIST_VI_TRI else ["Chưa có"])
-    if st.checkbox("Vị trí khác?"):
-        vi_tri = st.text_input("Nhập vị trí:")
+with tab_moi:
+    st.caption("Nhập tên lỗi chưa có trong danh sách:")
+    new_loi_name = st.text_input("Tên lỗi mới", placeholder="Ví dụ: Rách nách...", key="new_loi_input")
+    
+    # Dùng pills cho dễ chọn trên mobile (Streamlit 1.53 hỗ trợ)
+    new_muc_do = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default="Nhẹ", selection_mode="single")
+    
+    sl_moi = st.number_input("SL", min_value=1, value=1, key="sl_moi")
+    
+    if new_loi_name:
+        final_ten_loi = new_loi_name
+        final_muc_do = new_muc_do if new_muc_do else "Nhẹ"
+        final_so_luong = sl_moi
 
-with c_sl:
-    so_luong = st.number_input("SL", min_value=1, value=1)
-
-# THÊM LỖI
+# Vị trí (chung cho cả 2 tab)
+st.write("")
+col_vitri, col_btn = st.columns([2, 1])
+with col_vitri:
+    vi_tri = st.selectbox("Vị trí", LIST_VI_TRI if LIST_VI_TRI else ["Chưa có"], key="select_vitri")
+    if st.checkbox("Vị trí khác?", key="chk_vitri_khac"):
+        vi_tri = st.text_input("Nhập vị trí:", key="input_vitri_khac")
+        
+# NÚT THÊM (Chung)
 if st.button("THÊM LỖI ⬇️", use_container_width=True, type="secondary"):
-    if not final_ten_loi or input_loi == "-- Chọn --":
-        st.error("Chọn tên lỗi!")
+    if not final_ten_loi or final_ten_loi == "-- Chọn --":
+        st.error("Vui lòng chọn hoặc nhập tên lỗi!")
     else:
         found = False
         for item in st.session_state.buffer_errors:
             if item['ten_loi'] == final_ten_loi and item['vi_tri'] == vi_tri:
-                item['sl_loi'] += so_luong
+                item['sl_loi'] += final_so_luong
                 found = True
-                st.toast(f"Cộng dồn: {final_ten_loi} (+{so_luong})")
+                st.toast(f"Cộng dồn: {final_ten_loi} (+{final_so_luong})")
                 break
         if not found:
             st.session_state.buffer_errors.append({
                 "ten_loi": final_ten_loi,
                 "vi_tri": vi_tri,
                 "muc_do": final_muc_do,
-                "sl_loi": so_luong
+                "sl_loi": final_so_luong
             })
             st.toast(f"Đã thêm: {final_ten_loi}")
+            
+        # Reset UI (Optional - Streamlit auto resets on interaction but inputs stay)
+        # Để reset input, cần dùng session state callback hoặc key trick, nhưng tạm thời giữ simple.
 
 # REVIEW & SAVE
 st.markdown("### 📋 Buffer")
