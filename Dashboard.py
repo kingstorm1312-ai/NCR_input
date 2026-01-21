@@ -153,13 +153,15 @@ if st.session_state.user_info is None:
         
         # Container simulating a card
         with st.container():
-            # Logo
-            try:
-                st.image("assets/Logo.png", width=200) 
-            except:
-                st.markdown("## ĐẠI LỤC CPC") # Fallback text
+            # Logo Centered
+            c_l, c_c, c_r = st.columns([1, 2, 1])
+            with c_c:
+                try:
+                    st.image("assets/Logo.png", use_container_width=True) 
+                except:
+                    st.markdown("## ĐẠI LỤC CPC") # Fallback text
             
-            st.markdown("<h3 style='text-align: left; color: #212121;'>HỆ THỐNG QUẢN LÝ CHẤT LƯỢNG (QC)</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #212121;'>HỆ THỐNG QUẢN LÝ CHẤT LƯỢNG (QC)</h3>", unsafe_allow_html=True)
             st.markdown("---")
             
             with st.form("login_form"):
