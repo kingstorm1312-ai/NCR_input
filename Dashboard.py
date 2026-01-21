@@ -1,25 +1,8 @@
 import streamlit as st
-import gspread
 import pandas as pd
+import gspread
 import json
 import time
-
-st.set_page_config(
-    page_title="QC System Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# --- UTILS: CONNECT TO GOOGLE SHEETS ---
-@st.cache_resource
-def init_gspread():
-    """Khởi tạo gspread client từ secrets"""
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        
-        if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str, strict=False)
 from datetime import datetime
 
 # --- CONFIG: DEPARTMENT ROUTING ---
