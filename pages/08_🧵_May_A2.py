@@ -118,22 +118,9 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
         raw_ma_vt = st.text_input("Mã Vật Tư (xxxyyyyy)", disabled=disable_hd)
         ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else ""
         
-        # Contract Logic (Split Columns)
-        st.write("Hợp đồng (xxxx/yyZZZ)")
-        hc1, hc2, hc3 = st.columns([1.5, 1, 1.5])
-        with hc1:
-            hd_num = st.text_input("Số", placeholder="123", disabled=disable_hd)
-        with hc2:
-            hd_year = st.text_input("Năm", placeholder="26", disabled=disable_hd)
-        with hc3:
-            hd_code = st.text_input("Mã", placeholder="ABC", disabled=disable_hd)
-        
-        # Concatenate Contract
-        hop_dong = ""
-        if hd_num and hd_year and hd_code:
-            # Remove leading zeros for number simply by int->str conversion logic or keep as is if user prefers
-            clean_num = str(int(hd_num)) if hd_num.isdigit() else hd_num 
-            hop_dong = f"{clean_num}/{hd_year}{hd_code.upper()}"
+        # Contract Logic (Single Input)
+        raw_hop_dong = st.text_input("Hợp đồng (xxxx/yyZZZ)", disabled=disable_hd)
+        hop_dong = raw_hop_dong.strip() if raw_hop_dong else ""
 
     # ROW 2 (Remaining fields)
     c3, c4 = st.columns(2)
