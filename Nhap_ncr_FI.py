@@ -160,11 +160,20 @@ if len(st.session_state.buffer_errors) > 0:
                 rows = []
                 for err in st.session_state.buffer_errors:
                     rows.append([
-                        now.strftime("%Y-%m-%d %H:%M:%S"),
-                        now.strftime("%Y-%m-%d"),
-                        nguoi_lap, so_phieu, hop_dong, ma_vt, ten_sp, nha_may,
-                        err['ten_loi'], err['vi_tri'], err['muc_do'], err['sl_loi'],
-                        sl_kiem, sl_lo, nha_may
+                        now.strftime("%Y-%m-%d %H:%M:%S"),  # ngay_lap
+                        so_phieu,                           # so_phieu_ncr
+                        hop_dong,                           # hop_dong
+                        ma_vt,                              # ma_vat_tu
+                        ten_sp,                             # ten_sp
+                        nha_may,                            # noi_may
+                        err['ten_loi'],                     # ten_loi
+                        err['vi_tri'],                      # vi_tri_loi
+                        err['sl_loi'],                      # so_luong_loi
+                        sl_kiem,                            # so_luong_kiem
+                        sl_lo,                              # so_luong_lo_hang
+                        nguoi_lap,                          # nguoi_lap_phieu
+                        nha_may,                            # noi_gay_loi
+                        err['muc_do']                       # muc_do (Optional/Extra)
                     ])
                 
                 ws.append_rows(rows)
