@@ -101,16 +101,37 @@ st.divider()
 
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
-    df_all = load_all_ncr_data()
+    df_raw = load_all_ncr_data()
 
-if df_all.empty:
+if df_raw.empty:
     st.info("Chưa có dữ liệu NCR.")
     st.stop()
+
+# --- DATA PREPROCESSING: GROUP BY TICKET ---
+# Raw data has 1 row per Error. We need 1 row per Ticket for stats.
+if 'so_phieu' in df_raw.columns:
+    group_cols = {
+        'ngay_lap': 'first',
+        'nguoi_lap_phieu': 'first',
+        'trang_thai': 'first',
+        'thoi_gian_cap_nhat': 'first',
+        'hours_stuck': 'first',
+        'sl_loi': 'sum',
+        'bo_phan': 'first'
+    }
+    # Add optional cols if exist
+    for col in df_raw.columns:
+        if col not in group_cols and col != 'so_phieu':
+            group_cols[col] = 'first'
+            
+    df_all = df_raw.groupby('so_phieu', as_index=False).agg(group_cols)
+else:
+    df_all = df_raw.copy()
 
 # --- PIPELINE STATUS ---
 st.subheader("📊 Pipeline Status")
 
-# Count by status
+# Count by status (Now counting Tickets, not Error Rows)
 status_counts = df_all['trang_thai'].value_counts() if 'trang_thai' in df_all.columns else pd.Series()
 
 # Define status order
@@ -143,17 +164,9 @@ df_stuck = df_all[
     (df_all['hours_stuck'] > 24)
 ].copy()
 
-# Group by ticket to avoid duplicates
+# Group by ticket to avoid duplicates (Already grouped, but safe to keep logic simple)
 if not df_stuck.empty and 'so_phieu' in df_stuck.columns:
-    df_stuck_grouped = df_stuck.groupby('so_phieu', as_index=False).agg({
-        'ngay_lap': 'first',
-        'nguoi_lap_phieu': 'first',
-        'trang_thai': 'first',
-        'thoi_gian_cap_nhat': 'first',
-        'hours_stuck': 'first',
-        'bo_phan': 'first',
-        'sl_loi': 'sum'
-    }).sort_values('hours_stuck', ascending=False)
+    df_stuck_grouped = df_stuck # Already grouped
     
     if not df_stuck_grouped.empty:
         st.error(f"🚨 Phát hiện {len(df_stuck_grouped)} phiếu bị kẹt >24 giờ!")
