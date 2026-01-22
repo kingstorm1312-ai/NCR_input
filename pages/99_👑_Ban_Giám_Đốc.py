@@ -12,7 +12,8 @@ from utils.ncr_helpers import (
     calculate_stuck_time,
     get_status_display_name,
     get_status_color,
-    COLUMN_MAPPING
+    COLUMN_MAPPING,
+    load_ncr_dataframe
 )
 
 # --- PAGE SETUP ---
@@ -54,45 +55,10 @@ def init_gspread():
 gc = init_gspread()
 
 # --- LOAD ALL NCR DATA ---
-@st.cache_data(ttl=300)
+# --- LOAD ALL NCR DATA ---
+# Using shared loader from utils
 def load_all_ncr_data():
-    """Load tất cả NCR data từ Google Sheets"""
-    try:
-        spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        sh = gc.open_by_key(spreadsheet_id)
-        ws = sh.worksheet("NCR_DATA")
-        
-        records = ws.get_all_records()
-        df = pd.DataFrame(records)
-        
-        if df.empty:
-            return pd.DataFrame()
-        
-        # Normalize column names (strip spaces)
-        df.columns = df.columns.str.strip()
-        
-        # --- APPLY COLUMN MAPPING (Sheet Name -> Code Name) ---
-        # Create reverse mapping: {SheetName: CodeName}
-        inv_map = {v: k for k, v in COLUMN_MAPPING.items()}
-        df.rename(columns=inv_map, inplace=True)
-        
-        # Calculate stuck time
-        if 'thoi_gian_cap_nhat' in df.columns:
-            df['hours_stuck'] = df['thoi_gian_cap_nhat'].apply(calculate_stuck_time)
-        else:
-            df['hours_stuck'] = 0
-        
-        # Extract department from so_phieu
-        if 'so_phieu' in df.columns:
-            df['bo_phan'] = df['so_phieu'].astype(str).str.split('-').str[0].str.lower()
-        
-        return df
-        
-    except Exception as e:
-        st.error(f"Lỗi load data: {e}")
-        import traceback
-        st.code(traceback.format_exc())
-        return pd.DataFrame()
+    return load_ncr_dataframe(gc)
 
 # --- HEADER ---
 st.title("👑 Dashboard Giám Đốc")
@@ -276,11 +242,10 @@ st.subheader("📅 Xu hướng theo thời gian")
 if 'ngay_lap' in df_all.columns:
     # Try to parse date
     try:
-        # Convert to datetime
-        df_all['date_parsed'] = pd.to_datetime(df_all['ngay_lap'], errors='coerce', dayfirst=True)
-        
+        # Use pre-parsed date_obj from shared loader
         # Group by date
-        df_time = df_all.groupby(df_all['date_parsed'].dt.date).size().reset_index(name='count')
+        if 'date_obj' in df_all.columns:
+            df_time = df_all.groupby(df_all['date_obj'].dt.date).size().reset_index(name='count')
         df_time.columns = ['Ngày', 'Số phiếu']
         
         # Plot

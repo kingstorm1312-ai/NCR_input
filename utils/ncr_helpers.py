@@ -183,6 +183,79 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
         return pd.DataFrame(), pd.DataFrame()
 
 
+
+@st.cache_data(ttl=300)
+def load_ncr_dataframe(gc):
+    """
+    Load raw NCR dataframe with preprocessing for Reporting/Dashboard.
+    Includes: Column renaming, Date parsing, Department extraction, Stuck time.
+    """
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        
+        records = ws.get_all_records()
+        df = pd.DataFrame(records)
+        
+        if df.empty:
+            return pd.DataFrame()
+        
+        # Normalize column names
+        df.columns = df.columns.str.strip()
+        
+        # Map to Code Names
+        inv_map = {v: k for k, v in COLUMN_MAPPING.items()}
+        df.rename(columns=inv_map, inplace=True)
+        
+        # 1. Parse Date (Robust)
+        if 'ngay_lap' in df.columns:
+            df['date_obj'] = pd.to_datetime(df['ngay_lap'], dayfirst=True, errors='coerce')
+            df['year'] = df['date_obj'].dt.year
+            df['month'] = df['date_obj'].dt.month
+            df['week'] = df['date_obj'].dt.isocalendar().week
+        
+        # 2. Extract Department
+        if 'so_phieu' in df.columns:
+            # e.g. MAY-I-..., FI-..., DV_CUON-...
+            # Split by '-' or '_' and take first part? 
+            # Logic: "MAY-I" -> "may_i", "FI" -> "fi"
+            def extract_dept(x):
+                s = str(x).upper()
+                parts = s.split('-')
+                if len(parts) >= 2:
+                    return f"{parts[0]}_{parts[1]}".lower() # may_i
+                return parts[0].lower() # fi
+            
+            # Simple extraction for now: Just Group Prefix?
+            # User wants "Khâu" -> "May I", "May P2".
+            # Prefix is usually Dept Code.
+            df['bo_phan'] = df['so_phieu'].astype(str).str.split('-').str[0].str.lower()
+            
+            # More granular extraction if needed (e.g., MAY-I vs MAY-P2)
+            # Let's create a full_dept column
+            def extract_full_dept(x):
+                parts = str(x).split('-')
+                if len(parts) >= 2:
+                    val = f"{parts[0]}_{parts[1]}".lower()
+                    # Check if it matches known patterns or just return
+                    return val
+                return parts[0].lower()
+            
+            df['bo_phan_full'] = df['so_phieu'].apply(extract_full_dept)
+
+        # 3. Calculate Stuck Time
+        if 'thoi_gian_cap_nhat' in df.columns:
+            df['hours_stuck'] = df['thoi_gian_cap_nhat'].apply(calculate_stuck_time)
+        else:
+            df['hours_stuck'] = 0
+            
+        return df
+        
+    except Exception as e:
+        st.error(f"Lỗi load data chung: {e}")
+        return pd.DataFrame()
+
+
 # --- HELPER FUNCTIONS ---
 def get_status_display_name(status):
     """Trả về tên hiển thị tiếng Việt của trạng thái"""
