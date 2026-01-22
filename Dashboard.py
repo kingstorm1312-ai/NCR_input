@@ -259,41 +259,64 @@ else:
         
     st.divider()
 
-    # Row 2: Quick Actions
+    # Row 2: Quick Actions (Role-Specific Views)
     st.subheader("🚀 Truy cập nhanh")
     
-    # Grid layout for mobile-friendly buttons
-    col_a, col_b = st.columns(2)
+    role = user['role']
+    dept_code = user['department']
+    has_dept_page = dept_code in DEPARTMENT_PAGES
     
-    with col_a:
-        if st.button("🙋 NCR Của Tôi", use_container_width=True, help="Xem phiếu bạn đã tạo"):
-            st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
-            
-    with col_b:
-        # Show 'Phê Duyệt' logic based on role
-        if user['role'] in ['truong_ca', 'truong_bp', 'qc_manager', 'director', 'admin']:
-            if st.button("✍️ Phê Duyệt", use_container_width=True, help="Duyệt phiếu NCR"):
+    # --- VIEW 1: QC MANAGER & DIRECTOR & ADMIN ---
+    if role in ['qc_manager', 'director', 'admin']:
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
                 st.switch_page("pages/50_✍️_Phê_Duyệt.py")
-    
-    col_c, col_d = st.columns(2)
-    
-    with col_c:
-        # Show 'QC Giám Sát' for supervisor roles
-        if user['role'] in ['qc_manager', 'director', 'admin']:
-            if st.button("🔧 QC Giám Sát", use_container_width=True, help="Quản lý phiếu bị từ chối"):
+        with c2:
+            if st.button("🔧 QC Giám Sát", use_container_width=True):
                 st.switch_page("pages/51_🔧_QC_Giám_Sát.py")
+                
+        c3, c4 = st.columns(2)
+        with c3:
+            if st.button("🙋 NCR Của Tôi", use_container_width=True):
+                 st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
+        with c4:
+             if has_dept_page:
+                 if st.button(f"📥 Nhập Liệu ({dept_code})", use_container_width=True):
+                     st.switch_page(DEPARTMENT_PAGES[dept_code])
 
-    with col_d:
-        # Show 'Nhập Liệu' specific department page
-        dept_code = user['department']
-        if dept_code in DEPARTMENT_PAGES:
-             if st.button(f"📥 Nhập Liệu ({dept_code})", use_container_width=True):
+    # --- VIEW 2: TRƯỞNG CA & TRƯỞNG BP ---
+    elif role in ['truong_ca', 'truong_bp']:
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
+                st.switch_page("pages/50_✍️_Phê_Duyệt.py")
+        with c2:
+            if st.button("🙋 NCR Của Tôi", use_container_width=True):
+                 st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
+        
+        # Row 2 for input
+        if has_dept_page:
+            if st.button(f"📥 Vào trang Nhập Liệu ({dept_code})", use_container_width=True):
                  st.switch_page(DEPARTMENT_PAGES[dept_code])
 
+    # --- VIEW 3: STAFF (DEFAULT) ---
+    else:
+        c1, c2 = st.columns(2)
+        with c1:
+            if has_dept_page:
+                if st.button(f"📥 Nhập Liệu ({dept_code})", use_container_width=True, type="primary"):
+                    st.switch_page(DEPARTMENT_PAGES[dept_code])
+            else:
+                 st.info("Chưa phân quyền nhập liệu.")
+        with c2:
+             if st.button("🙋 NCR Của Tôi", use_container_width=True):
+                 st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
     
-    if user['role'] == 'admin':
+    # Check Admin Panel visibility
+    if role == 'admin':
         st.divider()
-        st.info("Admin Control Panel - Danh sách nhân sự đang hoạt động")
+        st.info("Admin Control Panel - Danh sách nhân sự")
         
         # Load all users
         all_users = get_all_users()
@@ -313,15 +336,6 @@ else:
                         # Simple Table
                         display_df = dept_users[['full_name', 'username', 'role']]
                         st.dataframe(display_df, use_container_width=True, hide_index=True)
-            else:
-                st.warning("Không có dữ liệu nhân viên.")
-        else:
-            st.error("Không thể tải danh sách nhân viên.")
-            
-    else:
-        # Staff View additional info
-        if user['role'] not in ['truong_ca', 'truong_bp', 'qc_manager', 'director']:
-            st.info("Chọn chức năng từ menu trên để bắt đầu.")
 
     # Row 3: Visuals (Placeholder)
     st.write("")
