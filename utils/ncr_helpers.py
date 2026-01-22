@@ -185,13 +185,13 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
 
 
 @st.cache_data(ttl=300)
-def load_ncr_dataframe(gc):
+def load_ncr_dataframe(_gc):
     """
     Load raw NCR dataframe with preprocessing for Reporting/Dashboard.
     Includes: Column renaming, Date parsing, Department extraction, Stuck time.
     """
     try:
-        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        sh = _gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         ws = sh.worksheet("NCR_DATA")
         
         records = ws.get_all_records()
