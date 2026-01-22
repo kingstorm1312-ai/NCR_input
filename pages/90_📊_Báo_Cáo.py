@@ -141,9 +141,12 @@ with col1:
     # Group by Date (or Week)
     # Let's group by 'date_obj' (Daily) or 'week' depending on range duration
     # Simple line chart by Date
+    # Chart 1: Trend over Time
     count_by_date = df_final.groupby(df_final['date_obj'].dt.date).size().reset_index(name='Total Errors')
     fig_trend = px.line(count_by_date, x='date_obj', y='Total Errors', markers=True, 
-                        title="Số lượng lỗi theo ngày", labels={'date_obj': 'Ngày', 'Total Errors': 'Số lỗi'})
+                        title="Số lượng lỗi theo ngày", 
+                        labels={'date_obj': 'Ngày', 'Total Errors': 'Số lượng lỗi'})
+    fig_trend.update_traces(hovertemplate='Ngày: %{x}<br>Số lỗi: %{y}')
     st.plotly_chart(fig_trend, use_container_width=True)
 
 # Chart 2: Pareto (Defect Types)
@@ -159,10 +162,11 @@ with col2:
     fig_pareto = go.Figure()
     # Bar for Count
     fig_pareto.add_trace(go.Bar(
-        x=count_by_error['ten_loi'].head(10), # Show top 10
+        x=count_by_error['ten_loi'].head(10), 
         y=count_by_error['count'].head(10),
         name='Số lượng',
-        marker_color='indianred'
+        marker_color='indianred',
+        hovertemplate='Lỗi: %{x}<br>Số lượng: %{y}<extra></extra>'
     ))
     # Line for Cum %
     fig_pareto.add_trace(go.Scatter(
@@ -171,7 +175,8 @@ with col2:
         name='Tỷ lệ tích lũy %',
         yaxis='y2',
         mode='lines+markers',
-        marker_color='blue'
+        marker_color='blue',
+        hovertemplate='Lỗi: %{x}<br>Tỷ lệ: %{y:.1f}%<extra></extra>'
     ))
     
     fig_pareto.update_layout(
@@ -191,9 +196,14 @@ with col3:
     count_by_dept = df_final['bo_phan_full'].value_counts().reset_index()
     count_by_dept.columns = ['bo_phan_full', 'count']
     
-    fig_dept = px.bar(count_by_dept, x='bo_phan_full', y='count', 
+    # Prettify Dept Name
+    count_by_dept['Tên Khâu'] = count_by_dept['bo_phan_full'].astype(str).str.upper().str.replace('_', ' ')
+    
+    fig_dept = px.bar(count_by_dept, x='Tên Khâu', y='count', 
                       title="Tổng lỗi theo Khâu", color='count',
-                      labels={'bo_phan_full': 'Khâu', 'count': 'Số lỗi'})
+                      labels={'count': 'Số lượng lỗi'},
+                      text='count')
+    fig_dept.update_traces(hovertemplate='Khâu: %{x}<br>Số lỗi: %{y}<extra></extra>')
     st.plotly_chart(fig_dept, use_container_width=True)
 
 # Chart 4: Severity Breakdown
