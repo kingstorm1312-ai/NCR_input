@@ -236,22 +236,23 @@ def update_ncr_status(gc, so_phieu, action, user_name, user_role, solution=None,
                 'values': [[current_time]]
             })
             
-            # Update approver name (if approve)
-            if action == 'approve' and col_approver is not None:
+            # Update approver name (for both approve and reject)
+            # When reject, still record who rejected at this level
+            if col_approver is not None:
                 updates.append({
                     'range': f'{chr(65 + col_approver)}{row_idx}',
                     'values': [[user_name]]
                 })
             
-            # Update solution (QC Manager only)
-            if solution and col_huong_giai_quyet is not None:
+            # Update solution (QC Manager only, when approving)
+            if action == 'approve' and solution and col_huong_giai_quyet is not None:
                 updates.append({
                     'range': f'{chr(65 + col_huong_giai_quyet)}{row_idx}',
                     'values': [[solution]]
                 })
             
-            # Update reject reason
-            if reject_reason and col_ly_do_tu_choi is not None:
+            # Update reject reason (when rejecting)
+            if action == 'reject' and reject_reason and col_ly_do_tu_choi is not None:
                 updates.append({
                     'range': f'{chr(65 + col_ly_do_tu_choi)}{row_idx}',
                     'values': [[reject_reason]]
