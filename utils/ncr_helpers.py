@@ -189,16 +189,16 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
 DEPT_PREFIX_MAP = {
     # Prefix: (Bộ phận, Khâu)
     "FI": ("FI", "FI"),
-    "NPLDV": ("Kho", "ĐV Cuộn"),
-    "DVNPL": ("Kho", "ĐV NPL"),
+    "NPLDV": ("ĐV Cuộn", "ĐV Cuộn"),
+    "DVNPL": ("ĐV NPL", "ĐV NPL"),
     "X2-TR": ("Tráng Cắt", "Tráng"),
     "X2-CA": ("Tráng Cắt", "Cắt"),
     "MAY-I": ("May", "May I"),
     "MAY-P2": ("May", "May P2"),
     "MAY-N4": ("May", "May N4"),
     "MAY-A2": ("May", "May A2"),
-    "TP-DAU-VAO": ("Kho", "TP Đầu Vào"),
-    "TP_DAU_VAO": ("Kho", "TP Đầu Vào"), # Handle potential underscores
+    "TP-DAU-VAO": ("TP Đầu Vào", "TP Đầu Vào"),
+    "TP_DAU_VAO": ("TP Đầu Vào", "TP Đầu Vào"), # Handle potential underscores
     "IN-D": ("In", "Xưởng D"),
     "IN_D": ("In", "Xưởng D"),
     "CAT-BAN": ("Cắt", "Cắt Bàn"),
