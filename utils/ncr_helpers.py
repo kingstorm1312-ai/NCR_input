@@ -254,6 +254,40 @@ def format_contract_code(raw_input):
     return s.upper()
 
 
+def render_input_buffer_mobile(buffer_list):
+    """
+    Hiển thị danh sách lỗi trong buffer với giao diện mobile-friendly.
+    Cho phép xóa từng lỗi.
+    Trả về list mới sau khi xóa (hoặc None nếu không có thay đổi).
+    """
+    if not buffer_list:
+        return buffer_list
+
+    st.markdown("##### 🛒 Danh sách lỗi đã thêm:")
+    
+    indices_to_remove = []
+    
+    for i, err in enumerate(buffer_list):
+        # Use a container for card-like look
+        with st.container(border=True):
+            c1, c2 = st.columns([5, 1])
+            with c1:
+                st.markdown(f"**{i+1}. {err['ten_loi']}**")
+                # Show muc_do
+                muc_do = err.get('muc_do', '')
+                st.caption(f"SL: **{err['sl_loi']}** | Vị trí: {err.get('vi_tri', '')} | Mức độ: {muc_do}")
+            with c2:
+                # Big delete button for touch target
+                if st.button("🗑️", key=f"del_buf_{i}", help="Xóa dòng này"):
+                    indices_to_remove.append(i)
+
+    if indices_to_remove:
+        # Remove in reverse order to avoid index shifting issues
+        for index in sorted(indices_to_remove, reverse=True):
+            buffer_list.pop(index)
+        st.rerun()
+    
+    return buffer_list
 
 
 def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None):

@@ -8,7 +8,7 @@ import os
 
 # Add root to path for utils import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.ncr_helpers import format_contract_code
+from utils.ncr_helpers import format_contract_code, render_input_buffer_mobile
 
 # --- CONFIGURATION ---
 REQUIRED_DEPT = 'may_n4'
@@ -236,9 +236,12 @@ if st.button("THÊM LỖI ⬇️", use_container_width=True, type="secondary"):
 st.markdown("### 📋 Buffer")
 
 if len(st.session_state.buffer_errors) > 0:
-    df_buffer = pd.DataFrame(st.session_state.buffer_errors)
-    st.dataframe(df_buffer, use_container_width=True)
-    st.caption(f"Tổng: {df_buffer['sl_loi'].sum()}")
+    # Use mobile helper to render and handle deletes
+    st.session_state.buffer_errors = render_input_buffer_mobile(st.session_state.buffer_errors)
+     
+    # Calculate sum for display (optional, or rely on helper)
+    total_qty = sum([e['sl_loi'] for e in st.session_state.buffer_errors])
+    st.caption(f"Tổng lỗi: {total_qty}")
 
     if st.button("💾 LƯU", type="primary", use_container_width=True):
         try:

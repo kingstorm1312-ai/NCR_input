@@ -387,6 +387,110 @@ with tab2:
                             hide_index=True
                         )
 
+                # --- EDIT FUNCTIONALITY (Only for 'cho_truong_ca') ---
+                if status == 'cho_truong_ca':
+                    edit_key = f"edit_pending_{so_phieu}"
+                    if edit_key not in st.session_state:
+                        st.session_state[edit_key] = False
+                    
+                    # Toggle edit mode
+                    st.write("")
+                    if st.button(
+                        "✏️ SỬA PHIẾU" if not st.session_state[edit_key] else "❌ HỦY SỬA",
+                        key=f"toggle_edit_pending_{so_phieu}",
+                        use_container_width=True
+                    ):
+                        st.session_state[edit_key] = not st.session_state[edit_key]
+                        st.rerun()
+                    
+                    # Edit form (when edit mode is ON)
+                    if st.session_state[edit_key]:
+                        st.write("---")
+                        st.markdown("### ✏️ Chỉnh sửa phiếu (Đang chờ duyệt)")
+                        
+                        # Calculate row indices in sheet
+                        try:
+                            sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+                            ws = sh.worksheet("NCR_DATA")
+                            all_data = ws.get_all_values()
+                            headers = all_data[0]
+                            
+                            from utils.ncr_helpers import COLUMN_MAPPING
+                            col_so_phieu_idx = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
+                            col_sl_loi_idx = headers.index(COLUMN_MAPPING.get('sl_loi', 'so_luong_loi'))
+                            col_ten_loi_idx = headers.index(COLUMN_MAPPING.get('ten_loi', 'ten_loi'))
+                            
+                            # Find rows for this ticket
+                            error_rows = []
+                            for idx, row in enumerate(all_data[1:], start=2):
+                                if row[col_so_phieu_idx] == so_phieu:
+                                    error_rows.append({
+                                        'sheet_row': idx,
+                                        'ten_loi': row[col_ten_loi_idx],
+                                        'sl_loi': row[col_sl_loi_idx]
+                                    })
+                            
+                            # Edit existing errors
+                            updated_errors = []
+                            deleted_rows = []
+                            
+                            for i, err in enumerate(error_rows):
+                                col1, col2, col3 = st.columns([3, 2, 1])
+                                with col1:
+                                    st.text(err['ten_loi'])
+                                with col2:
+                                    new_qty = st.number_input(
+                                        "SL",
+                                        min_value=0,
+                                        value=int(err['sl_loi']) if err['sl_loi'] else 0,
+                                        key=f"edit_qty_pending_{so_phieu}_{i}",
+                                        label_visibility="collapsed"
+                                    )
+                                with col3:
+                                    if st.button("🗑️", key=f"del_pending_{so_phieu}_{i}", help="Xóa lỗi này"):
+                                        deleted_rows.append(err['sheet_row'])
+                                
+                                if err['sheet_row'] not in deleted_rows:
+                                    updated_errors.append({
+                                        'sheet_row': err['sheet_row'],
+                                        'sl_loi': new_qty
+                                    })
+                            
+                            # Save changes button
+                            st.write("")
+                            if st.button(
+                                "💾 LƯU THAY ĐỔI",
+                                key=f"save_edit_pending_{so_phieu}",
+                                type="primary",
+                                use_container_width=True
+                            ):
+                                updates = []
+                                
+                                # Update quantities
+                                for upd in updated_errors:
+                                    updates.append({
+                                        'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
+                                        'values': [[str(upd['sl_loi'])]]
+                                    })
+                                
+                                # Delete rows (update sl to 0)
+                                for del_row in deleted_rows:
+                                    updates.append({
+                                        'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
+                                        'values': [['0']]
+                                    })
+                                
+                                if updates:
+                                    ws.batch_update(updates)
+                                    st.success("✅ Đã lưu thay đổi!")
+                                    st.session_state[edit_key] = False
+                                    st.rerun()
+                                else:
+                                    st.info("Không có thay đổi nào")
+                                    
+                        except Exception as e:
+                            st.error(f"Lỗi khi tải/lưu dữ liệu: {str(e)}")
+
 # --- TAB 3: COMPLETED ---
 with tab3:
     st.subheader("✅ Phiếu đã hoàn thành")
