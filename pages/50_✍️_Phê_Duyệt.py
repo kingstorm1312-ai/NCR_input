@@ -58,6 +58,14 @@ gc = init_gspread()
 # --- HEADER ---
 st.title("✍️ Phê Duyệt NCR")
 st.caption(f"Xin chào **{user_name}** - Role: **{user_role.upper()}**")
+
+# Clear cache button
+col1, col2 = st.columns([6, 1])
+with col2:
+    if st.button("🔄 Làm mới", help="Clear cache và tải lại dữ liệu mới nhất"):
+        st.cache_data.clear()
+        st.rerun()
+
 st.divider()
 
 # --- DETERMINE FILTER BASED ON ROLE ---

@@ -48,6 +48,14 @@ gc = init_gspread()
 # --- HEADER ---
 st.title("🙋 NCR Của Tôi")
 st.caption(f"Xin chào **{user_name}** - Quản lý các phiếu NCR bạn đã tạo")
+
+# Clear cache button
+col1, col2 = st.columns([6, 1])
+with col2:
+    if st.button("🔄 Làm mới", help="Clear cache và tải lại dữ liệu mới nhất"):
+        st.cache_data.clear()
+        st.rerun()
+
 st.divider()
 
 # --- HELPER: RESUBMIT FUNCTION ---

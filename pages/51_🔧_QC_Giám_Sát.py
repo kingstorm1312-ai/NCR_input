@@ -56,6 +56,14 @@ gc = init_gspread()
 # --- HEADER ---
 st.title("🔧 QC Giám Sát - Phiếu Bị Từ Chối")
 st.caption(f"**{user_name}** ({user_role}) - Quản lý phiếu bị từ chối và escalation")
+
+# Clear cache button
+col1, col2 = st.columns([6, 1])
+with col2:
+    if st.button("🔄 Làm mới", help="Clear cache và tải lại dữ liệu mới nhất"):
+        st.cache_data.clear()
+        st.rerun()
+
 st.divider()
 
 # --- LOAD DATA ---

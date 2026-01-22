@@ -48,6 +48,34 @@ ROLE_TO_STATUS = {
     'director': 'cho_giam_doc'
 }
 
+# --- CACHED DATA FETCH ---
+@st.cache_data(ttl=30, show_spinner=False)
+def _get_ncr_data_cached(_gc):
+    """
+    Cached function to fetch NCR data from Google Sheets.
+    Cache for 30 seconds to avoid rate limit (60 requests/minute).
+    
+    Args:
+        _gc: gspread client (with _ prefix to prevent hashing)
+    
+    Returns:
+        DataFrame with raw NCR data
+    """
+    try:
+        spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
+        sh = _gc.open_by_key(spreadsheet_id)
+        ws = sh.worksheet("NCR_DATA")
+        
+        # Load all records
+        records = ws.get_all_records()
+        df = pd.DataFrame(records)
+        
+        return df
+    except Exception as e:
+        st.error(f"❌ Lỗi khi tải dữ liệu: {e}")
+        return pd.DataFrame()
+
+
 # --- DATA LOADING & GROUPING ---
 def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
     """
@@ -63,13 +91,8 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
         df_grouped: DataFrame đã group theo so_phieu (dùng để hiển thị UI)
     """
     try:
-        spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        sh = gc.open_by_key(spreadsheet_id)
-        ws = sh.worksheet("NCR_DATA")
-        
-        # Load all records
-        records = ws.get_all_records()
-        df_original = pd.DataFrame(records)
+        # Use cached data fetch
+        df_original = _get_ncr_data_cached(gc)
         
         if df_original.empty:
             st.warning("📊 Sheet NCR_DATA trống. Chưa có dữ liệu để hiển thị.")
