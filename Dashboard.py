@@ -176,7 +176,7 @@ if st.session_state.user_info is None:
             c_l, c_c, c_r = st.columns([1, 2, 1])
             with c_c:
                 try:
-                    st.image("assets/Logo.png", use_container_width=True) 
+                    st.image("assets/Logo.png", width=220) 
                 except:
                     st.markdown("## ĐẠI LỤC CPC") # Fallback text
             
@@ -222,7 +222,7 @@ else:
     # --- SIDEBAR ---
     with st.sidebar:
         try:
-            st.image("assets/Logo.png", width=150)
+            st.image("assets/Logo.png", width=120)
         except:
             st.title("ĐẠI LỤC CPC")
             
