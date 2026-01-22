@@ -73,57 +73,71 @@ st.sidebar.header("🔍 Bộ lọc")
 
 # 1. Filter Year
 unique_years = sorted(df_raw['year'].dropna().unique().astype(int))
-# Default to current year or all if current not exists
-current_year = datetime.now().year
-default_year = [current_year] if current_year in unique_years else unique_years
-selected_years = st.sidebar.multiselect("Năm", unique_years, default=default_year)
+selected_years = st.sidebar.multiselect("Năm", unique_years) # Default empty = All
 
-# 2. Filter Month (Based on Year)
-years_mask = df_raw['year'].isin(selected_years)
-avail_months = sorted(df_raw[years_mask]['month'].dropna().unique().astype(int))
-selected_months = st.sidebar.multiselect("Tháng", avail_months, default=avail_months)
+# Apply Year Filter
+df_filtered = df_raw.copy()
+if selected_years:
+    df_filtered = df_filtered[df_filtered['year'].isin(selected_years)]
 
-# 3. Filter Week (Based on Month)
-months_mask = years_mask & df_raw['month'].isin(selected_months)
-avail_weeks = sorted(df_raw[months_mask]['week'].dropna().unique().astype(int))
-selected_weeks = st.sidebar.multiselect("Tuần", avail_weeks, default=avail_weeks)
+# 2. Filter Month
+avail_months = sorted(df_filtered['month'].dropna().unique().astype(int))
+selected_months = st.sidebar.multiselect("Tháng", avail_months)
+if selected_months:
+    df_filtered = df_filtered[df_filtered['month'].isin(selected_months)]
 
-# Apply Time Filters
-mask_time = (
-    df_raw['year'].isin(selected_years) &
-    df_raw['month'].isin(selected_months) &
-    df_raw['week'].isin(selected_weeks)
-)
-df_filtered = df_raw[mask_time]
+# 3. Filter Week
+avail_weeks = sorted(df_filtered['week'].dropna().unique().astype(int))
+selected_weeks = st.sidebar.multiselect("Tuần", avail_weeks)
+if selected_weeks:
+    df_filtered = df_filtered[df_filtered['week'].isin(selected_weeks)]
 
 if df_filtered.empty:
     st.warning("Không có dữ liệu cho khoảng thời gian đã chọn.")
     st.stop()
 
 # 4. Filter Department (Hierarchy)
-# 'bo_phan' is top level (prefix), 'bo_phan_full' is sub-level (khâu)
 if 'bo_phan_full' not in df_filtered.columns:
     df_filtered['bo_phan_full'] = df_filtered['bo_phan']
 
 unique_depts = sorted(df_filtered['bo_phan'].dropna().unique())
-selected_depts = st.sidebar.multiselect("Bộ phận (Chính)", unique_depts, default=unique_depts)
+selected_depts = st.sidebar.multiselect("Bộ phận (Chính)", unique_depts)
+
+# Apply Dept Filter
+if selected_depts:
+    df_filtered = df_filtered[df_filtered['bo_phan'].isin(selected_depts)]
 
 # Filter Sub-Dept (Khâu) based on Dept
-dept_mask = df_filtered['bo_phan'].isin(selected_depts)
-unique_sub_depts = sorted(df_filtered[dept_mask]['bo_phan_full'].dropna().unique())
-selected_sub_depts = st.sidebar.multiselect("Khâu (Chi tiết)", unique_sub_depts, default=unique_sub_depts)
+unique_sub_depts = sorted(df_filtered['bo_phan_full'].dropna().unique())
+selected_sub_depts = st.sidebar.multiselect("Khâu (Chi tiết)", unique_sub_depts)
 
-# Apply Dept Filters
-mask_dept = df_filtered['bo_phan_full'].isin(selected_sub_depts)
-df_final = df_filtered[mask_dept]
+if selected_sub_depts:
+    df_filtered = df_filtered[df_filtered['bo_phan_full'].isin(selected_sub_depts)]
 
-# 5. Filter Contract
+df_final = df_filtered
+
+# 5. Filter Contract with Grouping
+# Extract Suffix (Last 3 chars)
+def get_suffix(code):
+    s = str(code).strip()
+    return s[-3:] if len(s) >= 3 else "Khác"
+
+df_final['contract_suffix'] = df_final['hop_dong'].apply(get_suffix)
+unique_suffixes = sorted(df_final['contract_suffix'].unique())
+
+selected_suffixes = st.sidebar.multiselect("Nhóm Hợp đồng (Đuôi 3 số)", unique_suffixes, 
+                                          help="Chọn 3 số cuối của hợp đồng để lọc nhanh nhóm")
+
+# Apply Suffix Filter First
+if selected_suffixes:
+    df_final = df_final[df_final['contract_suffix'].isin(selected_suffixes)]
+
+# Then Filter Specific Contract
 unique_contracts = sorted(df_final['hop_dong'].dropna().unique())
-selected_contracts = st.sidebar.multiselect("Hợp đồng", unique_contracts, default=unique_contracts)
+selected_contracts = st.sidebar.multiselect("Hợp đồng (Cụ thể)", unique_contracts)
 
-# Apply Contract Filter
-mask_contract = df_final['hop_dong'].isin(selected_contracts)
-df_final = df_final[mask_contract]
+if selected_contracts:
+    df_final = df_final[df_final['hop_dong'].isin(selected_contracts)]
 
 if df_final.empty:
     st.warning("Không có dữ liệu phù hợp với bộ lọc.")
