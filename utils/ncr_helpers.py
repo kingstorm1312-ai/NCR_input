@@ -379,6 +379,7 @@ def restart_ncr(gc, so_phieu, target_status, restart_by, restart_note=''):
         col_so_phieu = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
         col_trang_thai = headers.index(COLUMN_MAPPING.get('trang_thai', 'trang_thai'))
         col_thoi_gian = headers.index(COLUMN_MAPPING.get('thoi_gian_cap_nhat', 'thoi_gian_cap_nhat'))
+        col_ly_do = headers.index('ly_do_tu_choi')  # For restart note
         
         # Find rows
         rows_to_update = []
@@ -402,6 +403,13 @@ def restart_ncr(gc, so_phieu, target_status, restart_by, restart_note=''):
                 'range': f'{chr(65 + col_thoi_gian)}{row_idx}',
                 'values': [[current_time]]
             })
+            # Update ly_do_tu_choi with restart note
+            if restart_note:
+                note_text = f"[{restart_by}] {restart_note}"
+                updates.append({
+                    'range': f'{chr(65 + col_ly_do)}{row_idx}',
+                    'values': [[note_text]]
+                })
         
         ws.batch_update(updates)
         return True, f"Đã restart phiếu {so_phieu} về {target_status}"
