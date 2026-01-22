@@ -30,7 +30,7 @@ def local_css():
         /* Hide Default Streamlit Elements */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
+        /* header {visibility: hidden;}  <- Unhide header to show sidebar toggle */
         
         /* Branding Colors */
         :root {
