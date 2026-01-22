@@ -31,6 +31,8 @@ REJECT_ESCALATION = {
 COLUMN_MAPPING = {
     'so_phieu': 'so_phieu_ncr',
     'sl_loi': 'so_luong_loi',
+    'nguon_goc': 'nguon_goc',  # Replaces 'noi_may'
+    'phan_loai': 'phan_loai',  # New column
     'nguoi_duyet_1': 'duyet_truong_ca',
     'nguoi_duyet_2': 'duyet_truong_bp',
     'nguoi_duyet_3': 'duyet_qc_manager',

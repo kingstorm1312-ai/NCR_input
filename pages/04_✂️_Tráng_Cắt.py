@@ -113,7 +113,13 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
         nguoi_lap = st.text_input("Người lập", value=current_user_name, disabled=True)
         
         # NCR Logic
-        dept_prefix = REQUIRED_DEPT.upper().replace("_", "-") # e.g. MAY_I -> MAY-I
+        phan_loai = st.radio("Phân loại", ["Tráng", "Cắt"], horizontal=True, key="radio_phan_loai", disabled=disable_hd)
+        
+        if phan_loai == "Tráng":
+            dept_prefix = "X2-TR"
+        else: # Cắt
+            dept_prefix = "X2-CA"
+            
         current_month = datetime.now().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Chỉ nhập số đuôi", disabled=disable_hd)
         so_phieu = ""
@@ -137,7 +143,7 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
          
     with c4:
-         nha_may = st.selectbox("Nhà Cung Cấp", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
+         nguon_goc = st.text_input("Nguồn gốc (NCC/Máy)", disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
 
     # Lock Logic
@@ -244,21 +250,23 @@ if len(st.session_state.buffer_errors) > 0:
                 rows = []
                 for err in st.session_state.buffer_errors:
                     rows.append([
-                        now.strftime("%Y-%m-%d %H:%M:%S"),  # ngay_lap
-                        so_phieu,                           # so_phieu_ncr
-                        hop_dong,                           # hop_dong
-                        ma_vt,                              # ma_vat_tu
-                        ten_sp,                             # ten_sp
-                        nha_may,                            # noi_may
-                        err['ten_loi'],                     # ten_loi
-                        err['vi_tri'],                      # vi_tri_loi
-                        err['sl_loi'],                      # so_luong_loi
-                        sl_kiem,                            # so_luong_kiem
-                        err['muc_do'],                      # muc_do (Theo yêu cầu: sau sl_kiem)
-                        sl_lo,                              # so_luong_lo_hang
-                        nguoi_lap,                          # nguoi_lap_phieu
-                        nha_may,                            # noi_gay_loi
-                        # --- NEW APPROVAL COLUMNS (using actual sheet column names) ---
+                        now.strftime("%Y-%m-%d %H:%M:%S"),  # 1. ngay_lap
+                        so_phieu,                           # 2. so_phieu_ncr
+                        hop_dong,                           # 3. hop_dong
+                        ma_vt,                              # 4. ma_vat_tu
+                        ten_sp,                             # 5. ten_sp
+                        phan_loai,                          # 6. phan_loai (MỚI)
+                        nguon_goc,                          # 7. nguon_goc (Thay noi_may)
+                        err['ten_loi'],                     # 8. ten_loi
+                        err['vi_tri'],                      # 9. vi_tri_loi
+                        # --- Các cột sau giữ nguyên thứ tự cũ (bắt đầu từ sl_loi) ---
+                        err['sl_loi'],                      # 10. so_luong_loi
+                        sl_kiem,                            # 11. so_luong_kiem
+                        err['muc_do'],                      # 12. muc_do
+                        sl_lo,                              # 13. so_luong_lo_hang
+                        nguoi_lap,                          # 14. nguoi_lap_phieu
+                        nguon_goc,                          # 15. noi_gay_loi (Dùng chung giá trị nguon_goc)
+                        # --- NEW APPROVAL COLUMNS ---
                         'cho_truong_ca',                    # trang_thai
                         now.strftime("%Y-%m-%d %H:%M:%S"),  # thoi_gian_cap_nhat
                         '',                                 # duyet_truong_ca
