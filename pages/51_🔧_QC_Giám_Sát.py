@@ -165,10 +165,18 @@ for _, ticket in tickets_rejected.iterrows():
         
         target_status, target_name = restart_targets.get(status, ('cho_truong_ca', 'Trưởng ca'))
         
-        # Action buttons
-        col_restart, col_escalate = st.columns(2)
+        # 3 columns for 3 actions
+        col_restart, col_escalate, col_return_staff = st.columns(3)
         
+        # ACTION 1: RESTART
         with col_restart:
+            restart_note = st.text_area(
+                f"Ghi chú cho {target_name}:",
+                key=f"restart_note_{so_phieu}",
+                placeholder="Nhập ghi chú...",
+                height=80
+            )
+            
             if st.button(
                 f"🔄 RESTART → {target_name}",
                 key=f"restart_{so_phieu}",
@@ -177,7 +185,7 @@ for _, ticket in tickets_rejected.iterrows():
                 help=f"Gửi lại phiếu về {target_name} để xem xét lại"
             ):
                 with st.spinner("Đang xử lý..."):
-                    success, message = restart_ncr(gc, so_phieu, target_status, user_name)
+                    success, message = restart_ncr(gc, so_phieu, target_status, user_name, restart_note)
                     
                     if success:
                         st.success(f"✅ {message}")
@@ -186,11 +194,12 @@ for _, ticket in tickets_rejected.iterrows():
                     else:
                         st.error(f"❌ {message}")
         
+        # ACTION 2: ESCALATE
         with col_escalate:
             # Escalate to next higher level
             escalate_targets = {
                 'bi_tu_choi_truong_ca': ('cho_truong_bp', 'Trưởng BP'),
-                'bi_tu_choi_truong_bp': ('cho_qc_manager', 'QC Manager'),
+                'bi_tu_choi_truong_bp': ('cho_giam_doc', 'Giám đốc'),  # Skip QC, go to Director
                 'bi_tu_choi_qc_manager': ('cho_giam_doc', 'Giám đốc'),
                 'bi_tu_choi_giam_doc': None  # No escalation for Director reject
             }
@@ -199,22 +208,67 @@ for _, ticket in tickets_rejected.iterrows():
             
             if escalate_info:
                 escalate_status, escalate_name = escalate_info
+                
+                escalate_note = st.text_area(
+                    f"Ghi chú cho {escalate_name}:",
+                    key=f"escalate_note_{so_phieu}",
+                    placeholder="Nhập ghi chú...",
+                    height=80
+                )
+                
+                # Custom label for bi_tu_choi_truong_bp
+                if status == 'bi_tu_choi_truong_bp':
+                    button_label = "📤 GỬI CHO DIRECTOR"
+                else:
+                    button_label = f"⬆️ ESCALATE → {escalate_name}"
+                
                 if st.button(
-                    f"⬆️ ESCALATE → {escalate_name}",
+                    button_label,
                     key=f"escalate_{so_phieu}",
                     use_container_width=True,
                     help=f"Chuyển phiếu lên {escalate_name} để xem xét"
                 ):
                     with st.spinner("Đang xử lý..."):
-                        success, message = restart_ncr(gc, so_phieu, escalate_status, user_name, "Escalated by " + user_name)
+                        full_note = f"[QC Manager escalate] {escalate_note}" if escalate_note else "Escalated by QC Manager"
+                        success, message = restart_ncr(gc, so_phieu, escalate_status, user_name, full_note)
                         
                         if success:
-                            st.success(f"✅ Đã escalate lên {escalate_name}")
+                            st.success(f"✅ Đã gửi lên {escalate_name}")
                             st.rerun()
                         else:
                             st.error(f"❌ {message}")
             else:
-                st.info("🔚 Final rejection - Không thể escalate")
+                st.text_area("Ghi chú:", disabled=True, height=80, key=f"esc_disabled_{so_phieu}")
+                st.info("🔚 Final rejection")
+        
+        # ACTION 3: RETURN TO STAFF
+        with col_return_staff:
+            return_note = st.text_area(
+                "Lý do trả về Staff:",
+                key=f"return_note_{so_phieu}",
+                placeholder="Nhập lý do...",
+                height=80
+            )
+            
+            if st.button(
+                "↩️ TRẢ VỀ STAFF",
+                key=f"return_staff_{so_phieu}",
+                use_container_width=True,
+                help="Trả phiếu về Staff để sửa lại"
+            ):
+                if not return_note.strip():
+                    st.error("⚠️ Vui lòng nhập lý do trả về!")
+                else:
+                    with st.spinner("Đang xử lý..."):
+                        # Return to draft with note
+                        full_note = f"[QC Manager] {return_note}"
+                        success, message = restart_ncr(gc, so_phieu, 'draft', user_name, full_note)
+                        
+                        if success:
+                            st.success(f"✅ Đã trả phiếu về Staff")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {message}")
 
 # --- FOOTER ---
 st.divider()
