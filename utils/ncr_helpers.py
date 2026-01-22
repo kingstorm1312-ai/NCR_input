@@ -50,43 +50,62 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
         df_original = pd.DataFrame(records)
         
         if df_original.empty:
+            st.warning("📊 Sheet NCR_DATA trống. Chưa có dữ liệu để hiển thị.")
             return pd.DataFrame(), pd.DataFrame()
         
-        # Normalize column names (strip spaces)
+        # Normalize column names (strip spaces and lowercase for mapping)
         df_original.columns = df_original.columns.str.strip()
+        
+        # Debug: Show available columns if key column missing
+        required_cols = ['so_phieu', 'trang_thai', 'ngay_lap', 'nguoi_lap_phieu', 'sl_loi', 'ten_loi']
+        missing_cols = [col for col in required_cols if col not in df_original.columns]
+        
+        if missing_cols:
+            st.error(f"❌ Thiếu các cột bắt buộc trong NCR_DATA: {', '.join(missing_cols)}")
+            st.info(f"📋 Các cột hiện có: {', '.join(df_original.columns.tolist())}")
+            return pd.DataFrame(), pd.DataFrame()
         
         # Apply filters
         df_filtered = df_original.copy()
         
         if filter_status:
-            df_filtered = df_filtered[df_filtered['trang_thai'].astype(str).str.strip() == filter_status]
+            if 'trang_thai' in df_filtered.columns:
+                df_filtered = df_filtered[df_filtered['trang_thai'].astype(str).str.strip() == filter_status]
+            else:
+                st.warning("⚠️ Không tìm thấy cột 'trang_thai' để filter")
         
         if filter_department:
-            # Assuming 'bo_phan' column exists or can be derived from 'so_phieu'
             # Extract department from so_phieu (e.g., 'FI-01-001' -> 'fi')
-            df_filtered['bo_phan'] = df_filtered['so_phieu'].astype(str).str.split('-').str[0].str.lower()
-            df_filtered = df_filtered[df_filtered['bo_phan'] == filter_department]
+            if 'so_phieu' in df_filtered.columns:
+                df_filtered['bo_phan'] = df_filtered['so_phieu'].astype(str).str.split('-').str[0].str.lower()
+                df_filtered = df_filtered[df_filtered['bo_phan'] == filter_department]
+            else:
+                st.warning("⚠️ Không tìm thấy cột 'so_phieu' để extract department")
         
         if df_filtered.empty:
             return df_original, pd.DataFrame()
         
-        # Group by so_phieu
-        grouped = df_filtered.groupby('so_phieu', as_index=False).agg({
+        # Check if we have necessary columns for grouping
+        group_cols = {
             'ngay_lap': 'first',
             'nguoi_lap_phieu': 'first',
             'trang_thai': 'first',
-            'thoi_gian_cap_nhat': 'first',
             'sl_loi': 'sum',
-            'ten_loi': lambda x: ', '.join(sorted(set(x.astype(str)))),
-            'nguoi_duyet_1': 'first',
-            'nguoi_duyet_2': 'first',
-            'nguoi_duyet_3': 'first',
-            'nguoi_duyet_4': 'first',
-            'huong_giai_quyet': 'first',
-            'ly_do_tu_choi': 'first'
-        })
+            'ten_loi': lambda x: ', '.join(sorted(set(x.astype(str))))
+        }
         
-        # Add bo_phan to grouped
+        # Add optional columns if they exist
+        optional_cols = ['thoi_gian_cap_nhat', 'nguoi_duyet_1', 'nguoi_duyet_2', 
+                        'nguoi_duyet_3', 'nguoi_duyet_4', 'huong_giai_quyet', 'ly_do_tu_choi']
+        
+        for col in optional_cols:
+            if col in df_filtered.columns:
+                group_cols[col] = 'first'
+        
+        # Group by so_phieu
+        grouped = df_filtered.groupby('so_phieu', as_index=False).agg(group_cols)
+        
+        # Add bo_phan to grouped if exists
         if 'bo_phan' in df_filtered.columns:
             grouped['bo_phan'] = df_filtered.groupby('so_phieu')['bo_phan'].first().values
         
