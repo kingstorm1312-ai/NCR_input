@@ -96,8 +96,20 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
         if filter_department:
             # Extract department from so_phieu (e.g., 'MAY-I-01-001' -> 'may_i')
             if 'so_phieu' in df_filtered.columns:
-                # Normalize: convert hyphen to underscore to match USERS.department
-                df_filtered['bo_phan'] = df_filtered['so_phieu'].astype(str).str.split('-').str[0].str.lower().str.replace('-', '_')
+                # Split by '-', take first 2 parts (MAY-I), join with '-', then replace '-' with '_'
+                # Example: "MAY-I-01-01" → ["MAY", "I", "01", "01"] → "MAY-I" → "may-i" → "may_i"
+                def extract_dept(so_phieu):
+                    parts = str(so_phieu).split('-')
+                    if len(parts) >= 2:
+                        # Take first 2 parts for department (e.g., MAY-I)
+                        dept = '-'.join(parts[:2]).lower().replace('-', '_')
+                        return dept
+                    elif len(parts) == 1:
+                        # Single part department (e.g., FI)
+                        return parts[0].lower()
+                    return ''
+                
+                df_filtered['bo_phan'] = df_filtered['so_phieu'].apply(extract_dept)
                 df_filtered = df_filtered[df_filtered['bo_phan'] == filter_department]
             else:
                 st.warning("⚠️ Không tìm thấy cột 'so_phieu' để extract department")
