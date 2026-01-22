@@ -11,7 +11,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import (
     calculate_stuck_time,
     get_status_display_name,
-    get_status_color
+    get_status_color,
+    COLUMN_MAPPING
 )
 
 # --- PAGE SETUP ---
@@ -67,8 +68,13 @@ def load_all_ncr_data():
         if df.empty:
             return pd.DataFrame()
         
-        # Normalize column names
+        # Normalize column names (strip spaces)
         df.columns = df.columns.str.strip()
+        
+        # --- APPLY COLUMN MAPPING (Sheet Name -> Code Name) ---
+        # Create reverse mapping: {SheetName: CodeName}
+        inv_map = {v: k for k, v in COLUMN_MAPPING.items()}
+        df.rename(columns=inv_map, inplace=True)
         
         # Calculate stuck time
         if 'thoi_gian_cap_nhat' in df.columns:
