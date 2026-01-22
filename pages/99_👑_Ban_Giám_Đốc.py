@@ -13,7 +13,7 @@ from utils.ncr_helpers import (
     get_status_display_name,
     get_status_color,
     COLUMN_MAPPING,
-    load_ncr_dataframe
+    load_ncr_dataframe_v2
 )
 
 # --- PAGE SETUP ---
@@ -58,7 +58,7 @@ gc = init_gspread()
 # --- LOAD ALL NCR DATA ---
 # Using shared loader from utils
 def load_all_ncr_data():
-    return load_ncr_dataframe(gc)
+    return load_ncr_dataframe_v2(gc)
 
 # --- HEADER ---
 st.title("👑 Dashboard Giám Đốc")

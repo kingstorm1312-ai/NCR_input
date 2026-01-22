@@ -206,7 +206,7 @@ DEPT_PREFIX_MAP = {
 }
 
 @st.cache_data(ttl=300)
-def load_ncr_dataframe(_gc):
+def load_ncr_dataframe_v2(_gc):
     """
     Load raw NCR dataframe with preprocessing for Reporting/Dashboard.
     Includes: Column renaming, Date parsing, Department extraction, Stuck time.

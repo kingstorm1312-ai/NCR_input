@@ -12,7 +12,7 @@ from datetime import datetime
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import (
-    load_ncr_dataframe,
+    load_ncr_dataframe_v2,
     get_status_display_name,
     get_status_color
 )
@@ -62,7 +62,7 @@ st.markdown("---")
 
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu báo cáo..."):
-    df_raw = load_ncr_dataframe(gc)
+    df_raw = load_ncr_dataframe_v2(gc)
 
 if df_raw.empty:
     st.info("Chưa có dữ liệu để báo cáo.")
