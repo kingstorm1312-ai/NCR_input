@@ -97,6 +97,20 @@ with tab_active:
     if active_rejections.empty:
         st.success("✅ Hiện không có phiếu nào đang bị trả về!")
     else:
+        # Ensure 'bo_phan' column exists (it might be missing if no group filter was applied)
+        if 'bo_phan' not in active_rejections.columns:
+            def extract_dept_simple(so_phieu):
+                parts = str(so_phieu).split('-')
+                if len(parts) >= 2:
+                    return '-'.join(parts[:2])
+                return parts[0] if parts else ''
+            active_rejections['bo_phan'] = active_rejections['so_phieu'].apply(extract_dept_simple)
+            
+        # Ensure other optional columns exist to avoid KeyError
+        for col in ['ly_do_tu_choi', 'thoi_gian_cap_nhat']:
+            if col not in active_rejections.columns:
+                active_rejections[col] = ''
+        
         # User requested highlight for Department Manager rejections
         # We can detect this by checking the string format "[Name (TRUONG_BP)]" or similar
         # But generic highlighting for all is safer first.
