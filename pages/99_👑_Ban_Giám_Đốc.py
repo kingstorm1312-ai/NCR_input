@@ -277,7 +277,7 @@ if 'ngay_lap' in df_all.columns:
     # Try to parse date
     try:
         # Convert to datetime
-        df_all['date_parsed'] = pd.to_datetime(df_all['ngay_lap'], errors='coerce')
+        df_all['date_parsed'] = pd.to_datetime(df_all['ngay_lap'], errors='coerce', dayfirst=True)
         
         # Group by date
         df_time = df_all.groupby(df_all['date_parsed'].dt.date).size().reset_index(name='count')

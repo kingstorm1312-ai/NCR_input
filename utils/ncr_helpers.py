@@ -390,7 +390,12 @@ def calculate_stuck_time(last_update_str):
     if not last_update_str:
         return 0
     try:
-        last_update = datetime.strptime(str(last_update_str), "%Y-%m-%d %H:%M:%S")
+        # Use pandas for robust parsing (handles ISO and dd/mm/yyyy)
+        # dayfirst=True ensures 01/02/2026 is parsed as Feb 1st (VN style)
+        last_update = pd.to_datetime(str(last_update_str), dayfirst=True)
+        if pd.isna(last_update):
+            return 0
+            
         delta = datetime.now() - last_update
         return delta.total_seconds() / 3600
     except:
