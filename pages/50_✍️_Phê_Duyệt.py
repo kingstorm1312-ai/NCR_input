@@ -141,6 +141,12 @@ else:
                 if 'bo_phan' in row:
                     st.write(f"🏢 **Bộ phận:** {row['bo_phan'].upper()}")
             
+            # Display Note/Message (from ly_do_tu_choi)
+            if 'ly_do_tu_choi' in row and row['ly_do_tu_choi']:
+                note = str(row['ly_do_tu_choi']).strip()
+                if note:
+                    st.info(f"📩 **Tin nhắn:** {note}")
+            
             # Error details in expander
             with st.expander("🔍 Chi tiết lỗi"):
                 # Get original rows for this ticket
