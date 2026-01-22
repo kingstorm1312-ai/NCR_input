@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import gspread
 import json
+import base64
 import time
 from datetime import datetime
 
@@ -113,6 +114,10 @@ def get_all_users():
     except Exception as e:
         return []
 
+def get_base64_image(image_path):
+    with open(image_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
 def login_user(username, password):
     """Kiểm tra user từ sheet USERS"""
     gc = init_gspread()
@@ -167,18 +172,19 @@ if st.session_state.user_info is None:
         pass # Empty left column
         
     with col2:
-        st.write("") # Top spacer
-        st.write("") 
-        
         # Container simulating a card
         with st.container():
-            # Logo Centered
-            c_l, c_c, c_r = st.columns([1, 2, 1])
-            with c_c:
-                try:
-                    st.image("assets/Logo.png", width=220) 
-                except:
-                    st.markdown("## ĐẠI LỤC CPC") # Fallback text
+            # Logo Centered (HTML/CSS)
+            try:
+                img_base64 = get_base64_image("assets/Logo.png")
+                st.markdown(
+                    f'<div style="text-align: center; margin-bottom: 20px;">'
+                    f'<img src="data:image/png;base64,{img_base64}" width="220">'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            except:
+                 st.markdown("<h2 style='text-align: center;'>ĐẠI LỤC CPC</h2>", unsafe_allow_html=True)
             
             st.markdown("<h3 style='text-align: center; color: #212121;'>HỆ THỐNG QUẢN LÝ CHẤT LƯỢNG (QC)</h3>", unsafe_allow_html=True)
             st.markdown("---")
