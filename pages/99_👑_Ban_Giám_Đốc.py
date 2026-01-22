@@ -134,24 +134,49 @@ st.subheader("📊 Pipeline Status")
 # Count by status (Now counting Tickets, not Error Rows)
 status_counts = df_all['trang_thai'].value_counts() if 'trang_thai' in df_all.columns else pd.Series()
 
-# Define status order
-status_order = ['draft', 'cho_truong_ca', 'cho_truong_bp', 'cho_qc_manager', 'cho_giam_doc', 'hoan_thanh']
+# Define status order (Must cover ALL active statuses)
+status_order = [
+    'draft', 
+    'cho_truong_ca', 
+    'cho_truong_bp', 
+    'cho_qc_manager', 
+    'cho_giam_doc', 
+    'cho_bgd_tan_phu', # NEW
+    'hoan_thanh'
+]
 
 # Create metrics
-cols = st.columns(len(status_order))
+# Check if there are any old rejection statuses
+rejection_count = 0
+for status, count in status_counts.items():
+    if 'tu_choi' in str(status):
+        rejection_count += count
+
+# Columns: Standard Flow + Rejections (if any)
+total_cols = len(status_order) + (1 if rejection_count > 0 else 0)
+cols = st.columns(total_cols)
+
 for idx, status in enumerate(status_order):
     with cols[idx]:
         count = status_counts.get(status, 0)
         status_label = get_status_display_name(status)
         status_color = get_status_color(status)
         
+        # Abbreviate long labels for Dashboard
+        if 'BGĐ Tân Phú' in status_label:
+            status_label = 'BGĐ Tân Phú'
+        
         st.metric(
             label=status_label,
             value=count,
         )
-        
-        # Color indicator
         st.markdown(f":{status_color}[●]")
+
+# Display Rejections column if data exists
+if rejection_count > 0:
+    with cols[-1]:
+        st.metric(label="Bị từ chối (Legacy)", value=rejection_count)
+        st.markdown(":red[●]")
 
 st.divider()
 
