@@ -15,7 +15,7 @@ STATUS_FLOW = {
 # Rejection escalation mapping
 # When reject, escalate to who?
 REJECT_ESCALATION = {
-    'cho_truong_ca': 'bi_tu_choi_truong_ca',      # Escalate to Truong BP
+    'cho_truong_ca': 'draft',                     # Staff sửa và resubmit
     'cho_truong_bp': 'bi_tu_choi_truong_bp',      # Escalate to QC Manager
     'cho_qc_manager': 'bi_tu_choi_qc_manager',    # Escalate to Director
     'cho_giam_doc': 'bi_tu_choi_giam_doc'         # Final reject, no escalation
