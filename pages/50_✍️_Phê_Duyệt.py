@@ -88,8 +88,14 @@ if not filter_status:
     st.stop()
 
 # Determine if we need department filter
+# Determine if we need department filter
 needs_dept_filter = selected_role in ['truong_ca', 'truong_bp']
-filter_department = user_dept if needs_dept_filter else None
+
+# If user is Admin or has 'all' department access, skip the filter
+if user_dept == 'all' or user_role == 'admin':
+    filter_department = None
+else:
+    filter_department = user_dept if needs_dept_filter else None
 
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
