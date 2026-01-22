@@ -3,6 +3,12 @@ import pandas as pd
 import gspread
 import json
 from datetime import datetime
+import sys
+import os
+
+# Add root to path for utils import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.ncr_helpers import format_contract_code
 
 # --- CONFIGURATION ---
 REQUIRED_DEPT = 'may_p2'
@@ -128,7 +134,7 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
         
         # Contract Logic (Single Input)
         raw_hop_dong = st.text_input("Hợp đồng (xxxx/yyZZZ)", disabled=disable_hd)
-        hop_dong = raw_hop_dong.strip() if raw_hop_dong else ""
+        hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
 
     # ROW 2 (Remaining fields)
     c3, c4 = st.columns(2)

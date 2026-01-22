@@ -226,6 +226,36 @@ def get_status_color(status):
     return colors.get(status, 'gray')
 
 
+def format_contract_code(raw_input):
+    """
+    Format mã hợp đồng thông minh:
+    1. Tự động thay thế các ký tự lạ (khoảng trắng, chấm, phẩy...) thành '/' giữa các số.
+    2. Tự động viết hoa các ký tự chữ cái ở cuối.
+    VD: '23.25adi' -> '23/25ADI', '23 25 adi' -> '23/25ADI'
+    """
+    if not raw_input:
+        return ""
+    
+    s = str(raw_input).strip()
+    
+    # Pattern: Digits + Separator + Digits + Suffix
+    import re
+    # Match: (Digits) (Separators) (Digits) (Optional spaces) (Suffix Letters)
+    match = re.search(r'^(\d+)[\W_]+(\d+)\s*([a-zA-Z]*)$', s)
+    
+    if match:
+        p1, p2, suffix = match.groups()
+        suffix_upper = suffix.upper() if suffix else ""
+        return f"{p1}/{p2}{suffix_upper}"
+    
+    # Fallback: Just uppercase everything if it doesn't match the strict pattern
+    # But try to replace generic separators first
+    s = re.sub(r'[\s\.\-,]+', '/', s)
+    return s.upper()
+
+
+
+
 def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None):
     """
     Cập nhật status của NCR trong Google Sheet.
