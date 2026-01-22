@@ -262,14 +262,14 @@ if len(st.session_state.buffer_errors) > 0:
                         sl_lo,                              # so_luong_lo_hang
                         nguoi_lap,                          # nguoi_lap_phieu
                         nha_may,                            # noi_gay_loi
-                        # --- NEW APPROVAL COLUMNS ---
-                        'cho_truong_ca',                    # trang_thai (Initial)
+                        # --- NEW APPROVAL COLUMNS (using actual sheet column names) ---
+                        'cho_truong_ca',                    # trang_thai
                         now.strftime("%Y-%m-%d %H:%M:%S"),  # thoi_gian_cap_nhat
-                        '',                                 # nguoi_duyet_1
-                        '',                                 # nguoi_duyet_2
-                        '',                                 # huong_giai_quyet
-                        '',                                 # nguoi_duyet_3
-                        '',                                 # nguoi_duyet_4
+                        '',                                 # duyet_truong_ca
+                        '',                                 # duyet_truong_bp
+                        '',                                 # y_kien_qc
+                        '',                                 # duyet_qc_manager
+                        '',                                 # duyet_giam_doc
                         ''                                  # ly_do_tu_choi
                     ])
                 
