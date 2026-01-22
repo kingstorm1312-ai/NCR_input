@@ -12,6 +12,15 @@ STATUS_FLOW = {
     'hoan_thanh': 'hoan_thanh'  # Completed state
 }
 
+# Rejection escalation mapping
+# When reject, escalate to who?
+REJECT_ESCALATION = {
+    'cho_truong_ca': 'bi_tu_choi_truong_ca',      # Escalate to Truong BP
+    'cho_truong_bp': 'bi_tu_choi_truong_bp',      # Escalate to QC Manager
+    'cho_qc_manager': 'bi_tu_choi_qc_manager',    # Escalate to Director
+    'cho_giam_doc': 'bi_tu_choi_giam_doc'         # Final reject, no escalation
+}
+
 
 # --- COLUMN MAPPING (Code → Sheet) ---
 # Map tên cột chuẩn trong code sang tên cột thực tế trong Google Sheet
@@ -214,8 +223,8 @@ def update_ncr_status(gc, so_phieu, action, user_name, user_role, solution=None,
         
         if action == 'approve':
             new_status = STATUS_FLOW.get(current_status.strip(), current_status)
-        else:  # reject
-            new_status = 'draft'
+        else:  # reject - escalate instead of going to draft
+            new_status = REJECT_ESCALATION.get(current_status.strip(), 'draft')
         
         # Update timestamp
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -292,14 +301,18 @@ def calculate_stuck_time(timestamp_str):
 
 
 def get_status_display_name(status):
-    """Chuyển status code thành tên hiển thị"""
+    """Trả về tên hiển thị cho status"""
     display_names = {
         'draft': 'Nháp',
         'cho_truong_ca': 'Chờ Trưởng ca',
         'cho_truong_bp': 'Chờ Trưởng BP',
         'cho_qc_manager': 'Chờ QC Manager',
         'cho_giam_doc': 'Chờ Giám đốc',
-        'hoan_thanh': 'Hoàn thành'
+        'hoan_thanh': 'Hoàn thành',
+        'bi_tu_choi_truong_ca': 'Bị TC từ chối',
+        'bi_tu_choi_truong_bp': 'Bị TBP từ chối',
+        'bi_tu_choi_qc_manager': 'Bị QC từ chối',
+        'bi_tu_choi_giam_doc': 'Bị GĐ từ chối'
     }
     return display_names.get(status, status)
 
@@ -312,6 +325,64 @@ def get_status_color(status):
         'cho_truong_bp': 'violet',
         'cho_qc_manager': 'orange',
         'cho_giam_doc': 'red',
-        'hoan_thanh': 'green'
+        'hoan_thanh': 'green',
+        'bi_tu_choi_truong_ca': 'red',
+        'bi_tu_choi_truong_bp': 'red',
+        'bi_tu_choi_qc_manager': 'red',
+        'bi_tu_choi_giam_doc': 'red'
     }
     return colors.get(status, 'gray')
+
+
+def restart_ncr(gc, so_phieu, target_status, restart_by, restart_note=''):
+    """
+    QC Manager/Director restart rejected NCR back to a specific level
+    
+    Args:
+        gc: gspread client
+        so_phieu: NCR ticket ID
+        target_status: Target status to restart to (e.g., 'cho_truong_bp')
+        restart_by: Name of person restarting
+        restart_note: Optional note explaining restart
+    """
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        
+        all_data = ws.get_all_values()
+        headers = all_data[0]
+        
+        # Map column names
+        col_so_phieu = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
+        col_trang_thai = headers.index(COLUMN_MAPPING.get('trang_thai', 'trang_thai'))
+        col_thoi_gian = headers.index(COLUMN_MAPPING.get('thoi_gian_cap_nhat', 'thoi_gian_cap_nhat'))
+        
+        # Find rows
+        rows_to_update = []
+        for idx, row in enumerate(all_data[1:], start=2):
+            if row[col_so_phieu] == so_phieu:
+                rows_to_update.append(idx)
+        
+        if not rows_to_update:
+            return False, f"Không tìm thấy phiếu {so_phieu}"
+        
+        # Update
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updates = []
+        
+        for row_idx in rows_to_update:
+            updates.append({
+                'range': f'{chr(65 + col_trang_thai)}{row_idx}',
+                'values': [[target_status]]
+            })
+            updates.append({
+                'range': f'{chr(65 + col_thoi_gian)}{row_idx}',
+                'values': [[current_time]]
+            })
+        
+        ws.batch_update(updates)
+        return True, f"Đã restart phiếu {so_phieu} về {target_status}"
+        
+    except Exception as e:
+        return False, f"Lỗi: {str(e)}"
+
