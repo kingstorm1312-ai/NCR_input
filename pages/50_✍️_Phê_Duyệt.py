@@ -153,10 +153,17 @@ else:
             
             # QC Manager needs to input solution
             if selected_role == 'qc_manager':
+                # Pre-fill existing solution if available (for resubmitted tickets)
+                existing_solution = row.get('huong_giai_quyet', '')
+                if pd.isna(existing_solution):
+                    existing_solution = ''
+                
                 solution = st.text_area(
                     "💡 Hướng giải quyết (BẮT BUỘC)",
+                    value=existing_solution,  # Pre-fill with existing value
                     key=f"solution_{so_phieu}",
-                    placeholder="Nhập hướng xử lý..."
+                    placeholder="Nhập hướng xử lý...",
+                    help="Nếu phiếu đã bị từ chối, bạn có thể chỉnh sửa hướng giải quyết ở đây"
                 )
             else:
                 solution = None
