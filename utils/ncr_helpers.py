@@ -12,6 +12,18 @@ STATUS_FLOW = {
     'hoan_thanh': 'hoan_thanh'  # Completed state
 }
 
+# --- COLUMN MAPPING (Sheet → Code) ---
+# Map các tên cột thực tế trong Google Sheet sang tên chuẩn trong code
+COLUMN_MAPPING = {
+    'so_phieu_ncr': 'so_phieu',
+    'so_luong_loi': 'sl_loi',
+    'duyet_truong_ca': 'nguoi_duyet_1',
+    'duyet_truong_bp': 'nguoi_duyet_2',
+    'duyet_qc_manager': 'nguoi_duyet_3',
+    'duyet_giam_doc': 'nguoi_duyet_4',
+    'y_kien_qc': 'huong_giai_quyet'
+}
+
 ROLE_TO_APPROVER_COLUMN = {
     'truong_ca': 'nguoi_duyet_1',
     'truong_bp': 'nguoi_duyet_2',
@@ -53,8 +65,11 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
             st.warning("📊 Sheet NCR_DATA trống. Chưa có dữ liệu để hiển thị.")
             return pd.DataFrame(), pd.DataFrame()
         
-        # Normalize column names (strip spaces and lowercase for mapping)
+        # Normalize column names (strip spaces)
         df_original.columns = df_original.columns.str.strip()
+        
+        # Apply column mapping (rename columns từ sheet sang tên chuẩn)
+        df_original = df_original.rename(columns=COLUMN_MAPPING)
         
         # Debug: Show available columns if key column missing
         required_cols = ['so_phieu', 'trang_thai', 'ngay_lap', 'nguoi_lap_phieu', 'sl_loi', 'ten_loi']
@@ -144,18 +159,29 @@ def update_ncr_status(gc, so_phieu, action, user_name, user_role, solution=None,
         all_data = ws.get_all_values()
         headers = all_data[0]
         
-        # Find column indices
-        col_so_phieu = headers.index('so_phieu')
-        col_trang_thai = headers.index('trang_thai')
-        col_thoi_gian = headers.index('thoi_gian_cap_nhat')
+        # Create reverse mapping (Code → Sheet)
+        reverse_mapping = {v: k for k, v in COLUMN_MAPPING.items()}
+        
+        # Find column indices (using actual sheet column names)
+        sheet_col_so_phieu = reverse_mapping.get('so_phieu', 'so_phieu')
+        sheet_col_trang_thai = reverse_mapping.get('trang_thai', 'trang_thai')
+        sheet_col_thoi_gian = reverse_mapping.get('thoi_gian_cap_nhat', 'thoi_gian_cap_nhat')
+        
+        col_so_phieu = headers.index(sheet_col_so_phieu) if sheet_col_so_phieu in headers else headers.index('so_phieu')
+        col_trang_thai = headers.index(sheet_col_trang_thai) if sheet_col_trang_thai in headers else headers.index('trang_thai')
+        col_thoi_gian = headers.index(sheet_col_thoi_gian) if sheet_col_thoi_gian in headers else headers.index('thoi_gian_cap_nhat')
         
         # Optional columns
-        col_huong_giai_quyet = headers.index('huong_giai_quyet') if 'huong_giai_quyet' in headers else None
-        col_ly_do_tu_choi = headers.index('ly_do_tu_choi') if 'ly_do_tu_choi' in headers else None
+        sheet_col_huong_giai_quyet = reverse_mapping.get('huong_giai_quyet', 'huong_giai_quyet')
+        sheet_col_ly_do_tu_choi = reverse_mapping.get('ly_do_tu_choi', 'ly_do_tu_choi')
+        
+        col_huong_giai_quyet = headers.index(sheet_col_huong_giai_quyet) if sheet_col_huong_giai_quyet in headers else None
+        col_ly_do_tu_choi = headers.index(sheet_col_ly_do_tu_choi) if sheet_col_ly_do_tu_choi in headers else None
         
         # Get approver column index
-        approver_col_name = ROLE_TO_APPROVER_COLUMN.get(user_role)
-        col_approver = headers.index(approver_col_name) if approver_col_name in headers else None
+        approver_col_name_code = ROLE_TO_APPROVER_COLUMN.get(user_role)
+        approver_col_name_sheet = reverse_mapping.get(approver_col_name_code, approver_col_name_code)
+        col_approver = headers.index(approver_col_name_sheet) if approver_col_name_sheet in headers else None
         
         # Find all rows matching so_phieu
         rows_to_update = []
