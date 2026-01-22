@@ -262,7 +262,37 @@ else:
     # Row 2: Quick Actions
     st.subheader("🚀 Truy cập nhanh")
     
+    # Grid layout for mobile-friendly buttons
+    col_a, col_b = st.columns(2)
+    
+    with col_a:
+        if st.button("🙋 NCR Của Tôi", use_container_width=True, help="Xem phiếu bạn đã tạo"):
+            st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
+            
+    with col_b:
+        # Show 'Phê Duyệt' logic based on role
+        if user['role'] in ['truong_ca', 'truong_bp', 'qc_manager', 'director', 'admin']:
+            if st.button("✍️ Phê Duyệt", use_container_width=True, help="Duyệt phiếu NCR"):
+                st.switch_page("pages/50_✍️_Phê_Duyệt.py")
+    
+    col_c, col_d = st.columns(2)
+    
+    with col_c:
+        # Show 'QC Giám Sát' for supervisor roles
+        if user['role'] in ['qc_manager', 'director', 'admin']:
+            if st.button("🔧 QC Giám Sát", use_container_width=True, help="Quản lý phiếu bị từ chối"):
+                st.switch_page("pages/51_🔧_QC_Giám_Sát.py")
+
+    with col_d:
+        # Show 'Nhập Liệu' specific department page
+        dept_code = user['department']
+        if dept_code in DEPARTMENT_PAGES:
+             if st.button(f"📥 Nhập Liệu ({dept_code})", use_container_width=True):
+                 st.switch_page(DEPARTMENT_PAGES[dept_code])
+
+    
     if user['role'] == 'admin':
+        st.divider()
         st.info("Admin Control Panel - Danh sách nhân sự đang hoạt động")
         
         # Load all users
@@ -289,14 +319,9 @@ else:
             st.error("Không thể tải danh sách nhân viên.")
             
     else:
-        # Staff View
-        dept_code = user['department']
-        if dept_code in DEPARTMENT_PAGES:
-            st.success(f"Bạn đang làm việc tại: {dept_code.upper()}")
-            if st.button("👉 BẮT ĐẦU NHẬP LIỆU NGAY", type="primary", use_container_width=True):
-                st.switch_page(DEPARTMENT_PAGES[dept_code])
-        else:
-            st.warning("Tài khoản chưa được phân quyền vào trang nhập liệu.")
+        # Staff View additional info
+        if user['role'] not in ['truong_ca', 'truong_bp', 'qc_manager', 'director']:
+            st.info("Chọn chức năng từ menu trên để bắt đầu.")
 
     # Row 3: Visuals (Placeholder)
     st.write("")
