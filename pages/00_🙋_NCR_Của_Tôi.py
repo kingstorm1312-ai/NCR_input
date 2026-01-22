@@ -192,23 +192,136 @@ with tab1:
                             hide_index=True
                         )
                 
-                # Action button
-                st.write("")
-                if st.button(
-                    "🔄 GỬI LẠI ĐỂ PHÊ DUYỆT",
-                    key=f"resubmit_{so_phieu}",
-                    type="primary",
-                    use_container_width=True
-                ):
-                    with st.spinner("Đang xử lý..."):
-                        success, message = resubmit_ncr(so_phieu)
+                # --- EDIT FUNCTIONALITY ---
+                edit_key = f"edit_mode_{so_phieu}"
+                if edit_key not in st.session_state:
+                    st.session_state[edit_key] = False
+                
+                # Toggle edit mode
+                col_edit, col_submit = st.columns(2)
+                with col_edit:
+                    if st.button(
+                        "✏️ SỬA PHIẾU" if not st.session_state[edit_key] else "❌ HỦY SỬA",
+                        key=f"toggle_edit_{so_phieu}",
+                        use_container_width=True
+                    ):
+                        st.session_state[edit_key] = not st.session_state[edit_key]
+                        st.rerun()
+                
+                # Edit form (when edit mode is ON)
+                if st.session_state[edit_key]:
+                    st.write("---")
+                    st.markdown("### ✏️ Chỉnh sửa phiếu")
+                    
+                    ticket_rows = df_draft[df_draft['so_phieu'] == so_phieu].copy()
+                    
+                    # Calculate row indices in sheet
+                    try:
+                        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+                        ws = sh.worksheet("NCR_DATA")
+                        all_data = ws.get_all_values()
+                        headers = all_data[0]
                         
-                        if success:
-                            st.success(f"✅ {message}")
-                            st.balloons()
-                            st.rerun()
-                        else:
-                            st.error(f"❌ {message}")
+                        from utils.ncr_helpers import COLUMN_MAPPING
+                        col_so_phieu_idx = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
+                        col_sl_loi_idx = headers.index(COLUMN_MAPPING.get('sl_loi', 'so_luong_loi'))
+                        col_ten_loi_idx = headers.index(COLUMN_MAPPING.get('ten_loi', 'ten_loi'))
+                        
+                        # Find rows for this ticket
+                        error_rows = []
+                        for idx, row in enumerate(all_data[1:], start=2):
+                            if row[col_so_phieu_idx] == so_phieu:
+                                error_rows.append({
+                                    'sheet_row': idx,
+                                    'ten_loi': row[col_ten_loi_idx],
+                                    'sl_loi': row[col_sl_loi_idx]
+                                })
+                        
+                        # Edit existing errors
+                        st.markdown("**Sửa lỗi hiện có:**")
+                        updated_errors = []
+                        deleted_rows = []
+                        
+                        for i, err in enumerate(error_rows):
+                            col1, col2, col3 = st.columns([3, 2, 1])
+                            with col1:
+                                st.text(err['ten_loi'])
+                            with col2:
+                                new_qty = st.number_input(
+                                    "SL",
+                                    min_value=0,
+                                    value=int(err['sl_loi']) if err['sl_loi'] else 0,
+                                    key=f"edit_qty_{so_phieu}_{i}",
+                                    label_visibility="collapsed"
+                                )
+                            with col3:
+                                if st.button("🗑️", key=f"del_{so_phieu}_{i}", help="Xóa lỗi này"):
+                                    deleted_rows.append(err['sheet_row'])
+                            
+                            if err['sheet_row'] not in deleted_rows:
+                                updated_errors.append({
+                                    'sheet_row': err['sheet_row'],
+                                    'sl_loi': new_qty
+                                })
+                        
+                        # Save changes button
+                        st.write("")
+                        if st.button(
+                            "💾 LƯU THAY ĐỔI",
+                            key=f"save_edit_{so_phieu}",
+                            type="primary",
+                            use_container_width=True
+                        ):
+                            try:
+                                updates = []
+                                
+                                # Update quantities
+                                for upd in updated_errors:
+                                    updates.append({
+                                        'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
+                                        'values': [[str(upd['sl_loi'])]]
+                                    })
+                                
+                                # Delete rows (set all columns to empty for now, or delete entirely)
+                                # For simplicity, we'll update sl_loi to 0 to mark as deleted
+                                for del_row in deleted_rows:
+                                    updates.append({
+                                        'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
+                                        'values': [['0']]
+                                    })
+                                
+                                if updates:
+                                    ws.batch_update(updates)
+                                    st.success("✅ Đã lưu thay đổi!")
+                                    st.session_state[edit_key] = False
+                                    st.rerun()
+                                else:
+                                    st.info("Không có thay đổi nào")
+                                    
+                            except Exception as e:
+                                st.error(f"Lỗi khi lưu: {str(e)}")
+                    
+                    except Exception as e:
+                        st.error(f"Lỗi khi load dữ liệu edit: {str(e)}")
+                
+                # Action button (only show when NOT in edit mode)
+                if not st.session_state[edit_key]:
+                    st.write("")
+                    if st.button(
+                        "🔄 GỬI LẠI ĐỂ PHÊ DUYỆT",
+                        key=f"resubmit_{so_phieu}",
+                        type="primary",
+                        use_container_width=True
+                    ):
+                        with st.spinner("Đang xử lý..."):
+                            success, message = resubmit_ncr(so_phieu)
+                            
+                            if success:
+                                st.success(f"✅ {message}")
+                                st.balloons()
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {message}")
 
 # --- TAB 2: PENDING APPROVAL ---
 with tab2:
