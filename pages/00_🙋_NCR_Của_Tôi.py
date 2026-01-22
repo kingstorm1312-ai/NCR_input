@@ -177,16 +177,17 @@ with tab1:
                 
                 # Rejection reason (if exists)
                 if ly_do and str(ly_do).strip():
+                    # Format is now usually: "[Approver Name (ROLE)] Reason"
                     st.error(f"❌ **Lý do từ chối:** {ly_do}")
                     
-                    # Parse who rejected (if format is "Name (Role): Reason")
-                    if '(' in str(ly_do) and ')' in str(ly_do):
-                        try:
-                            rejector_info = str(ly_do).split(':')[0]
-                            if 'qc_manager' in rejector_info.lower() or 'qc manager' in rejector_info.lower():
-                                st.warning("⚠️ **Lưu ý:** Phiếu bị từ chối bởi QC Manager - Cần kiểm tra kỹ hướng giải quyết!")
-                        except:
-                            pass
+                    # Highlight if rejected by high level based on ROLE in string
+                    lower_reason = str(ly_do).lower()
+                    if '(qc_manager)' in lower_reason or '(qc manager)' in lower_reason:
+                         st.warning("⚠️ **Lưu ý:** Phiếu bị từ chối bởi QC Manager!")
+                    elif '(director)' in lower_reason or '(giam_doc)' in lower_reason:
+                         st.warning("⚠️ **Lưu ý:** Phiếu bị từ chối bởi Giám Đốc!")
+                    elif '(bgd_tan_phu)' in lower_reason:
+                         st.warning("⚠️ **Lưu ý:** Phiếu bị từ chối bởi BGĐ Tân Phú!")
                 
                 # Error details
                 with st.expander("🔍 Chi tiết lỗi"):

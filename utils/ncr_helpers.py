@@ -15,12 +15,14 @@ STATUS_FLOW = {
 
 # Rejection escalation mapping
 # When reject, escalate to who?
+# When reject, escalate to who?
+# ALL REJECTIONS now revert to 'draft' so user can see and fix in "NCR Của Tôi"
 REJECT_ESCALATION = {
-    'cho_truong_ca': 'draft',                     # Staff sửa và resubmit
-    'cho_truong_bp': 'bi_tu_choi_truong_bp',      # Escalate to QC Manager
-    'cho_qc_manager': 'bi_tu_choi_qc_manager',    # Escalate to Director
-    'cho_giam_doc': 'bi_tu_choi_giam_doc',        # Escalate to BGD Tan Phu
-    'cho_bgd_tan_phu': 'bi_tu_choi_bgd_tan_phu'   # Final reject
+    'cho_truong_ca': 'draft',
+    'cho_truong_bp': 'draft',
+    'cho_qc_manager': 'draft',
+    'cho_giam_doc': 'draft',
+    'cho_bgd_tan_phu': 'draft'
 }
 
 
@@ -191,6 +193,7 @@ def get_status_display_name(status):
         'cho_giam_doc': 'Chờ Giám đốc',
         'cho_bgd_tan_phu': 'Chờ BGĐ Tân Phú',
         'hoan_thanh': 'Hoàn thành',
+        # Các trạng thái từ chối cũ (để tương thích ngược nếu còn data cũ)
         'bi_tu_choi_truong_ca': 'Bị Trưởng ca từ chối',
         'bi_tu_choi_truong_bp': 'Bị Trưởng BP từ chối',
         'bi_tu_choi_qc_manager': 'Bị QC Manager từ chối',
@@ -213,20 +216,18 @@ def get_status_color(status):
         'cho_qc_manager': 'violet',
         'cho_giam_doc': 'red',
         'cho_bgd_tan_phu': 'red',
-        'hoan_thanh': 'green',
-        'bi_tu_choi_truong_ca': 'red',
-        'bi_tu_choi_truong_bp': 'red',
-        'bi_tu_choi_qc_manager': 'red',
-        'bi_tu_choi_giam_doc': 'red',
-        'bi_tu_choi_bgd_tan_phu': 'red'
+        'hoan_thanh': 'green'
     }
+    # Mặc định red cho các trạng thái có chữ 'tu_choi'
+    if 'tu_choi' in status:
+        return 'red'
     return colors.get(status, 'gray')
 
 
 def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None):
     """
-    Cập nhật status của NCR trong Google Sheet cho các dòng tương ứng.
-    Chỉ cần cung cấp role, hàm sẽ tự tìm cột tương ứng để điền tên người duyệt.
+    Cập nhật status của NCR trong Google Sheet.
+    - Nếu là Rejection -> new_status luôn là 'draft' (theo logic mới ở REJECT_ESCALATION)
     """
     try:
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
@@ -240,7 +241,9 @@ def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, so
         col_trang_thai = headers.index(COLUMN_MAPPING.get('trang_thai', 'trang_thai'))
         col_thoi_gian = headers.index(COLUMN_MAPPING.get('thoi_gian_cap_nhat', 'thoi_gian_cap_nhat'))
         
-        # Determine approver column based on role
+        # Determine approver column for Normal Approval
+        # Khi từ chối, ta vẫn có thể ghi tên vào cột người duyệt (như là người đã reject)
+        # hoặc bỏ qua. Ở đây ta vẫn ghi để lưu vết.
         approver_col_key = ROLE_TO_APPROVER_COLUMN.get(approver_role)
         target_col_idx = None
         
@@ -286,24 +289,25 @@ def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, so
                 'values': [[current_time]]
             })
             
-            # 3. Update Approver Name (if applicable)
+            # 3. Update Approver Name
             if target_col_idx is not None:
                 updates.append({
                     'range': f'{chr(65 + target_col_idx)}{row_idx}',
                     'values': [[approver_name]]
                 })
             
-            # 4. Update Solution (QC Manager only, usually)
+            # 4. Update Solution
             if col_solution is not None and solution is not None:
                 updates.append({
                     'range': f'{chr(65 + col_solution)}{row_idx}',
                     'values': [[solution]]
                 })
                 
-            # 5. Update Reject Reason (if applicable)
+            # 5. Update Reject Reason (Improved Format)
             if col_reject_reason is not None and reject_reason:
-                # Add name to reject reason for visibility
-                formatted_reason = f"[{approver_name}] {reject_reason}"
+                # Format: [Tên người duyệt (Role)] Lý do
+                # E.g.: [Nguyen Van A (QC Manager)] Sai quy cách
+                formatted_reason = f"[{approver_name} ({approver_role.upper()})] {reject_reason}"
                 updates.append({
                     'range': f'{chr(65 + col_reject_reason)}{row_idx}',
                     'values': [[formatted_reason]]
