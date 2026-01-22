@@ -184,6 +184,27 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
 
 
 
+
+# Prefix Mapping for Reporting
+DEPT_PREFIX_MAP = {
+    # Prefix: (Bộ phận, Khâu)
+    "FI": ("FI", "FI"),
+    "NPLDV": ("Kho", "ĐV Cuộn"),
+    "DVNPL": ("Kho", "ĐV NPL"),
+    "X2-TR": ("Tráng Cắt", "Tráng"),
+    "X2-CA": ("Tráng Cắt", "Cắt"),
+    "MAY-I": ("May", "May I"),
+    "MAY-P2": ("May", "May P2"),
+    "MAY-N4": ("May", "May N4"),
+    "MAY-A2": ("May", "May A2"),
+    "TP-DAU-VAO": ("Kho", "TP Đầu Vào"),
+    "TP_DAU_VAO": ("Kho", "TP Đầu Vào"), # Handle potential underscores
+    "IN-D": ("In", "Xưởng D"),
+    "IN_D": ("In", "Xưởng D"),
+    "CAT-BAN": ("Cắt", "Cắt Bàn"),
+    "CAT_BAN": ("Cắt", "Cắt Bàn"),
+}
+
 @st.cache_data(ttl=300)
 def load_ncr_dataframe(_gc):
     """
@@ -214,34 +235,27 @@ def load_ncr_dataframe(_gc):
             df['month'] = df['date_obj'].dt.month
             df['week'] = df['date_obj'].dt.isocalendar().week
         
-        # 2. Extract Department
+        # 2. Extract Department & Section (Khâu) using Map
         if 'so_phieu' in df.columns:
-            # e.g. MAY-I-..., FI-..., DV_CUON-...
-            # Split by '-' or '_' and take first part? 
-            # Logic: "MAY-I" -> "may_i", "FI" -> "fi"
-            def extract_dept(x):
-                s = str(x).upper()
+            def extract_dept_info(so_phieu):
+                # Standard ID: PREFIX-Month-Suffix (e.g., MAY-I-01-001 or X2-TR-01-001)
+                # We need to find the longest matching prefix
+                s = str(so_phieu).upper().strip()
+                
+                # Sort prefixes by length desc to match "MAY-I" before "MAY" if conflict
+                sorted_prefixes = sorted(DEPT_PREFIX_MAP.keys(), key=len, reverse=True)
+                
+                for prefix in sorted_prefixes:
+                    if s.startswith(prefix):
+                        bp, khau = DEPT_PREFIX_MAP[prefix]
+                        return pd.Series([bp, khau])
+                
+                # Fallback if no map match: Use first part as Dept and Suffix as Khau
                 parts = s.split('-')
-                if len(parts) >= 2:
-                    return f"{parts[0]}_{parts[1]}".lower() # may_i
-                return parts[0].lower() # fi
-            
-            # Simple extraction for now: Just Group Prefix?
-            # User wants "Khâu" -> "May I", "May P2".
-            # Prefix is usually Dept Code.
-            df['bo_phan'] = df['so_phieu'].astype(str).str.split('-').str[0].str.lower()
-            
-            # More granular extraction if needed (e.g., MAY-I vs MAY-P2)
-            # Let's create a full_dept column
-            def extract_full_dept(x):
-                parts = str(x).split('-')
-                if len(parts) >= 2:
-                    val = f"{parts[0]}_{parts[1]}".lower()
-                    # Check if it matches known patterns or just return
-                    return val
-                return parts[0].lower()
-            
-            df['bo_phan_full'] = df['so_phieu'].apply(extract_full_dept)
+                val = parts[0]
+                return pd.Series([val, val])
+
+            df[['bo_phan', 'bo_phan_full']] = df['so_phieu'].apply(extract_dept_info)
 
         # 3. Calculate Stuck Time
         if 'thoi_gian_cap_nhat' in df.columns:

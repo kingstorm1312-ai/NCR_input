@@ -196,8 +196,8 @@ with col3:
     count_by_dept = df_final['bo_phan_full'].value_counts().reset_index()
     count_by_dept.columns = ['bo_phan_full', 'count']
     
-    # Prettify Dept Name
-    count_by_dept['Tên Khâu'] = count_by_dept['bo_phan_full'].astype(str).str.upper().str.replace('_', ' ')
+    # Prettify Dept Name (Already clean from helper)
+    count_by_dept['Tên Khâu'] = count_by_dept['bo_phan_full']
     
     fig_dept = px.bar(count_by_dept, x='Tên Khâu', y='count', 
                       title="Tổng lỗi theo Khâu", color='count',
