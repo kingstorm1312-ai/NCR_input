@@ -94,9 +94,10 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
                 st.warning("⚠️ Không tìm thấy cột 'trang_thai' để filter")
         
         if filter_department:
-            # Extract department from so_phieu (e.g., 'FI-01-001' -> 'fi')
+            # Extract department from so_phieu (e.g., 'MAY-I-01-001' -> 'may_i')
             if 'so_phieu' in df_filtered.columns:
-                df_filtered['bo_phan'] = df_filtered['so_phieu'].astype(str).str.split('-').str[0].str.lower()
+                # Normalize: convert hyphen to underscore to match USERS.department
+                df_filtered['bo_phan'] = df_filtered['so_phieu'].astype(str).str.split('-').str[0].str.lower().str.replace('-', '_')
                 df_filtered = df_filtered[df_filtered['bo_phan'] == filter_department]
             else:
                 st.warning("⚠️ Không tìm thấy cột 'so_phieu' để extract department")
