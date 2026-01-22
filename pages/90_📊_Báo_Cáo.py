@@ -25,6 +25,16 @@ if "user_info" not in st.session_state or not st.session_state.user_info:
     st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
     st.stop()
 
+# --- ROLE CHECK ---
+user_role = st.session_state.user_info.get("role", "")
+ALLOWED_ROLES = ['director', 'admin', 'qc_manager', 'bgd_tan_phu']
+
+if user_role not in ALLOWED_ROLES:
+    st.error(f"⛔ Bạn không có quyền truy cập báo cáo này! (Role: {user_role})")
+    if st.button("🔙 Quay lại trang chủ"):
+        st.switch_page("Dashboard.py")
+    st.stop()
+
 # --- GOOGLE SHEETS CONNECTION ---
 @st.cache_resource
 def init_gspread():
