@@ -160,7 +160,8 @@ for _, ticket in tickets_rejected.iterrows():
             'bi_tu_choi_truong_ca': ('cho_truong_ca', 'Trưởng ca'),
             'bi_tu_choi_truong_bp': ('cho_truong_bp', 'Trưởng BP'),
             'bi_tu_choi_qc_manager': ('cho_qc_manager', 'QC Manager'),
-            'bi_tu_choi_giam_doc': ('cho_giam_doc', 'Giám đốc')
+            'bi_tu_choi_giam_doc': ('cho_giam_doc', 'Giám đốc'),
+            'bi_tu_choi_bgd_tan_phu': ('cho_bgd_tan_phu', 'BGĐ Tân Phú')
         }
         
         target_status, target_name = restart_targets.get(status, ('cho_truong_ca', 'Trưởng ca'))
@@ -199,9 +200,10 @@ for _, ticket in tickets_rejected.iterrows():
             # Escalate to next higher level
             escalate_targets = {
                 'bi_tu_choi_truong_ca': ('cho_truong_bp', 'Trưởng BP'),
-                'bi_tu_choi_truong_bp': ('cho_giam_doc', 'Giám đốc'),  # Skip QC, go to Director
+                'bi_tu_choi_truong_bp': ('cho_giam_doc', 'Giám đốc'),  # Skip QC
                 'bi_tu_choi_qc_manager': ('cho_giam_doc', 'Giám đốc'),
-                'bi_tu_choi_giam_doc': None  # No escalation for Director reject
+                'bi_tu_choi_giam_doc': ('cho_bgd_tan_phu', 'BGĐ Tân Phú'), # Director -> Root
+                'bi_tu_choi_bgd_tan_phu': None # Root is final
             }
             
             escalate_info = escalate_targets.get(status)
@@ -216,9 +218,11 @@ for _, ticket in tickets_rejected.iterrows():
                     height=80
                 )
                 
-                # Custom label for bi_tu_choi_truong_bp
+                # Custom label for buttons
                 if status == 'bi_tu_choi_truong_bp':
                     button_label = "📤 GỬI CHO DIRECTOR"
+                elif status == 'bi_tu_choi_giam_doc':
+                    button_label = "📤 GỬI CHO BGĐ TÂN PHÚ"
                 else:
                     button_label = f"⬆️ ESCALATE → {escalate_name}"
                 

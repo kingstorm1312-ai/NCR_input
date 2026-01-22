@@ -266,8 +266,8 @@ else:
     dept_code = user['department']
     has_dept_page = dept_code in DEPARTMENT_PAGES
     
-    # --- VIEW 1: QC MANAGER & DIRECTOR & ADMIN ---
-    if role in ['qc_manager', 'director', 'admin']:
+    # --- VIEW 1: QC MANAGER & DIRECTOR & ADMIN & BGD ---
+    if role in ['qc_manager', 'director', 'bgd_tan_phu', 'admin']:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
