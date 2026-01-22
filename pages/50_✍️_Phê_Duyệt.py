@@ -81,6 +81,19 @@ if not filter_status:
 needs_dept_filter = selected_role in ['truong_ca', 'truong_bp']
 filter_department = user_dept if needs_dept_filter else None
 
+# DEBUG OUTPUT (TEMPORARY)
+st.write("🔧 **DEBUG INFO:**")
+st.json({
+    "user_name": user_name,
+    "user_role": user_role,
+    "user_dept": user_dept,
+    "selected_role": selected_role,
+    "filter_status": filter_status,
+    "needs_dept_filter": needs_dept_filter,
+    "filter_department": filter_department
+})
+st.divider()
+
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
     df_original, df_grouped = load_ncr_data_with_grouping(
