@@ -79,6 +79,14 @@ with col2:
 st.divider()
 
 # --- DETERMINE FILTER BASED ON ROLE ---
+ROLE_ACTION_STATUSES = {
+    'truong_ca': 'cho_truong_ca',
+    'truong_bp': 'cho_truong_bp',
+    'qc_manager': ['cho_qc_manager', 'xac_nhan_kp_qc_manager'],
+    'director': ['cho_giam_doc', 'xac_nhan_kp_director'],
+    'bgd_tan_phu': 'cho_bgd_tan_phu'
+}
+
 # Admin can act as any role
 if user_role == 'admin':
     st.info("🔑 Admin Mode: Chọn role để xem NCR cần phê duyệt")
@@ -86,10 +94,10 @@ if user_role == 'admin':
         "Xem với quyền:",
         ['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu']
     )
-    filter_status = ROLE_TO_STATUS[selected_role]
+    filter_status = ROLE_ACTION_STATUSES[selected_role]
 else:
     selected_role = user_role
-    filter_status = ROLE_TO_STATUS.get(user_role)
+    filter_status = ROLE_ACTION_STATUSES.get(user_role)
 
 if not filter_status:
     st.error("Role không hợp lệ!")
@@ -229,6 +237,36 @@ else:
                     has_any_solution = True
                     st.warning(f"**👨‍💼 Giám đốc - Hướng xử lý:**\n{row['huong_xu_ly_gd']}")
                 
+                # --- HÀNH ĐỘNG KHẮC PHỤC (Timeline) ---
+                if row.get('kp_status') and row.get('kp_status') != 'none':
+                    has_any_solution = True
+                    kp_status = row['kp_status']
+                    kp_by = row.get('kp_assigned_by', '').upper()
+                    kp_to = row.get('kp_assigned_to', '').upper()
+                    kp_msg = row.get('kp_message', '')
+                    kp_dl = row.get('kp_deadline', '')
+                    kp_res = row.get('kp_response', '')
+                    
+                    st.markdown("---")
+                    st.subheader("🛠️ Hành động khắc phục")
+                    st.write(f"**Trạng thái:** {kp_status.upper()}")
+                    st.write(f"**Người giao:** {kp_by} → **Người nhận:** {kp_to}")
+                    st.info(f"**Nội dung yêu cầu:**\n{kp_msg}")
+                    st.write(f"**Hạn chót:** {kp_dl}")
+                    
+                    if kp_res:
+                        st.success(f"**Phản hồi hoàn thành:**\n{kp_res}")
+                    
+                    # Deadline warning
+                    if kp_status == 'active' and kp_dl:
+                        try:
+                            deadline_dt = pd.to_datetime(kp_dl).date()
+                            today = datetime.now().date()
+                            if today > deadline_dt:
+                                st.error(f"⚠️ QUÁ HẠN: Task này đã trễ hạn { (today - deadline_dt).days } ngày!")
+                        except:
+                            pass
+
                 if not has_any_solution:
                     st.caption("_Chưa có đề xuất xử lý từ các cấp quản lý._")
                 
@@ -287,7 +325,53 @@ else:
             # Logic for REJECT STATUS based on Escalation
             reject_status = REJECT_ESCALATION.get(trang_thai, 'draft')
             
+            # Special Logic for Corrective Action Acceptance
+            is_awaiting_kp_confirm = str(trang_thai).startswith("xac_nhan_kp_")
+            
+            if is_awaiting_kp_confirm:
+                st.markdown("### 🔍 Xác nhận Hành động khắc phục")
+                st.write("Người nhận đã gửi phản hồi. Bạn có chấp nhận kết quả này không?")
+                if st.button("✅ Chấp nhận & Quay lại xét duyệt", key=f"accept_kp_{so_phieu}", type="primary", use_container_width=True):
+                    with st.spinner("Đang xác nhận..."):
+                        from utils.ncr_helpers import accept_corrective_action
+                        success, message = accept_corrective_action(gc, so_phieu, selected_role)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+                st.divider()
+
             col_approve, col_reject = st.columns(2)
+            
+            # Additional Action: Assign Corrective Action
+            can_assign_kp = (selected_role == 'qc_manager' and trang_thai == 'cho_qc_manager') or \
+                           (selected_role == 'director' and trang_thai == 'cho_giam_doc')
+            
+            if can_assign_kp:
+                with st.expander("🛠️ Giao hành động khắc phục (Corrective Action)", expanded=False):
+                    assign_to = 'truong_bp'
+                    if selected_role == 'director':
+                        assign_to = st.radio("Giao cho:", ['truong_bp', 'qc_manager'], horizontal=True, key=f"assign_to_{so_phieu}")
+                    
+                    kp_msg = st.text_area("Yêu cầu cụ thể:", key=f"kp_msg_{so_phieu}", placeholder="Nhập yêu cầu khắc phục...")
+                    kp_deadline = st.date_input("Hạn chót:", key=f"kp_dl_{so_phieu}")
+                    
+                    if st.button("🚀 Gửi yêu cầu khắc phục", key=f"send_kp_{so_phieu}", use_container_width=True):
+                        if not kp_msg.strip():
+                            st.error("Vui lòng nhập nội dung yêu cầu!")
+                        else:
+                            with st.spinner("Đang giao task..."):
+                                from utils.ncr_helpers import assign_corrective_action
+                                success, message = assign_corrective_action(
+                                    gc, so_phieu, selected_role, assign_to, kp_msg, kp_deadline
+                                )
+                                if success:
+                                    st.success(message)
+                                    st.rerun()
+                                else:
+                                    st.error(message)
+                st.write("")
             
             with col_approve:
                 approve_label = "✅ PHÊ DUYỆT" if selected_role != 'bgd_tan_phu' else "✅ HOÀN TẤT PHIẾU"

@@ -62,7 +62,14 @@ COLUMN_MAPPING = {
     'huong_giai_quyet': 'y_kien_qc',
     'huong_xu_ly_gd': 'huong_xu_ly_giam_doc',
     'ly_do_tu_choi': 'ly_do_tu_choi',
-    'hinh_anh': 'hinh_anh'
+    'hinh_anh': 'hinh_anh',
+    # Hành động khắc phục (Corrective Action)
+    'kp_status': 'kp_status',
+    'kp_assigned_by': 'kp_assigned_by',
+    'kp_assigned_to': 'kp_assigned_to',
+    'kp_message': 'kp_message',
+    'kp_deadline': 'kp_deadline',
+    'kp_response': 'kp_response'
 }
 
 ROLE_TO_APPROVER_COLUMN = {
@@ -117,7 +124,10 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
         
         if filter_status:
             if 'trang_thai' in df_filtered.columns:
-                df_filtered = df_filtered[df_filtered['trang_thai'].astype(str).str.strip() == filter_status]
+                if isinstance(filter_status, list):
+                    df_filtered = df_filtered[df_filtered['trang_thai'].astype(str).str.strip().isin(filter_status)]
+                else:
+                    df_filtered = df_filtered[df_filtered['trang_thai'].astype(str).str.strip() == filter_status]
         
         if filter_department:
             if 'so_phieu' in df_filtered.columns:
@@ -150,7 +160,8 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
             'sl_kiem', 'mo_ta_loi', 'sl_lo_hang', 'hinh_anh',
             'thoi_gian_cap_nhat', 'nguoi_duyet_1', 'nguoi_duyet_2', 
             'nguoi_duyet_3', 'nguoi_duyet_4', 'nguoi_duyet_5', 
-            'bien_phap_truong_bp', 'huong_giai_quyet', 'huong_xu_ly_gd', 'ly_do_tu_choi'
+            'bien_phap_truong_bp', 'huong_giai_quyet', 'huong_xu_ly_gd', 'ly_do_tu_choi',
+            'kp_status', 'kp_assigned_by', 'kp_assigned_to', 'kp_message', 'kp_deadline', 'kp_response'
         ]
         
         for col in optional_cols:
@@ -497,3 +508,126 @@ def restart_ncr(gc, so_phieu, target_status, user_name, note=""):
         return False, "Không tìm thấy phiếu"
     except Exception as e:
         return False, f"Lỗi: {str(e)}"
+def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline):
+    """
+    Giao hành động khắc phục cho cấp dưới.
+    """
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        data = ws.get_all_values()
+        headers = [str(h).strip().lower() for h in data[0]]
+        
+        idx_so_phieu = headers.index("so_phieu_ncr")
+        idx_status = headers.index("trang_thai")
+        idx_update = headers.index("thoi_gian_cap_nhat")
+        
+        idx_kp_status = headers.index("kp_status")
+        idx_kp_by = headers.index("kp_assigned_by")
+        idx_kp_to = headers.index("kp_assigned_to")
+        idx_kp_msg = headers.index("kp_message")
+        idx_kp_dl = headers.index("kp_deadline")
+        idx_kp_res = headers.index("kp_response")
+        
+        # Xác định trạng thái mới
+        new_status = f"khac_phuc_{assign_to_role}"
+        now = get_now_vn_str()
+        range_updates = []
+        
+        for i, row in enumerate(data[1:], start=2):
+            if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_status + 1), 'values': [[new_status]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_update + 1), 'values': [[now]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_status + 1), 'values': [['active']]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_by + 1), 'values': [[assigned_by_role]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_to + 1), 'values': [[assign_to_role]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_msg + 1), 'values': [[message]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_dl + 1), 'values': [[str(deadline)]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_res + 1), 'values': [['']]}) # Reset response
+        
+        if range_updates:
+            ws.batch_update(range_updates)
+            return True, f"Đã giao hành động khắc phục cho {assign_to_role.upper()}"
+        return False, "Không tìm thấy số phiếu"
+    except Exception as e:
+        return False, f"Lỗi hệ thống: {e}"
+
+def complete_corrective_action(gc, so_phieu, response):
+    """
+    Người nhận hoàn thành hành động khắc phục và gửi lại cho người giao.
+    """
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        data = ws.get_all_values()
+        headers = [str(h).strip().lower() for h in data[0]]
+        
+        idx_so_phieu = headers.index("so_phieu_ncr")
+        idx_status = headers.index("trang_thai")
+        idx_update = headers.index("thoi_gian_cap_nhat")
+        idx_kp_status = headers.index("kp_status")
+        idx_kp_by = headers.index("kp_assigned_by")
+        idx_kp_res = headers.index("kp_response")
+        
+        now = get_now_vn_str()
+        range_updates = []
+        
+        # Lấy thông tin người giao từ dòng đầu tiên tìm thấy
+        assigned_by = ""
+        for row in data[1:]:
+            if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
+                assigned_by = str(row[idx_kp_by]).strip()
+                break
+        
+        if not assigned_by:
+            return False, "Không xác định được người giao task"
+            
+        # Trạng thái chờ xác nhận
+        new_status = f"xac_nhan_kp_{assigned_by}"
+        
+        for i, row in enumerate(data[1:], start=2):
+            if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_status + 1), 'values': [[new_status]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_update + 1), 'values': [[now]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_status + 1), 'values': [['completed']]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_res + 1), 'values': [[response]]})
+        
+        if range_updates:
+            ws.batch_update(range_updates)
+            return True, f"Đã gửi phản hồi khắc phục cho {assigned_by.upper()}"
+        return False, "Không tìm thấy số phiếu"
+    except Exception as e:
+        return False, f"Lỗi hệ thống: {e}"
+
+def accept_corrective_action(gc, so_phieu, approver_role):
+    """
+    Người giao chấp nhận hành động khắc phục, phiếu quay lại trạng thái chờ duyệt của họ.
+    """
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        data = ws.get_all_values()
+        headers = [str(h).strip().lower() for h in data[0]]
+        
+        idx_so_phieu = headers.index("so_phieu_ncr")
+        idx_status = headers.index("trang_thai")
+        idx_update = headers.index("thoi_gian_cap_nhat")
+        idx_kp_status = headers.index("kp_status")
+        
+        # Quay lại trạng thái chờ duyệt của chính role đó
+        new_status = ROLE_TO_STATUS.get(approver_role)
+        now = get_now_vn_str()
+        range_updates = []
+        
+        for i, row in enumerate(data[1:], start=2):
+            if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_status + 1), 'values': [[new_status]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_update + 1), 'values': [[now]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_status + 1), 'values': [['accepted']]})
+        
+        if range_updates:
+            ws.batch_update(range_updates)
+            return True, "Đã chấp nhận hành động khắc phục. Phiếu đã quay lại danh sách chờ duyệt."
+        return False, "Không tìm thấy số phiếu"
+    except Exception as e:
+        return False, f"Lỗi hệ thống: {e}"

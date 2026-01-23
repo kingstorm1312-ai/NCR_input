@@ -25,6 +25,7 @@ if "user_info" not in st.session_state or not st.session_state.user_info:
 
 user_info = st.session_state.user_info
 user_name = user_info.get("name")
+user_role = user_info.get("role")
 
 # --- GOOGLE SHEETS CONNECTION ---
 @st.cache_resource
@@ -109,11 +110,17 @@ with st.spinner("Đang tải dữ liệu..."):
     # Load all NCR data (no status filter)
     df_all, _ = load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None)
 
-# Filter by creator
+# Filter by creator or assigned role
 if not df_all.empty:
     df_my_ncrs = df_all[df_all['nguoi_lap_phieu'] == user_name].copy()
+    # Danh sách task được giao cho role hiện tại
+    df_my_tasks = df_all[
+        (df_all['kp_assigned_to'] == user_role) & 
+        (df_all['kp_status'] == 'active')
+    ].copy()
 else:
     df_my_ncrs = pd.DataFrame()
+    df_my_tasks = pd.DataFrame()
 
 # --- STATISTICS ---
 if not df_my_ncrs.empty:
@@ -135,7 +142,7 @@ else:
 st.divider()
 
 # --- TABS ---
-tab1, tab2, tab3 = st.tabs(["🔴 Cần xử lý", "⏳ Đang chờ duyệt", "✅ Hoàn thành"])
+tab1, tab2, tab3, tab4 = st.tabs(["🔴 Cần xử lý", "⏳ Đang chờ duyệt", "🛠️ Hành động khắc phục", "✅ Hoàn thành"])
 
 # --- TAB 1: DRAFT/REJECTED ---
 with tab1:
@@ -492,8 +499,53 @@ with tab2:
                         except Exception as e:
                             st.error(f"Lỗi khi tải/lưu dữ liệu: {str(e)}")
 
-# --- TAB 3: COMPLETED ---
+# --- TAB 3: CORRECTIVE ACTIONS (TASKS) ---
 with tab3:
+    st.subheader("🛠️ Hành động khắc phục (Task được giao)")
+    
+    if df_my_tasks.empty:
+        st.success("🎉 Bạn không có hành động khắc phục nào cần xử lý!")
+    else:
+        st.info(f"Bạn có {len(df_my_tasks)} yêu cầu khắc phục cần phản hồi.")
+        
+        for _, task in df_my_tasks.iterrows():
+            so_phieu = task['so_phieu']
+            msg = task['kp_message']
+            deadline = task['kp_deadline']
+            by_role = task.get('kp_assigned_by', '').upper()
+            
+            with st.container(border=True):
+                st.markdown(f"### 📋 {so_phieu}")
+                st.warning(f"**Yêu cầu từ {by_role}:**\n{msg}")
+                st.write(f"📅 **Hạn chót:** {deadline}")
+                
+                # Deadline warning
+                try:
+                    deadline_dt = pd.to_datetime(deadline).date()
+                    today = datetime.now().date()
+                    if today > deadline_dt:
+                        st.error(f"⚠️ QUÁ HẠN: Task này đã trễ hạn { (today - deadline_dt).days } ngày!")
+                except:
+                    pass
+                
+                # Form to respond
+                with st.expander("📝 Phản hồi khắc phục", expanded=True):
+                    response = st.text_area("Nội dung phản hồi:", key=f"res_msg_{so_phieu}", placeholder="Nhập kết quả xử lý...")
+                    if st.button("✅ Gửi hoàn thành", key=f"send_res_{so_phieu}", use_container_width=True):
+                        if not response.strip():
+                            st.error("Vui lòng nhập nội dung phản hồi!")
+                        else:
+                            with st.spinner("Đang gửi..."):
+                                from utils.ncr_helpers import complete_corrective_action
+                                success, message = complete_corrective_action(gc, so_phieu, response)
+                                if success:
+                                    st.success(message)
+                                    st.rerun()
+                                else:
+                                    st.error(message)
+
+# --- TAB 4: COMPLETED ---
+with tab4:
     st.subheader("✅ Phiếu đã hoàn thành")
     
     df_completed = df_my_ncrs[df_my_ncrs['trang_thai'] == 'hoan_thanh']
