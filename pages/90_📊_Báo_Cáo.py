@@ -12,6 +12,7 @@ from datetime import datetime
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import (
+    init_gspread,
     load_ncr_dataframe_v2,
     get_status_display_name,
     get_status_color
@@ -35,34 +36,13 @@ if user_role not in ALLOWED_ROLES:
         st.switch_page("Dashboard.py")
     st.stop()
 
-# --- GOOGLE SHEETS CONNECTION ---
-@st.cache_resource
-def init_gspread():
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        
-        if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str, strict=False)
-        else:
-            credentials_dict = creds_str
-            
-        gc = gspread.service_account_from_dict(credentials_dict)
-        return gc
-    except Exception as e:
-        st.error(f"Lỗi kết nối System: {e}")
-        return None
-
-gc = init_gspread()
-if not gc:
-    st.stop()
-
 # --- HEADER ---
 st.title("📊 Báo Cáo & Phân Tích NCR")
 st.markdown("---")
 
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu báo cáo..."):
-    df_raw = load_ncr_dataframe_v2(gc)
+    df_raw = load_ncr_dataframe_v2()
 
 if df_raw.empty:
     st.info("Chưa có dữ liệu để báo cáo.")

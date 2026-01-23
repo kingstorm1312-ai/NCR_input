@@ -9,6 +9,7 @@ from datetime import datetime
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import (
+    init_gspread,
     load_ncr_data_with_grouping,
     get_status_display_name,
     get_status_color,
@@ -16,7 +17,25 @@ from utils.ncr_helpers import (
 )
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="QC Giám Sát", page_icon="🔧", layout="wide")
+st.set_page_config(page_title="QC Giám Sát", page_icon="🔧", layout="centered", initial_sidebar_state="auto")
+
+# --- MOBILE NAVIGATION HELPER ---
+st.markdown("""
+<style>
+    /* Đảm bảo header và nút sidebar rõ ràng trên di động */
+    header[data-testid="stHeader"] {
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 999999;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("### 🧭 Điều hướng")
+    if st.button("🏠 Về Trang Chủ", use_container_width=True):
+        st.switch_page("Dashboard.py")
+    st.divider()
 
 # --- AUTHENTICATION CHECK ---
 if "user_info" not in st.session_state or not st.session_state.user_info:
@@ -34,8 +53,7 @@ if user_role not in ['qc_manager', 'director']:
     st.stop()
 
 # --- GOOGLE SHEETS CONNECTION ---
-
-gc = init_gspread()
+# gc = init_gspread() # Tập trung hóa vào ncr_helpers
 
 # --- HEADER ---
 st.title("🔧 QC Giám Sát - Phiếu Bị Từ Chối")
@@ -204,7 +222,7 @@ with tab_legacy:
                     restart_note = st.text_input(f"Note restart {so_phieu}", key=f"note_res_{so_phieu}")
                     if st.button(f"🔄 Restart về {target_name}", key=f"btn_res_{so_phieu}"):
                         with st.spinner("Processing..."):
-                            success, msg = restart_ncr(gc, so_phieu, target_status, user_name, restart_note)
+                            success, msg = restart_ncr(init_gspread(), so_phieu, target_status, user_name, restart_note)
                             if success:
                                 st.success("Done")
                                 st.rerun()
@@ -215,7 +233,7 @@ with tab_legacy:
                 with col_escalate:
                     if st.button(f"↩️ Force Restore Draft", key=f"btn_draft_{so_phieu}"):
                         with st.spinner("Processing..."):
-                            success, msg = restart_ncr(gc, so_phieu, 'draft', user_name, "Admin Force Restore")
+                            success, msg = restart_ncr(init_gspread(), so_phieu, 'draft', user_name, "Admin Force Restore")
                             if success:
                                 st.success("Restored to Draft")
                                 st.rerun()

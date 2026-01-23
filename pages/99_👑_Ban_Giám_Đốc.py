@@ -9,6 +9,7 @@ from datetime import datetime
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import (
+    init_gspread,
     calculate_stuck_time,
     get_status_display_name,
     get_status_color,
@@ -34,31 +35,10 @@ if user_role not in ['director', 'admin']:
         st.switch_page("Dashboard.py")
     st.stop()
 
-# --- GOOGLE SHEETS CONNECTION ---
-@st.cache_resource
-def init_gspread():
-    """Khởi tạo gspread client từ secrets"""
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        
-        if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str, strict=False)
-        else:
-            credentials_dict = creds_str
-            
-        gc = gspread.service_account_from_dict(credentials_dict)
-        return gc
-    except Exception as e:
-        st.error(f"Lỗi kết nối System: {e}")
-        return None
-
-gc = init_gspread()
-
-# --- LOAD ALL NCR DATA ---
 # --- LOAD ALL NCR DATA ---
 # Using shared loader from utils
 def load_all_ncr_data():
-    return load_ncr_dataframe_v2(gc)
+    return load_ncr_dataframe_v2()
 
 # --- HEADER ---
 st.title("👑 Dashboard Giám Đốc")
