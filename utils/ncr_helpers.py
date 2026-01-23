@@ -245,6 +245,11 @@ def load_ncr_dataframe_v2():
             df['date_obj'] = pd.to_datetime(df['ngay_lap'], dayfirst=True, errors='coerce')
             df['year'] = df['date_obj'].dt.year
             df['month'] = df['date_obj'].dt.month
+            df['week'] = df['date_obj'].dt.isocalendar().week
+        
+        # Ensure hop_dong column exists (it should already be mapped from COLUMN_MAPPING)
+        if 'hop_dong' not in df.columns and 'so_hop_dong' in df.columns:
+            df['hop_dong'] = df['so_hop_dong']
         
         if 'so_phieu' in df.columns:
             def extract_dept_info(so_phieu):
