@@ -2,6 +2,7 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2.service_account import Credentials
 import io
 
@@ -605,7 +606,7 @@ def upload_images_to_drive(file_list, filename_prefix):
             }
             
             # Upload file
-            media = io.BytesIO(uploaded_file.getvalue())
+            media = MediaIoBaseUpload(io.BytesIO(uploaded_file.getvalue()), mimetype=uploaded_file.type, resumable=True)
             file = service.files().create(
                 body=file_metadata,
                 media_body=media,
