@@ -213,25 +213,25 @@ if st.session_state.buffer_errors:
                 success_count = 0
                 for err in st.session_state.buffer_errors:
                     data_to_save = {
-                        'ngày lập': now,
-                        'số phiếu ncr': so_phieu,
-                        'hợp đồng': hop_dong,
-                        'mã vật tư': ma_vt,
-                        'tên sp': ten_sp,
-                        'phân loại': phan_loai,
-                        'nguồn gốc': nguon_goc,
-                        'tên lỗi': err['ten_loi'],
-                        'vị trí lỗi': err['vi_tri'],
-                        'số lượng lỗi': err['sl_loi'],
-                        'số lượng kiểm': sl_kiem,
-                        'mức độ': err['muc_do'],
-                        'mô tả lỗi': mo_ta_loi,
-                        'số lượng lô': sl_lo,
-                        'người lập phiếu': nguoi_lap,
-                        'nơi gây lỗi': nguon_goc,
-                        'trạng thái': 'cho_truong_ca',
-                        'thời gian cập nhật': now,
-                        'hình ảnh': hinh_anh_links
+                        'ngay_lap': now,
+                        'so_phieu_ncr': so_phieu,
+                        'hop_dong': hop_dong,
+                        'ma_vat_tu': ma_vt,
+                        'ten_sp': ten_sp,
+                        'phan_loai': phan_loai,
+                        'nguon_goc': nguon_goc,
+                        'ten_loi': err['ten_loi'],
+                        'vi_tri_loi': err['vi_tri'],
+                        'so_luong_loi': err['sl_loi'],
+                        'so_luong_kiem': sl_kiem,
+                        'muc_do': err['muc_do'],
+                        'mo_ta_loi': mo_ta_loi,
+                        'so_luong_lo_hang': sl_lo,
+                        'nguoi_lap_phieu': nguoi_lap,
+                        'noi_gay_loi': nguon_goc,
+                        'trang_thai': 'cho_truong_ca',
+                        'thoi_gian_cap_nhat': now,
+                        'hinh_anh': hinh_anh_links
                     }
                     if smart_append_ncr(ws, data_to_save):
                         success_count += 1

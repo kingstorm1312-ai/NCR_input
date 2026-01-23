@@ -342,12 +342,8 @@ def smart_append_ncr(ws, data_dict):
         # 1. Lấy headers từ row 1
         headers = ws.row_values(1)
         
-        # DEBUG: Show headers to user
-        st.write("🔍 DEBUG - Headers found on Sheet:", headers)
-        
         # 2. Chuẩn hóa data_dict (strip và lowercase keys)
         normalized_data = {str(k).strip().lower(): v for k, v in data_dict.items()}
-        st.write("🔍 DEBUG - Data keys (normalized):", list(normalized_data.keys()))
         
         # 3. Xây dựng row list dựa trên header
         # Map dữ liệu theo tên cột (chuẩn hóa header để tìm trong normalized_data)
