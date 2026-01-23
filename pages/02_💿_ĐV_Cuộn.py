@@ -170,30 +170,35 @@ if st.session_state.buffer_errors:
                 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
                 rows = []
-                # STRICT COLUMN ORDER
+                # CORRECT 26-COLUMN ORDER (matching Google Sheet)
                 for err in st.session_state.buffer_errors:
                     rows.append([
-                        now,                # 1. ngay_lap
-                        nguoi_lap,          # 2. nguoi_lap
-                        "ĐV Cuộn",          # 3. bo_phan
-                        "",                 # 4. phan_loai
-                        nguon_goc,          # 5. nguon_goc
-                        so_phieu,           # 6. so_phieu_ncr
-                        hop_dong,           # 7. hop_dong
-                        ma_vt,              # 8. ma_vt
-                        ten_sp,             # 9. ten_sp
-                        err['ten_loi'],     # 10. ten_loi
-                        err['vi_tri'],      # 11. vi_tri
-                        err['sl_loi'],      # 12. sl_loi
-                        sl_kiem,            # 13. sl_kiem
-                        err['muc_do'],      # 14. muc_do
-                        sl_lo,              # 15. so_lo
-                        quy_cach,           # 16. quy_cach
-                        img_links,          # 17. hinh_anh
-                        'cho_truong_ca',    # 18. trang_thai
-                        now,                # 19. thoi_gian_cap_nhat
-                        '',                 # 20. ly_do_tu_choi
-                        '', '', '', '', ''  # 21-25. Approval Cols
+                        now,                # 1. ngày lập
+                        so_phieu,           # 2. số phiếu ncr
+                        hop_dong,           # 3. hợp đồng
+                        ma_vt,              # 4. mã vật tư
+                        ten_sp,             # 5. tên sp
+                        "",                 # 6. phân loại (empty for ĐV Cuộn)
+                        nguon_goc,          # 7. nguồn gốc
+                        err['ten_loi'],     # 8. tên lỗi
+                        err['vi_tri'],      # 9. vị trí lỗi
+                        err['sl_loi'],      # 10. số lượng lỗi
+                        sl_kiem,            # 11. số lượng kiểm
+                        err['muc_do'],      # 12. mức độ
+                        quy_cach,           # 13. mô tả lỗi
+                        sl_lo,              # 14. số lượng lô
+                        nguoi_lap,          # 15. người lập phiếu
+                        nguon_goc,          # 16. nơi gây lỗi
+                        'cho_truong_ca',    # 17. trạng thái
+                        now,                # 18. thời gian cập nhật
+                        '',                 # 19. duyệt trưởng ca
+                        '',                 # 20. duyệt trưởng bp
+                        '',                 # 21. ý kiến QC
+                        '',                 # 22. duyệt QC manager
+                        '',                 # 23. duyet giam doc
+                        '',                 # 24. duyet bgd tan phu
+                        '',                 # 25. ly do từ chối
+                        img_links           # 26. hình ảnh
                     ])
                 
                 ws.append_rows(rows)
