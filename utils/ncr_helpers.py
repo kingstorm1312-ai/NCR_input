@@ -30,9 +30,10 @@ REJECT_ESCALATION = {
 # Map tên cột chuẩn trong code sang tên cột thực tế trong Google Sheet
 COLUMN_MAPPING = {
     'so_phieu': 'so_phieu_ncr',
-    'sl_loi': 'sl_loi',
+    'sl_loi': 'so_luong_loi',
     'nguon_goc': 'nguon_goc',
     'phan_loai': 'phan_loai',
+    'nguoi_lap_phieu': 'nguoi_lap_phieu',
     'nguoi_duyet_1': 'duyet_truong_ca',
     'nguoi_duyet_2': 'duyet_truong_bp',
     'nguoi_duyet_3': 'duyet_qc_manager',
