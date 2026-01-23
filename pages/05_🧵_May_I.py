@@ -12,12 +12,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import các hàm chung đã được tối ưu
 from utils.ncr_helpers import (
+    init_gspread,
     get_now_vn, get_now_vn_str,
     format_contract_code, 
     render_input_buffer_mobile, 
-    upload_images_to_cloud,  # Hàm upload mới (Cloudinary)
+    upload_images_to_cloud,
     smart_append_ncr,
-    LIST_DON_VI_TINH         # Hàm lưu thông minh
+    LIST_DON_VI_TINH
 )
 
 # --- CẤU HÌNH TRANG ---
