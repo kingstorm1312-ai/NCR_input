@@ -331,3 +331,25 @@ def upload_images_to_cloud(file_list, filename_prefix):
     except Exception as e:
         st.error(f"Lỗi cấu hình Cloudinary: {e}")
         return ""
+
+
+def smart_append_ncr(ws, data_dict):
+    """
+    Appends a row to Google Sheets based on headers.
+    Matches keys in data_dict with headers in row 1 of ws.
+    """
+    try:
+        # 1. Lấy headers từ row 1 (cache hoặc đọc trực tiếp)
+        # Để đảm bảo chính xác nhất, ta đọc trực tiếp row 1
+        headers = ws.row_values(1)
+        
+        # 2. Xây dựng row list dựa trên header
+        # Map dữ liệu theo tên cột, nếu không có thì để trống
+        row_to_append = [data_dict.get(h, "") for h in headers]
+        
+        # 3. Append vào sheet
+        ws.append_row(row_to_append)
+        return True
+    except Exception as e:
+        st.error(f"Lỗi khi lưu dòng dữ liệu: {e}")
+        return False
