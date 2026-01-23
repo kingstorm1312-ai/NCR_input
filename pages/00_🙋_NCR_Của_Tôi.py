@@ -110,14 +110,38 @@ with st.spinner("Đang tải dữ liệu..."):
     # Load all NCR data (no status filter)
     df_all, _ = load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None)
 
+# --- ADMIN VIEW OPTIONS ---
+current_view_user = user_name
+if user_role == 'admin':
+    st.info("🔑 **Admin Mode**: Bạn có thể xem phiếu của chính mình hoặc người khác.")
+    all_creators = sorted(df_all['nguoi_lap_phieu'].unique()) if not df_all.empty else []
+    view_option = st.selectbox(
+        "Chọn người lập phiếu để xem:",
+        ["Tất cả người dùng", f"Của tôi ({user_name})"] + [u for u in all_creators if u != user_name]
+    )
+    
+    if view_option == "Tất cả người dùng":
+        current_view_user = "all"
+    elif view_option.startswith("Của tôi"):
+        current_view_user = user_name
+    else:
+        current_view_user = view_option
+
 # Filter by creator or assigned role
 if not df_all.empty:
-    df_my_ncrs = df_all[df_all['nguoi_lap_phieu'] == user_name].copy()
-    # Danh sách task được giao cho role hiện tại
-    df_my_tasks = df_all[
-        (df_all['kp_assigned_to'] == user_role) & 
-        (df_all['kp_status'] == 'active')
-    ].copy()
+    if current_view_user == "all":
+        df_my_ncrs = df_all.copy()
+    else:
+        df_my_ncrs = df_all[df_all['nguoi_lap_phieu'] == current_view_user].copy()
+    
+    # Danh sách task được giao cho role hiện tại (Admin xem hết task KP nếu view "all")
+    if user_role == 'admin' and current_view_user == "all":
+        df_my_tasks = df_all[df_all['kp_status'] == 'active'].copy()
+    else:
+        df_my_tasks = df_all[
+            (df_all['kp_assigned_to'] == user_role) & 
+            (df_all['kp_status'] == 'active')
+        ].copy()
 else:
     df_my_ncrs = pd.DataFrame()
     df_my_tasks = pd.DataFrame()
@@ -136,7 +160,10 @@ if not df_my_ncrs.empty:
         draft_count = df_my_ncrs[df_my_ncrs['trang_thai'] == 'draft']['so_phieu'].nunique()
         st.metric("🔴 Cần xử lý", draft_count)
 else:
-    st.info("ℹ️ Bạn chưa tạo phiếu NCR nào")
+    if current_view_user == "all":
+        st.info("ℹ️ Hiện không có phiếu NCR nào trên hệ thống.")
+    else:
+        st.info(f"ℹ️ User **{current_view_user}** chưa có phiếu NCR nào.")
     st.stop()
 
 st.divider()
