@@ -122,7 +122,13 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
          nguon_goc = st.selectbox("Nguồn gốc (NCC)", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
     
-    phan_loai = ""
+    phan_loai = st.selectbox("Phân loại", [
+        "", "BXD", "Chỉ", "Cuộn foam", "Cuộn lưới", "Cuộn VKD", "Dây đai", "Dây dù", 
+        "Dây kéo, đầu kéo", "Dây viền", "Dây rút", "Dây nẹp", "Đế nhựa", "Giấy carton", 
+        "Túi giấy", "Giấy tấm pallet", "Dây thun", "Dây Thừng", "Cuộn in", "Khay", 
+        "Hộp", "Manh", "Nắp", "Nẹp", "Nhựa", "Nút", "Ống nhựa", "Tấm lót", 
+        "Tấm nhựa", "Tem", "Thùng", "Túi poly", "Túi pp"
+    ], disabled=disable_hd)
     mo_ta_loi = st.text_area("Ghi chú / Mô tả thêm", disabled=disable_hd, height=60)
     
     st.markdown("**📷 Hình ảnh:**")

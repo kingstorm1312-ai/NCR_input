@@ -122,7 +122,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
          nguon_goc = st.selectbox("Nguồn gốc (NCC)", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
     
-    phan_loai = ""
+    phan_loai = st.selectbox("Phân loại", ["", "Cuộn màng", "Cuộn PP", "Cuộn VKD", "Cuộn RPET", "Cuộn giấy", "Cuộn in", "Cuộn HDPE"], disabled=disable_hd)
     mo_ta_loi = st.text_area("Ghi chú / Mô tả thêm", disabled=disable_hd, height=60)
     
     st.markdown("**📷 Hình ảnh:**")
