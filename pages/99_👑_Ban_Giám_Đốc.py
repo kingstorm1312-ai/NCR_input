@@ -75,8 +75,7 @@ else:
     df_all = df_raw.copy()
 
 # --- FILTERING ---
-# Move filter to main page
-f1, f2 = st.columns([1, 2])
+f1, f2, f3 = st.columns([1, 1.5, 1.5])
 with f1:
     st.write("") # Spacer
     st.markdown("**🔍 Bộ lọc dữ liệu:**")
@@ -86,16 +85,35 @@ with f2:
         "Chọn bộ phận (Khâu):",
         options=all_depts,
         default=[],
-        help="Để trống để chọn Tất cả",
+        placeholder="Chọn bộ phận...",
+        label_visibility="collapsed"
+    )
+with f3:
+    search_contract = st.text_input(
+        "Tìm hợp đồng:",
+        placeholder="🔍 Hợp đồng (vd: adi, 07/25...)",
+        help="Nhập đuôi hợp đồng (vd: 'adi') hoặc mã đầy đủ để lọc",
         label_visibility="collapsed"
     )
 
+# Apply Filters
+active_filters_msg = []
+
 if selected_depts:
     df_all = df_all[df_all['bo_phan'].isin(selected_depts)]
-    filter_label = ", ".join(selected_depts)
-    st.success(f"🔍 Đang lọc theo bộ phận: **{filter_label}** ({len(df_all)} phiếu)")
+    active_filters_msg.append(f"Bộ phận: {', '.join(selected_depts)}")
+
+if search_contract:
+    term = search_contract.strip().lower()
+    # "Smart" filter: contains logic handles both partial (suffix) and full match
+    mask = df_all['hop_dong'].astype(str).str.lower().str.contains(term, na=False)
+    df_all = df_all[mask]
+    active_filters_msg.append(f"Hợp đồng: '{search_contract}'")
+
+if active_filters_msg:
+    st.success(f"🔍 Đang lọc: **{' | '.join(active_filters_msg)}** — Tìm thấy {len(df_all)} phiếu")
 else:
-    st.info(f"📋 Đang hiển thị **Tất cả bộ phận** ({len(df_all)} phiếu)")
+    st.info(f"📋 Đang hiển thị **Tất cả dữ liệu** ({len(df_all)} phiếu)")
 
 # --- PIPELINE STATUS ---
 st.subheader("📊 Pipeline Status")
