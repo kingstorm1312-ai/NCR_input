@@ -615,11 +615,13 @@ def upload_images_to_drive(file_list, filename_prefix):
 
             try:
                 # Upload file
-                media = MediaFileUpload(tmp_path, mimetype=uploaded_file.type, resumable=True)
+                # resumable=False for small files (images) to avoid complex session checks
+                media = MediaFileUpload(tmp_path, mimetype=uploaded_file.type, resumable=False)
                 file = service.files().create(
                     body=file_metadata,
                     media_body=media,
-                    fields='id, webViewLink'
+                    fields='id, webViewLink',
+                    supportsAllDrives=True  # Support Shared Drives (Team Drives)
                 ).execute()
             finally:
                 # Cleanup temp file
