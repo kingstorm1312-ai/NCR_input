@@ -159,7 +159,38 @@ else:
                     st.info(f"📩 **Tin nhắn:** {note}")
             
             # Error details in expander
-            with st.expander("🔍 Chi tiết lỗi & Thông tin đầy đủ", expanded=True):
+            with st.expander("🔍 Xem chi tiết & Hình ảnh", expanded=True):
+                # --- HÌNH ẢNH (Move to Top) ---
+                st.markdown("#### 📷 Hình ảnh minh họa")
+                hinh_anh_val = row.get('hinh_anh', "")
+                if pd.notna(hinh_anh_val) and str(hinh_anh_val).strip():
+                    img_list = str(hinh_anh_val).split('\n')
+                    # Filter out empty or 'nan' strings
+                    img_list = [url.strip() for url in img_list if url.strip() and url.lower() != 'nan']
+                    
+                    if img_list:
+                        # Display images in a grid
+                        cols_per_row = 3
+                        for i in range(0, len(img_list), cols_per_row):
+                            img_cols = st.columns(cols_per_row)
+                            for j in range(cols_per_row):
+                                if i + j < len(img_list):
+                                    img_url = img_list[i+j]
+                                    img_cols[j].image(img_url, use_container_width=True)
+                                    if img_cols[j].button("🔍 Phóng to", key=f"zoom_{so_phieu}_{i+j}"):
+                                        preview_image(img_url)
+                        
+                        # Add direct links
+                        st.markdown("**🔗 Link ảnh trực tiếp:**")
+                        for idx, url in enumerate(img_list):
+                            st.markdown(f"- [Chi tiết ảnh {idx+1}]({url})")
+                    else:
+                        st.info("ℹ️ Phiếu này không có hình ảnh minh họa.")
+                else:
+                    st.info("ℹ️ Phiếu này không có hình ảnh minh họa.")
+
+                st.markdown("---")
+
                 # Header Info Grid
                 st.markdown("#### 📄 Thông tin chung")
                 ca1, ca2 = st.columns(2)
@@ -189,30 +220,6 @@ else:
                         use_container_width=True,
                         hide_index=True
                     )
-                
-                # --- HÌNH ẢNH ---
-                if row.get('hinh_anh'):
-                    st.markdown("---")
-                    st.markdown("#### 📷 Hình ảnh minh họa")
-                    img_list = str(row['hinh_anh']).split('\n')
-                    if img_list:
-                        # Display images in a grid
-                        cols_per_row = 3
-                        for i in range(0, len(img_list), cols_per_row):
-                            img_cols = st.columns(cols_per_row)
-                            for j in range(cols_per_row):
-                                if i + j < len(img_list):
-                                    img_url = img_list[i+j].strip()
-                                    if img_url:
-                                        img_cols[j].image(img_url, use_container_width=True)
-                                        if img_cols[j].button("🔍 Phóng to", key=f"zoom_{so_phieu}_{i+j}_{int(datetime.now().timestamp())}"):
-                                            preview_image(img_url)
-                        
-                        # Add direct links for convenience
-                        st.markdown("**🔗 Link ảnh trực tiếp:**")
-                        for idx, url in enumerate(img_list):
-                            if url.strip():
-                                st.markdown(f"- [Ảnh {idx+1}]({url.strip()})")
             
             # --- ACTION SECTION ---
             st.write("")  # Spacer
