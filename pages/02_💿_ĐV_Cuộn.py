@@ -197,7 +197,6 @@ if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
             "vi_tri": vi_tri,
             "muc_do": final_md,
             "sl_loi": final_so_luong,
-            "don_vi_tinh": final_dvt,
             "don_vi_tinh": final_dvt
         })
         st.toast(f"Đã thêm: {final_ten_loi}")
@@ -246,12 +245,9 @@ if st.session_state.buffer_errors:
                         'trang_thai': 'cho_truong_ca',
                         'thoi_gian_cap_nhat': now,
                         'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': err.get('don_vi_tinh', ''),
                         'don_vi_tinh': err.get('don_vi_tinh', '')
                     }
-                    if smart_append_ncr,
-    LIST_DON_VI_TINH,
-    LIST_DON_VI_TINH(ws, data_to_save):
+                    if smart_append_ncr(ws, data_to_save):
                         success_count += 1
                 
                 if success_count == len(st.session_state.buffer_errors):

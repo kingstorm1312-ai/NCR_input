@@ -247,8 +247,7 @@ if st.session_state.buffer_errors:
                         'hinh_anh': hinh_anh_links,
                         'don_vi_tinh': err.get('don_vi_tinh', '')
                     }
-                    if smart_append_ncr,
-    LIST_DON_VI_TINH(ws, data_to_save):
+                    if smart_append_ncr(ws, data_to_save):
                         success_count += 1
                 
                 if success_count == len(st.session_state.buffer_errors):
