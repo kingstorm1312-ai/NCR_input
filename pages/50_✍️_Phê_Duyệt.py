@@ -133,22 +133,15 @@ else:
         nguoi_lap = row['nguoi_lap_phieu']
         tong_loi = row['sl_loi']
         
-        with st.container(border=True):
-            # Header
-            col_title, col_status = st.columns([3, 1])
-            with col_title:
-                st.markdown(f"### 📋 {so_phieu}")
-            with col_status:
-                status_color = get_status_color(trang_thai)
-                st.markdown(f":{status_color}[{get_status_display_name(trang_thai)}]")
-            
+        status_name = get_status_display_name(trang_thai)
+        expander_label = f"📋 {so_phieu} | {status_name} | 👤 {nguoi_lap} | ⚠️ {tong_loi} lỗi"
+        
+        with st.expander(expander_label, expanded=False):
             # Info grid
             col1, col2 = st.columns(2)
             with col1:
-                st.write(f"👤 **Người lập:** {nguoi_lap}")
                 st.write(f"📅 **Ngày tạo:** {ngay_lap}")
             with col2:
-                st.write(f"⚠️ **Tổng lỗi:** {tong_loi}")
                 if 'bo_phan' in row:
                     st.write(f"🏢 **Bộ phận:** {row['bo_phan'].upper()}")
             
