@@ -14,6 +14,9 @@ def get_now_vn_str():
     """Lấy chuỗi thời gian hiện tại VN định dạng chuẩn"""
     return get_now_vn().strftime("%Y-%m-%d %H:%M:%S")
 
+# --- CONFIGURATION ---
+LIST_DON_VI_TINH = ["Cái", "Kg", "Mét", "Bịch", "Sợi", "Cuộn", "Bộ"]
+
 # --- STATUS FLOW CONFIGURATION ---
 STATUS_FLOW = {
     'draft': 'cho_truong_ca',
@@ -63,6 +66,7 @@ COLUMN_MAPPING = {
     'huong_xu_ly_gd': 'huong_xu_ly_giam_doc',
     'ly_do_tu_choi': 'ly_do_tu_choi',
     'hinh_anh': 'hinh_anh',
+    'don_vi_tinh': 'don_vi_tinh',
     # Hành động khắc phục (Corrective Action)
     'kp_status': 'kp_status',
     'kp_assigned_by': 'kp_assigned_by',
@@ -161,7 +165,8 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
             'thoi_gian_cap_nhat', 'nguoi_duyet_1', 'nguoi_duyet_2', 
             'nguoi_duyet_3', 'nguoi_duyet_4', 'nguoi_duyet_5', 
             'bien_phap_truong_bp', 'huong_giai_quyet', 'huong_xu_ly_gd', 'ly_do_tu_choi',
-            'kp_status', 'kp_assigned_by', 'kp_assigned_to', 'kp_message', 'kp_deadline', 'kp_response'
+            'kp_status', 'kp_assigned_by', 'kp_assigned_to', 'kp_message', 'kp_deadline', 'kp_response',
+            'don_vi_tinh'
         ]
         
         for col in optional_cols:
@@ -305,7 +310,8 @@ def render_input_buffer_mobile(buffer_list):
             with c1:
                 st.markdown(f"**{i+1}. {err['ten_loi']}**")
                 muc_do = err.get('muc_do', '')
-                st.caption(f"SL: **{err['sl_loi']}** | Vị trí: {err.get('vi_tri', '')} | Mức độ: {muc_do}")
+                dvt = err.get('don_vi_tinh', '')
+                st.caption(f"SL: **{err['sl_loi']} {dvt}** | Vị trí: {err.get('vi_tri', '')} | Mức độ: {muc_do}")
             with c2:
                 if st.button("🗑️", key=f"del_buf_{int(datetime.now().timestamp())}_{i}", help="Xóa"):
                     indices_to_remove.append(i)

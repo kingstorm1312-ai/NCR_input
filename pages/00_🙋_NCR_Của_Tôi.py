@@ -229,10 +229,17 @@ with tab1:
                 with st.expander("🔍 Chi tiết lỗi"):
                     ticket_rows = df_draft[df_draft['so_phieu'] == so_phieu]
                     if not ticket_rows.empty:
-                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'muc_do']
+                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
+                        column_config = {
+                            "ten_loi": "Tên lỗi",
+                            "vi_tri_loi": "Vị trí",
+                            "sl_loi": "SL",
+                            "don_vi_tinh": "ĐVT",
+                            "muc_do": "Mức độ"
+                        }
                         available_cols = [col for col in display_cols if col in ticket_rows.columns]
                         st.dataframe(
-                            ticket_rows[available_cols],
+                            ticket_rows[available_cols].rename(columns=column_config),
                             use_container_width=True,
                             hide_index=True
                         )
@@ -294,8 +301,10 @@ with tab1:
                             with col2:
                                 new_qty = st.number_input(
                                     "SL",
-                                    min_value=0,
-                                    value=int(err['sl_loi']) if err['sl_loi'] else 0,
+                                    min_value=0.0,
+                                    step=0.1,
+                                    format="%.1f",
+                                    value=float(err['sl_loi']) if err['sl_loi'] else 0.0,
                                     key=f"edit_qty_{so_phieu}_{i}",
                                     label_visibility="collapsed"
                                 )
@@ -415,10 +424,17 @@ with tab2:
                 with st.expander("🔍 Chi tiết lỗi"):
                     ticket_rows = df_pending[df_pending['so_phieu'] == so_phieu]
                     if not ticket_rows.empty:
-                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'muc_do']
+                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
+                        column_config = {
+                            "ten_loi": "Tên lỗi",
+                            "vi_tri_loi": "Vị trí",
+                            "sl_loi": "SL",
+                            "don_vi_tinh": "ĐVT",
+                            "muc_do": "Mức độ"
+                        }
                         available_cols = [col for col in display_cols if col in ticket_rows.columns]
                         st.dataframe(
-                            ticket_rows[available_cols],
+                            ticket_rows[available_cols].rename(columns=column_config),
                             use_container_width=True,
                             hide_index=True
                         )
@@ -477,8 +493,10 @@ with tab2:
                                 with col2:
                                     new_qty = st.number_input(
                                         "SL",
-                                        min_value=0,
-                                        value=int(err['sl_loi']) if err['sl_loi'] else 0,
+                                        min_value=0.0,
+                                        step=0.1,
+                                        format="%.1f",
+                                        value=float(err['sl_loi']) if err['sl_loi'] else 0.0,
                                         key=f"edit_qty_pending_{so_phieu}_{i}",
                                         label_visibility="collapsed"
                                     )
@@ -614,9 +632,20 @@ with tab3:
                     st.markdown("#### ❌ Danh sách lỗi chi tiết")
                     tk_rows = df_all[df_all['so_phieu'] == so_phieu]
                     if not tk_rows.empty:
-                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'muc_do']
+                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
+                        column_config = {
+                            "ten_loi": "Tên lỗi",
+                            "vi_tri_loi": "Vị trí",
+                            "sl_loi": "SL",
+                            "don_vi_tinh": "ĐVT",
+                            "muc_do": "Mức độ"
+                        }
                         avail_cols = [col for col in display_cols if col in tk_rows.columns]
-                        st.dataframe(tk_rows[avail_cols], use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            tk_rows[avail_cols].rename(columns=column_config), 
+                            use_container_width=True, 
+                            hide_index=True
+                        )
                 
                 # Deadline warning
                 try:
@@ -677,10 +706,17 @@ with tab4:
                 # Error details
                 ticket_rows = df_completed[df_completed['so_phieu'] == so_phieu]
                 if not ticket_rows.empty:
-                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'muc_do']
+                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
+                    column_config = {
+                        "ten_loi": "Tên lỗi",
+                        "vi_tri_loi": "Vị trí",
+                        "sl_loi": "SL",
+                        "don_vi_tinh": "ĐVT",
+                        "muc_do": "Mức độ"
+                    }
                     available_cols = [col for col in display_cols if col in ticket_rows.columns]
                     st.dataframe(
-                        ticket_rows[available_cols],
+                        ticket_rows[available_cols].rename(columns=column_config),
                         use_container_width=True,
                         hide_index=True
                     )

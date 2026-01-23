@@ -259,10 +259,17 @@ else:
                 # Get original rows for this ticket
                 ticket_rows = df_original[df_original['so_phieu'] == so_phieu]
                 if not ticket_rows.empty:
-                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'md_loi']
+                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'md_loi']
+                    column_config = {
+                        "ten_loi": "Tên lỗi",
+                        "vi_tri_loi": "Vị trí",
+                        "sl_loi": "SL",
+                        "don_vi_tinh": "ĐVT",
+                        "md_loi": "Mức độ"
+                    }
                     available_cols = [col for col in display_cols if col in ticket_rows.columns]
                     st.dataframe(
-                        ticket_rows[available_cols],
+                        ticket_rows[available_cols].rename(columns=column_config),
                         use_container_width=True,
                         hide_index=True
                     )

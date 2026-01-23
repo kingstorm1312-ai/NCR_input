@@ -14,7 +14,8 @@ from utils.ncr_helpers import (
     format_contract_code, 
     render_input_buffer_mobile, 
     upload_images_to_cloud,
-    smart_append_ncr
+    smart_append_ncr,
+    LIST_DON_VI_TINH
 )
 
 # --- CẤU HÌNH TRANG ---
@@ -150,23 +151,32 @@ final_so_luong = 1
 default_muc_do = "Nhẹ"
 
 with tab_chon:
-    c_sel1, c_sel2 = st.columns([2, 1])
+    c_sel1, c_sel2, c_sel3 = st.columns([2, 1, 1])
     with c_sel1:
         selected_loi = st.selectbox("Tên lỗi", ["-- Chọn --"] + LIST_LOI)
     with c_sel2:
-        sl_chon = st.number_input("SL", min_value=1, key="sl_existing")
+        sl_chon = st.number_input("SL", min_value=1.0, step=0.1, format="%.1f", key="sl_existing")
+    with c_sel3:
+        dvt_chon = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="dvt_existing")
     
     if selected_loi != "-- Chọn --":
         final_ten_loi = selected_loi
         final_so_luong = sl_chon
+        final_dvt = dvt_chon
         default_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
 
 with tab_moi:
     new_loi = st.text_input("Tên lỗi mới")
-    sl_new = st.number_input("SL", min_value=1, key="sl_new")
+    c_new1, c_new2 = st.columns([1, 1])
+    with c_new1:
+        sl_new = st.number_input("SL", min_value=1.0, step=0.1, format="%.1f", key="sl_new")
+    with c_new2:
+        dvt_new = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="dvt_new")
+        
     if new_loi:
         final_ten_loi = new_loi
         final_so_luong = sl_new
+        final_dvt = dvt_new
 
 vi_tri = st.selectbox("Vị trí lỗi", LIST_VI_TRI if LIST_VI_TRI else [""])
 if st.checkbox("Vị trí khác?"):
@@ -185,7 +195,8 @@ if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
             "ten_loi": final_ten_loi,
             "vi_tri": vi_tri,
             "muc_do": final_md,
-            "sl_loi": final_so_luong
+            "sl_loi": final_so_luong,
+            "don_vi_tinh": final_dvt
         })
         st.toast(f"Đã thêm: {final_ten_loi}")
 
@@ -232,9 +243,11 @@ if st.session_state.buffer_errors:
                         'noi_gay_loi': nguon_goc,
                         'trang_thai': 'cho_truong_ca',
                         'thoi_gian_cap_nhat': now,
-                        'hinh_anh': hinh_anh_links
+                        'hinh_anh': hinh_anh_links,
+                        'don_vi_tinh': err.get('don_vi_tinh', '')
                     }
-                    if smart_append_ncr(ws, data_to_save):
+                    if smart_append_ncr,
+    LIST_DON_VI_TINH(ws, data_to_save):
                         success_count += 1
                 
                 if success_count == len(st.session_state.buffer_errors):
