@@ -336,20 +336,31 @@ def upload_images_to_cloud(file_list, filename_prefix):
 def smart_append_ncr(ws, data_dict):
     """
     Appends a row to Google Sheets based on headers.
-    Matches keys in data_dict with headers in row 1 of ws.
+    Matches keys in data_dict with headers in row 1 of ws (case-insensitive).
     """
     try:
-        # 1. Lấy headers từ row 1 (cache hoặc đọc trực tiếp)
-        # Để đảm bảo chính xác nhất, ta đọc trực tiếp row 1
+        # 1. Lấy headers từ row 1
         headers = ws.row_values(1)
         
-        # 2. Xây dựng row list dựa trên header
-        # Map dữ liệu theo tên cột, nếu không có thì để trống
-        row_to_append = [data_dict.get(h, "") for h in headers]
+        # 2. Chuẩn hóa data_dict (strip và lowercase keys)
+        normalized_data = {str(k).strip().lower(): v for k, v in data_dict.items()}
         
-        # 3. Append vào sheet
-        ws.append_row(row_to_append)
-        return True
+        # 3. Xây dựng row list dựa trên header
+        # Map dữ liệu theo tên cột (chuẩn hóa header để tìm trong normalized_data)
+        row_to_append = []
+        for h in headers:
+            normalized_h = str(h).strip().lower()
+            val = normalized_data.get(normalized_h, "")
+            row_to_append.append(val)
+        
+        # 4. Append vào sheet
+        if any(row_to_append): # Chỉ lưu nếu có ít nhất một giá trị (tránh dòng trống)
+            ws.append_row(row_to_append)
+            return True
+        else:
+            st.error("⚠️ Dữ liệu không khớp với bất kỳ cột nào trên Sheet. Vui lòng kiểm tra lại Header!")
+            return False
+            
     except Exception as e:
         st.error(f"Lỗi khi lưu dòng dữ liệu: {e}")
         return False
