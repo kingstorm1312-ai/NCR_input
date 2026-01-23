@@ -19,7 +19,24 @@ from utils.ncr_helpers import (
 )
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="Phê Duyệt NCR", page_icon="✍️", layout="wide")
+st.set_page_config(page_title="Phê Duyệt NCR", page_icon="✍️", layout="centered", initial_sidebar_state="auto")
+
+# --- MOBILE NAVIGATION HELPER ---
+st.markdown("""
+<style>
+    /* Đảm bảo header và nút sidebar rõ ràng trên di động */
+    header[data-testid="stHeader"] {
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("### 🧭 Điều hướng")
+    if st.button("🏠 Về Trang Chủ", use_container_width=True):
+        st.switch_page("Dashboard.py")
+    st.divider()
 
 # --- AUTHENTICATION CHECK ---
 if "user_info" not in st.session_state or not st.session_state.user_info:

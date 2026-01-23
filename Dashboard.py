@@ -23,7 +23,19 @@ DEPARTMENT_PAGES = {
 }
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="Đại Lục CPC - QC System", page_icon="🏭", layout="wide")
+st.set_page_config(page_title="Đại Lục CPC - QC System", page_icon="🏭", layout="centered", initial_sidebar_state="auto")
+
+# --- MOBILE NAVIGATION HELPER ---
+st.markdown("""
+<style>
+    /* Đảm bảo header và nút sidebar rõ ràng trên di động */
+    header[data-testid="stHeader"] {
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 999999;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # --- GLOBAL STYLING (CSS) ---
 def local_css():

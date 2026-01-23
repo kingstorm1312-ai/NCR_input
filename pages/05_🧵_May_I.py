@@ -25,6 +25,24 @@ REQUIRED_DEPT = 'may_i'
 PAGE_TITLE = "QC Input - May I"
 
 st.set_page_config(page_title=PAGE_TITLE, page_icon="🧵", layout="centered")
+# --- MOBILE NAVIGATION HELPER ---
+st.markdown("""
+<style>
+    /* Đảm bảo header và nút sidebar rõ ràng trên di động */
+    header[data-testid="stHeader"] {
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 999999;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("### 🧭 Điều hướng")
+    if st.button("🏠 Về Trang Chủ", use_container_width=True):
+        st.switch_page("Dashboard.py")
+    st.divider()
+
 
 # --- KIỂM TRA ĐĂNG NHẬP ---
 if "user_info" not in st.session_state or not st.session_state.user_info:
