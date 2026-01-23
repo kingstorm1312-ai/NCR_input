@@ -172,7 +172,10 @@ vi_tri = st.selectbox("Vị trí lỗi", LIST_VI_TRI if LIST_VI_TRI else [""])
 if st.checkbox("Vị trí khác?"):
     vi_tri = st.text_input("Nhập vị trí cụ thể")
 
-final_md = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default=default_muc_do) or default_muc_do
+final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
+if default_muc_do not in final_md_options:
+    default_muc_do = "Nhẹ"
+final_md = st.pills("Mức độ", final_md_options, default=default_muc_do) or default_muc_do
 
 if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
     if not final_ten_loi or final_ten_loi == "-- Chọn --":
