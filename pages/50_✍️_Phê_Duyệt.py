@@ -57,6 +57,14 @@ def init_gspread():
 
 gc = init_gspread()
 
+# --- HELPER: IMAGE POPUP ---
+@st.dialog("🖼️ Xem ảnh chi tiết")
+def preview_image(url):
+    st.image(url, use_container_width=True)
+    st.caption(f"[Link trực tiếp]({url})")
+    if st.button("Đóng", use_container_width=True):
+        st.rerun()
+
 # --- HEADER ---
 st.title("✍️ Phê Duyệt NCR")
 st.caption(f"Xin chào **{user_name}** - Role: **{user_role.upper()}**")
@@ -87,7 +95,6 @@ if not filter_status:
     st.error("Role không hợp lệ!")
     st.stop()
 
-# Determine if we need department filter
 # Determine if we need department filter
 needs_dept_filter = selected_role in ['truong_ca', 'truong_bp']
 
@@ -152,7 +159,7 @@ else:
                     st.info(f"📩 **Tin nhắn:** {note}")
             
             # Error details in expander
-            with st.expander("🔍 Chi tiết lỗi & Thông tin đầy đủ"):
+            with st.expander("🔍 Chi tiết lỗi & Thông tin đầy đủ", expanded=True):
                 # Header Info Grid
                 st.markdown("#### 📄 Thông tin chung")
                 ca1, ca2 = st.columns(2)
@@ -198,6 +205,14 @@ else:
                                     img_url = img_list[i+j].strip()
                                     if img_url:
                                         img_cols[j].image(img_url, use_container_width=True)
+                                        if img_cols[j].button("🔍 Phóng to", key=f"zoom_{so_phieu}_{i+j}_{int(datetime.now().timestamp())}"):
+                                            preview_image(img_url)
+                        
+                        # Add direct links for convenience
+                        st.markdown("**🔗 Link ảnh trực tiếp:**")
+                        for idx, url in enumerate(img_list):
+                            if url.strip():
+                                st.markdown(f"- [Ảnh {idx+1}]({url.strip()})")
             
             # --- ACTION SECTION ---
             st.write("")  # Spacer

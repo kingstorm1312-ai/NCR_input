@@ -5,6 +5,7 @@ import json
 import base64
 import time
 from datetime import datetime
+from utils.ncr_helpers import get_now_vn
 
 # --- CONFIG: DEPARTMENT ROUTING ---
 DEPARTMENT_PAGES = {
@@ -252,7 +253,7 @@ else:
     with c_header:
         st.title("📊 Dashboard Tổng Quan")
     with c_date:
-        st.caption(f"Hôm nay: {datetime.now().strftime('%d/%m/%Y')}")
+        st.caption(f"Hôm nay: {get_now_vn().strftime('%d/%m/%Y')}")
 
     # Row 1: Metrics (Placeholder)
     m1, m2, m3 = st.columns(3)

@@ -9,6 +9,7 @@ from datetime import datetime
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import (
+    get_now_vn, get_now_vn_str,
     load_ncr_data_with_grouping,
     get_status_display_name,
     get_status_color
@@ -84,7 +85,7 @@ def resubmit_ncr(so_phieu):
             return False, "Không tìm thấy phiếu"
         
         # Update status and timestamp
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_time = get_now_vn_str()
         updates = []
         
         for row_idx in rows_to_update:

@@ -10,6 +10,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.ncr_helpers import (
+    get_now_vn, get_now_vn_str,
     format_contract_code, 
     render_input_buffer_mobile, 
     upload_images_to_cloud,
@@ -101,7 +102,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     with c1:
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
         dept_prefix = "DVNPL"
-        current_month = datetime.now().strftime("%m")
+        current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
         so_phieu = ""
         if ncr_suffix:
@@ -214,7 +215,7 @@ if st.session_state.buffer_errors:
                 
                 sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
                 ws = sh.worksheet("NCR_DATA")
-                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                now = get_now_vn_str()
                 
                 success_count = 0
                 for err in st.session_state.buffer_errors:
