@@ -202,6 +202,10 @@ if 'bo_phan' in df_all.columns:
     # Reorder columns
     df_pivot = df_pivot[[col for col in status_order if col in df_pivot.columns]]
     
+    # Rename columns for display
+    df_pivot = df_pivot.rename(columns=get_status_display_name)
+    df_pivot = df_pivot.rename(columns={'bo_phan': 'Bộ phận'})
+
     # Display
     st.dataframe(
         df_pivot.astype(int),

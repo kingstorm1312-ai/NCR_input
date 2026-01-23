@@ -216,4 +216,26 @@ with col4:
 
 # --- DATA TABLE ---
 with st.expander("📄 Xem dữ liệu chi tiết"):
-    st.dataframe(df_final, use_container_width=True)
+    # Rename columns for display
+    display_cols_map = {
+        'so_phieu': 'Số phiếu',
+        'ngay_lap': 'Ngày lập',
+        'ten_loi': 'Tên lỗi',
+        'sl_loi': 'SL Lỗi',
+        'trang_thai': 'Trạng thái',
+        'bo_phan': 'Bộ phận',
+        'bo_phan_full': 'Bộ phận (Chi tiết)',
+        'nguoi_lap_phieu': 'Người lập',
+        'hop_dong': 'Hợp đồng',
+        'ma_vat_tu': 'Mã VT',
+        'ten_sp': 'Tên SP',
+        'phan_loai': 'Phân loại',
+        'nguon_goc': 'Nguồn gốc',
+        'vi_tri_loi': 'Vị trí',
+        'don_vi_tinh': 'ĐVT',
+        'muc_do': 'Mức độ',
+        'thoi_gian_cap_nhat': 'Cập nhật lần cuối'
+    }
+    
+    df_display = df_final.rename(columns=display_cols_map)
+    st.dataframe(df_display, use_container_width=True)
