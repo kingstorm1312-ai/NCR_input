@@ -140,7 +140,10 @@ with col_vt:
     if st.checkbox("Vị trí khác?"):
         vi_tri = st.text_input("Nhập vị trí")
 
-final_md = st.pills("Mức độ", ["Nhẹ", "Nặng", "Nghiêm trọng"], default=final_md, selection_mode="single") or final_md
+valid_md = ["Nhẹ", "Nặng", "Nghiêm trọng"]
+if final_md not in valid_md:
+    final_md = "Nhẹ"
+final_md = st.pills("Mức độ", valid_md, default=final_md, selection_mode="single") or final_md
 
 if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
     if not final_loi:
