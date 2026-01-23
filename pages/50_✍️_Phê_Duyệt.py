@@ -57,14 +57,6 @@ def init_gspread():
 
 gc = init_gspread()
 
-# --- HELPER: IMAGE POPUP ---
-@st.dialog("🖼️ Xem ảnh chi tiết")
-def preview_image(url):
-    st.image(url, use_container_width=True)
-    st.caption(f"[Link trực tiếp]({url})")
-    if st.button("Đóng", use_container_width=True):
-        st.rerun()
-
 # --- HEADER ---
 st.title("✍️ Phê Duyệt NCR")
 st.caption(f"Xin chào **{user_name}** - Role: **{user_role.upper()}**")
@@ -185,8 +177,7 @@ else:
                                 if i + j < len(img_list):
                                     img_url = img_list[i+j]
                                     img_cols[j].image(img_url, use_container_width=True)
-                                    if img_cols[j].button("🔍 Phóng to", key=f"zoom_{so_phieu}_{i+j}"):
-                                        preview_image(img_url)
+                                    img_cols[j].link_button("🔍 Phóng to", img_url, use_container_width=True)
                         
                         # Add direct links
                         st.markdown("**🔗 Link ảnh trực tiếp:**")

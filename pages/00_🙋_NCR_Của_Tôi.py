@@ -61,13 +61,6 @@ with col2:
 st.divider()
 
 # --- HELPER: IMAGE POPUP ---
-@st.dialog("🖼️ Xem ảnh chi tiết")
-def preview_image(url):
-    st.image(url, use_container_width=True)
-    st.caption(f"[Link trực tiếp]({url})")
-    if st.button("Đóng", use_container_width=True):
-        st.rerun()
-
 # --- HELPER: RESUBMIT FUNCTION ---
 def resubmit_ncr(so_phieu):
     """Gửi lại phiếu NCR (reset status về cho_truong_ca)"""
@@ -571,8 +564,7 @@ with tab3:
                                     if i + j < len(img_list):
                                         img_url = img_list[i+j]
                                         img_cols[j].image(img_url, use_container_width=True)
-                                        if img_cols[j].button("🔍 Phóng to", key=f"zoom_kp_{so_phieu}_{i+j}"):
-                                            preview_image(img_url)
+                                        img_cols[j].link_button("🔍 Phóng to", img_url, use_container_width=True)
                             
                             st.markdown("**🔗 Link ảnh trực tiếp:**")
                             for idx, url in enumerate(img_list):
