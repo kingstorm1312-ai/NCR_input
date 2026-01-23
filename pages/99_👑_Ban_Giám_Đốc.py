@@ -75,14 +75,20 @@ else:
     df_all = df_raw.copy()
 
 # --- FILTERING ---
-st.sidebar.header("🔍 Bộ lọc")
-all_depts = sorted(df_all['bo_phan'].astype(str).unique())
-selected_depts = st.sidebar.multiselect(
-    "Chọn bộ phận (Khâu):",
-    options=all_depts,
-    default=[],
-    help="Để trống để chọn Tất cả"
-)
+# Move filter to main page
+f1, f2 = st.columns([1, 2])
+with f1:
+    st.write("") # Spacer
+    st.markdown("**🔍 Bộ lọc dữ liệu:**")
+with f2:
+    all_depts = sorted(df_all['bo_phan'].astype(str).unique())
+    selected_depts = st.multiselect(
+        "Chọn bộ phận (Khâu):",
+        options=all_depts,
+        default=[],
+        help="Để trống để chọn Tất cả",
+        label_visibility="collapsed"
+    )
 
 if selected_depts:
     df_all = df_all[df_all['bo_phan'].isin(selected_depts)]
@@ -147,36 +153,99 @@ st.divider()
 st.subheader("⚠️ Bottleneck Monitor (>24 giờ)")
 
 # Filter stuck items (not completed and >24h)
+# Ensure we prioritize showing stuck items from the FILTERED set (df_all)
 df_stuck = df_all[
     (df_all['trang_thai'] != 'hoan_thanh') & 
     (df_all['hours_stuck'] > 24)
 ].copy()
 
-# Group by ticket to avoid duplicates (Already grouped, but safe to keep logic simple)
-if not df_stuck.empty and 'so_phieu' in df_stuck.columns:
-    df_stuck_grouped = df_stuck # Already grouped
+if not df_stuck.empty:
+    st.error(f"🚨 Phát hiện {len(df_stuck)} phiếu bị kẹt quá 24 giờ!")
     
-    if not df_stuck_grouped.empty:
-        st.error(f"🚨 Phát hiện {len(df_stuck_grouped)} phiếu bị kẹt >24 giờ!")
+    # Display stuck tickets with FULL DETAILS
+    for idx, row in df_stuck.iterrows():
+        so_phieu = row['so_phieu']
+        status = row['trang_thai']
+        stuck_hours = row.get('hours_stuck', 0)
         
-        # Display stuck tickets
-        for idx, row in df_stuck_grouped.iterrows():
-            with st.container(border=True):
-                col1, col2, col3 = st.columns([2, 2, 1])
+        status_display = get_status_display_name(status)
+        
+        with st.expander(f"🔥 {so_phieu} | {status_display} | Kẹt {stuck_hours:.1f}h", expanded=False):
+            # --- HÌNH ẢNH ---
+            st.markdown("#### 📷 Hình ảnh minh họa")
+            hinh_anh_val = row.get('hinh_anh', "")
+            if pd.notna(hinh_anh_val) and str(hinh_anh_val).strip():
+                img_list = str(hinh_anh_val).split('\n')
+                img_list = [url.strip() for url in img_list if url.strip() and url.lower() != 'nan']
                 
-                with col1:
-                    st.markdown(f"**📋 {row['so_phieu']}**")
-                    st.caption(f"Bộ phận: {row.get('bo_phan', 'N/A').upper()}")
-                
-                with col2:
-                    status_display = get_status_display_name(row['trang_thai'])
-                    st.write(f"Trạng thái: **{status_display}**")
-                    st.caption(f"Người lập: {row['nguoi_lap_phieu']}")
-                
-                with col3:
-                    st.metric("Kẹt (giờ)", f"{row['hours_stuck']:.1f}")
-    else:
-        st.success("✅ Không có phiếu nào bị kẹt quá 24 giờ!")
+                if img_list:
+                    cols_per_row = 3
+                    for i in range(0, len(img_list), cols_per_row):
+                        img_cols = st.columns(cols_per_row)
+                        for j in range(cols_per_row):
+                            if i + j < len(img_list):
+                                img_url = img_list[i+j]
+                                img_cols[j].image(img_url, use_container_width=True)
+                                img_cols[j].link_button("🔍 Phóng to", img_url, use_container_width=True)
+                else:
+                    st.info("ℹ️ Phiếu này không có hình ảnh minh họa.")
+            else:
+                st.info("ℹ️ Phiếu này không có hình ảnh minh họa.")
+
+            st.markdown("---")
+
+            # Header Info Grid
+            st.markdown("#### 📄 Thông tin chung")
+            ca1, ca2 = st.columns(2)
+            with ca1:
+                st.write(f"📅 **Ngày tạo:** {row.get('ngay_lap', '')}")
+                st.write(f"👤 **Người lập:** {row.get('nguoi_lap_phieu', '')}")
+                st.write(f"🏢 **Bộ phận:** {row.get('bo_phan', '').upper()}")
+                st.write(f"📁 **Hợp đồng:** {row.get('hop_dong', 'N/A')}")
+            with ca2:
+                st.write(f"🔢 **Mã vật tư:** {row.get('ma_vat_tu', 'N/A')}")
+                st.write(f"📦 **Tên sản phẩm:** {row.get('ten_sp', 'N/A')}")
+                st.write(f"🏢 **Nguồn gốc/NCC:** {row.get('nguon_goc', 'N/A')}")
+                st.write(f"🕒 **Cập nhật cuối:** {row.get('thoi_gian_cap_nhat', 'N/A')}")
+            
+            if row.get('mo_ta_loi'):
+                st.markdown(f"📝 **Mô tả lỗi / Quy cách:**\n{row.get('mo_ta_loi')}")
+            
+            st.markdown("---")
+            
+            # --- TIMELINE ĐỀ XUẤT GIẢI PHÁP ---
+            st.markdown("#### 💡 Chuỗi đề xuất xử lý")
+            # Biện pháp Trưởng BP
+            if row.get('bien_phap_truong_bp'):
+                st.info(f"**👔 Trưởng BP - Biện pháp xử lý tức thời:**\n{row['bien_phap_truong_bp']}")
+            
+            # Hướng giải quyết QC Manager
+            if row.get('huong_giai_quyet'):
+                st.success(f"**🔬 QC Manager - Hướng giải quyết:**\n{row['huong_giai_quyet']}")
+            
+            # Hướng xử lý Giám đốc
+            if row.get('huong_xu_ly_gd'):
+                st.warning(f"**👨‍💼 Giám đốc - Hướng xử lý:**\n{row['huong_xu_ly_gd']}")
+            
+            st.markdown("---")
+            st.markdown("#### ❌ Danh sách lỗi chi tiết")
+            # Get original rows from df_raw for this ticket
+            tk_rows = df_raw[df_raw['so_phieu'] == so_phieu]
+            if not tk_rows.empty:
+                display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
+                column_config = {
+                    "ten_loi": "Tên lỗi",
+                    "vi_tri_loi": "Vị trí",
+                    "sl_loi": "SL",
+                    "don_vi_tinh": "ĐVT",
+                    "muc_do": "Mức độ"
+                }
+                avail_cols = [col for col in display_cols if col in tk_rows.columns]
+                st.dataframe(
+                    tk_rows[avail_cols].rename(columns=column_config), 
+                    use_container_width=True, 
+                    hide_index=True
+                )
 else:
     st.success("✅ Không có phiếu nào bị kẹt quá 24 giờ!")
 
