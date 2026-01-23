@@ -143,7 +143,7 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
          
     with c4:
-         nguon_goc = st.text_input("Nguồn gốc", placeholder="VD: Nhà máy A", disabled=disable_hd)
+         nguon_goc = st.selectbox("Nguồn gốc (Nơi may)", [""] + LIST_NHA_MAY, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
     
     # Phân loại
@@ -268,38 +268,46 @@ if len(st.session_state.buffer_errors) > 0:
                 
                 sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
                 ws = sh.worksheet("NCR_DATA")
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
-                now = datetime.now()
+                # Read headers from Sheet (row 1)
+                headers = ws.row_values(1)
+                
                 rows = []
                 for err in st.session_state.buffer_errors:
-                    rows.append([
-                        now.strftime("%Y-%m-%d %H:%M:%S"),  # 1. ngay_lap
-                        so_phieu,                           # 2. so_phieu_ncr
-                        hop_dong,                           # 3. hop_dong
-                        ma_vt,                              # 4. ma_vat_tu
-                        ten_sp,                             # 5. ten_sp
-                        phan_loai,                          # 6. phan_loai
-                        nguon_goc,                          # 7. nguon_goc
-                        err['ten_loi'],                     # 8. ten_loi
-                        err['vi_tri'],                      # 9. vi_tri_loi
-                        err['sl_loi'],                      # 10. so_luong_loi
-                        sl_kiem,                            # 11. so_luong_kiem
-                        err['muc_do'],                      # 12. muc_do
-                        mo_ta_loi,                          # 13. mo_ta_loi (NEW)
-                        sl_lo,                              # 14. so_luong_lo_hang
-                        nguoi_lap,                          # 15. nguoi_lap_phieu
-                        nguon_goc,                          # 16. noi_gay_loi
-                        'cho_truong_ca',                    # 17. trang_thai
-                        now.strftime("%Y-%m-%d %H:%M:%S"),  # 18. thoi_gian_cap_nhat
-                        '',                                 # 19. duyet_truong_ca
-                        '',                                 # 20. duyet_truong_bp
-                        '',                                 # 21. y_kien_qc
-                        '',                                 # 22. duyet_qc_manager
-                        '',                                 # 23. duyet_giam_doc
-                        '',                                 # 24. duyet_bgd_tan_phu (NEW)
-                        '',                                 # 25. ly_do_tu_choi
-                        hinh_anh_links                      # 26. hinh_anh (NEW)
-                    ])
+                    # Create data dictionary
+                    data = {
+                        'ngày lập': now,
+                        'số phiếu ncr': so_phieu,
+                        'hợp đồng': hop_dong,
+                        'mã vật tư': ma_vt,
+                        'tên sp': ten_sp,
+                        'phân loại': phan_loai,
+                        'nguồn gốc': nguon_goc,
+                        'tên lỗi': err['ten_loi'],
+                        'vị trí lỗi': err['vi_tri'],
+                        'số lượng lỗi': err['sl_loi'],
+                        'số lượng kiểm': sl_kiem,
+                        'mức độ': err['muc_do'],
+                        'mô tả lỗi': mo_ta_loi,
+                        'số lượng lô': sl_lo,
+                        'người lập phiếu': nguoi_lap,
+                        'nơi gây lỗi': nguon_goc,
+                        'trạng thái': 'cho_truong_ca',
+                        'thời gian cập nhật': now,
+                        'duyệt trưởng ca': '',
+                        'duyệt trưởng bp': '',
+                        'ý kiến QC': '',
+                        'duyệt QC manager': '',
+                        'duyet giam doc': '',
+                        'duyet bgd tan phu': '',
+                        'ly do từ chối': '',
+                        'hình ảnh': hinh_anh_links
+                    }
+                    
+                    # Map to row based on headers
+                    row = [data.get(h, '') for h in headers]
+                    rows.append(row)
                 
                 ws.append_rows(rows)
                 st.success("✅ Đã lưu!")
