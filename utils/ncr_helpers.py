@@ -571,7 +571,14 @@ def upload_images_to_drive(file_list, filename_prefix):
     
     try:
         # Get credentials from secrets
-        creds_dict = st.secrets["connections"]["gsheets"]
+        # Get credentials from secrets and handle potential JSON string format
+        creds_entry = st.secrets["connections"]["gsheets"]["service_account"]
+        if isinstance(creds_entry, str):
+            import json
+            creds_dict = json.loads(creds_entry, strict=False)
+        else:
+            creds_dict = creds_entry
+            
         credentials = Credentials.from_service_account_info(
             creds_dict,
             scopes=['https://www.googleapis.com/auth/drive.file']
