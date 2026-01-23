@@ -46,9 +46,12 @@ gc = init_gspread()
 @st.cache_data(ttl=600)
 def load_master_data():
     try:
-        if not gc: return [], [], {}, []
+        if not gc: return [], [], [], {}
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         df = pd.DataFrame(sh.worksheet("CONFIG").get_all_records())
+        
+        # Load nha_cung_cap for ĐV NPL (NPL/DV group)
+        list_nha_cung_cap = df['nha_cung_cap'].dropna().unique().tolist() if 'nha_cung_cap' in df.columns else []
         
         # Filter Errors
         if 'nhom_loi' in df.columns:
@@ -60,11 +63,11 @@ def load_master_data():
         list_vi_tri = df['vi_tri_loi'].dropna().unique().tolist() if 'vi_tri_loi' in df.columns else []
         dict_muc_do = df.drop_duplicates(subset=['ten_loi']).set_index('ten_loi')['muc_do'].to_dict()
         
-        return list_loi, list_vi_tri, dict_muc_do
+        return list_nha_cung_cap, list_loi, list_vi_tri, dict_muc_do
     except Exception:
-        return [], [], {}
+        return [], [], [], {}
 
-LIST_LOI, LIST_VI_TRI, DICT_MUC_DO = load_master_data()
+LIST_NHA_CUNG_CAP, LIST_LOI, LIST_VI_TRI, DICT_MUC_DO = load_master_data()
 
 # --- STATE ---
 if "buffer_errors" not in st.session_state: st.session_state.buffer_errors = []
@@ -95,7 +98,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
     with c4:
-        nguon_goc = st.text_input("Nguồn gốc (NCC)", disabled=disable_hd)
+        nguon_goc = st.selectbox("Nguồn gốc (NCC)", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
         sl_lo = st.number_input("SL Lô (so_lo)", min_value=0, disabled=disable_hd)
 
     # Note: User asked to pass "" for phan_loai
