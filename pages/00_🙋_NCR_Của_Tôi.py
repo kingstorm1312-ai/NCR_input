@@ -154,12 +154,10 @@ if not df_my_ncrs.empty:
     total_tickets = df_my_ncrs['so_phieu'].nunique()
     total_errors = df_my_ncrs['sl_loi'].sum()
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         st.metric("📋 Tổng số phiếu", total_tickets)
     with col2:
-        st.metric("⚠️ Tổng số lỗi", int(total_errors))
-    with col3:
         draft_count = df_my_ncrs[df_my_ncrs['trang_thai'] == 'draft']['so_phieu'].nunique()
         st.metric("🔴 Cần xử lý", draft_count)
 else:

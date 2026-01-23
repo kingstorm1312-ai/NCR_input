@@ -168,21 +168,17 @@ st.divider()
 # --- STATISTICS OVERVIEW ---
 st.subheader("📈 Thống kê tổng quan")
 
-col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+col_stat1, col_stat2, col_stat3 = st.columns(3)
 
 with col_stat1:
     total_tickets = df_all['so_phieu'].nunique() if 'so_phieu' in df_all.columns else 0
     st.metric("Tổng số phiếu", total_tickets)
 
 with col_stat2:
-    total_errors = df_all['sl_loi'].sum() if 'sl_loi' in df_all.columns else 0
-    st.metric("Tổng số lỗi", int(total_errors))
-
-with col_stat3:
     completed = status_counts.get('hoan_thanh', 0)
     st.metric("Đã hoàn thành", completed, delta=None)
 
-with col_stat4:
+with col_stat3:
     pending = total_tickets - completed if 'so_phieu' in df_all.columns else 0
     st.metric("Đang xử lý", pending, delta_color="inverse")
 

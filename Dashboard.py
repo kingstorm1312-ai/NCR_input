@@ -247,12 +247,10 @@ else:
         st.caption(f"Hôm nay: {get_now_vn().strftime('%d/%m/%Y')}")
 
     # Row 1: Metrics (Placeholder)
-    m1, m2, m3 = st.columns(3)
+    m1, m2 = st.columns(2)
     with m1:
         st.metric("Phiếu NCR hôm nay", "0", delta="0")
     with m2:
-        st.metric("Lỗi nghiêm trọng", "0", delta_color="inverse")
-    with m3:
         st.metric("Hiệu suất", "100%", delta="+0%")
         
     st.divider()
