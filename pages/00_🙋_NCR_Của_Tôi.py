@@ -45,22 +45,6 @@ user_name = user_info.get("name")
 user_role = user_info.get("role")
 
 # --- GOOGLE SHEETS CONNECTION ---
-@st.cache_resource
-def init_gspread():
-    """Khởi tạo gspread client từ secrets"""
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        
-        if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str, strict=False)
-        else:
-            credentials_dict = creds_str
-            
-        gc = gspread.service_account_from_dict(credentials_dict)
-        return gc
-    except Exception as e:
-        st.error(f"Lỗi kết nối System: {e}")
-        return None
 
 gc = init_gspread()
 
@@ -126,7 +110,7 @@ def resubmit_ncr(so_phieu):
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
     # Load all NCR data (no status filter)
-    df_all, _ = load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None)
+    df_all, _ = load_ncr_data_with_grouping(filter_status=None, filter_department=None)
 
 # --- ADMIN VIEW OPTIONS ---
 current_view_user = user_name

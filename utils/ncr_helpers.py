@@ -5,6 +5,7 @@ import gspread
 import cloudinary
 import cloudinary.uploader
 import io
+import json
 
 def get_now_vn():
     """Lấy thời gian hiện tại theo múi giờ Việt Nam (GMT+7)"""
@@ -13,6 +14,21 @@ def get_now_vn():
 def get_now_vn_str():
     """Lấy chuỗi thời gian hiện tại VN định dạng chuẩn"""
     return get_now_vn().strftime("%Y-%m-%d %H:%M:%S")
+
+@st.cache_resource
+def init_gspread():
+    """Khởi tạo gspread client từ secrets (Dùng chung toàn hệ thống)"""
+    try:
+        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
+        if isinstance(creds_str, str):
+            creds_dict = json.loads(creds_str, strict=False)
+        else:
+            creds_dict = creds_str
+        gc = gspread.service_account_from_dict(creds_dict)
+        return gc
+    except Exception as e:
+        st.error(f"Lỗi khởi tạo gspread: {e}")
+        return None
 
 # --- CONFIGURATION ---
 LIST_DON_VI_TINH = ["Cái", "Kg", "Mét", "Bịch", "Sợi", "Cuộn", "Bộ"]
@@ -94,23 +110,26 @@ ROLE_TO_STATUS = {
 
 # --- CACHED DATA FETCH ---
 @st.cache_data(ttl=30, show_spinner=False)
-def _get_ncr_data_cached(_gc):
+def _get_ncr_data_cached():
     try:
+        gc = init_gspread()
+        if not gc: return pd.DataFrame()
+        
         spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        sh = _gc.open_by_key(spreadsheet_id)
+        sh = gc.open_by_key(spreadsheet_id)
         ws = sh.worksheet("NCR_DATA")
         records = ws.get_all_records()
         df = pd.DataFrame(records)
         return df
     except Exception as e:
-        st.error(f"❌ Lỗi khi tải dữ liệu: {e}")
+        # st.error(f"❌ Lỗi khi tải dữ liệu: {e}")
         return pd.DataFrame()
 
 
 # --- DATA LOADING & GROUPING ---
-def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
+def load_ncr_data_with_grouping(gc=None, filter_status=None, filter_department=None):
     try:
-        df_original = _get_ncr_data_cached(gc)
+        df_original = _get_ncr_data_cached()
         
         if df_original.empty:
             st.warning("📊 Sheet NCR_DATA trống. Chưa có dữ liệu để hiển thị.")
@@ -205,9 +224,12 @@ DEPT_PREFIX_MAP = {
 }
 
 @st.cache_data(ttl=300)
-def load_ncr_dataframe_v2(_gc):
+def load_ncr_dataframe_v2():
     try:
-        sh = _gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        gc = init_gspread()
+        if not gc: return pd.DataFrame()
+        
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         ws = sh.worksheet("NCR_DATA")
         records = ws.get_all_records()
         df = pd.DataFrame(records)

@@ -5,12 +5,12 @@ import json
 import base64
 import time
 from datetime import datetime
-from utils.ncr_helpers import get_now_vn
+from utils.ncr_helpers import get_now_vn, init_gspread
 
 # --- CONFIG: DEPARTMENT ROUTING ---
 DEPARTMENT_PAGES = {
     "fi": "pages/01_🔍_FI.py",
-    "dv_cuon": "pages/02_🌀_ĐV_Cuộn.py",
+    "dv_cuon": "pages/02_💿_ĐV_Cuộn.py",
     "dv_npl": "pages/03_📦_ĐV_NPL.py",
     "trang_cat": "pages/04_✂️_Tráng_Cắt.py",
     "may_i": "pages/05_🧵_May_I.py",
@@ -94,33 +94,14 @@ def local_css():
 
 local_css()
 
-# --- AUTHENTICATION LOGIC ---
-@st.cache_resource
-def init_gspread():
-    """Khởi tạo gspread client từ secrets"""
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        
-        if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str, strict=False)
-        else:
-            credentials_dict = creds_str
-            
-        gc = gspread.service_account_from_dict(credentials_dict)
-        return gc
-    except Exception as e:
-        st.error(f"Lỗi kết nối System: {e}")
-        return None
-
 @st.cache_data(ttl=600)
 def get_all_users():
     """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
-    gc = init_gspread()
-    if not gc:
-        return []
-    
     try:
-        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        gc = init_gspread()
+        if not gc: return []
+        spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
+        sh = gc.open_by_key(spreadsheet_id)
         ws = sh.worksheet("USERS")
         data = ws.get_all_records()
         return data
@@ -133,11 +114,9 @@ def get_base64_image(image_path):
 
 def login_user(username, password):
     """Kiểm tra user từ sheet USERS"""
-    gc = init_gspread()
-    if not gc:
-        return None
-    
     try:
+        gc = init_gspread()
+        if not gc: return None
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         ws = sh.worksheet("USERS")
         users_data = ws.get_all_records()

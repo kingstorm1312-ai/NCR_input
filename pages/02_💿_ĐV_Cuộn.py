@@ -59,19 +59,6 @@ if user_role != 'admin' and user_dept != REQUIRED_DEPT:
     st.stop()
 
 # --- KẾT NỐI GOOGLE SHEETS ---
-@st.cache_resource
-def init_gspread():
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        if isinstance(creds_str, str):
-            creds_dict = json.loads(creds_str, strict=False)
-        else:
-            creds_dict = creds_str
-        gc = gspread.service_account_from_dict(creds_dict)
-        return gc
-    except Exception as e:
-        st.error(f"Lỗi khởi tạo gspread: {e}")
-        return None
 
 gc = init_gspread()
 

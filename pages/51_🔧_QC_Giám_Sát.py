@@ -34,22 +34,6 @@ if user_role not in ['qc_manager', 'director']:
     st.stop()
 
 # --- GOOGLE SHEETS CONNECTION ---
-@st.cache_resource
-def init_gspread():
-    """Khởi tạo gspread client từ secrets"""
-    try:
-        creds_str = st.secrets["connections"]["gsheets"]["service_account"]
-        
-        if isinstance(creds_str, str):
-            credentials_dict = json.loads(creds_str, strict=False)
-        else:
-            credentials_dict = creds_str
-            
-        gc = gspread.service_account_from_dict(credentials_dict)
-        return gc
-    except Exception as e:
-        st.error(f"Lỗi kết nối System: {e}")
-        return None
 
 gc = init_gspread()
 
@@ -69,7 +53,7 @@ st.divider()
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
     # Load all data
-    df_all, df_grouped = load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None)
+    df_all, df_grouped = load_ncr_data_with_grouping(filter_status=None, filter_department=None)
 
 if df_grouped.empty:
     st.info("Chưa có dữ liệu NCR nào trên hệ thống.")
