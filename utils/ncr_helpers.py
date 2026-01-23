@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import streamlit as st
+import gspread
 import cloudinary
 import cloudinary.uploader
 import io
@@ -57,7 +58,9 @@ COLUMN_MAPPING = {
     'nguoi_duyet_3': 'duyet_qc_manager',
     'nguoi_duyet_4': 'duyet_giam_doc',
     'nguoi_duyet_5': 'duyet_bgd_tan_phu',
+    'bien_phap_truong_bp': 'bien_phap_truong_bp',
     'huong_giai_quyet': 'y_kien_qc',
+    'huong_xu_ly_gd': 'huong_xu_ly_giam_doc',
     'ly_do_tu_choi': 'ly_do_tu_choi',
     'hinh_anh': 'hinh_anh'
 }
@@ -147,7 +150,7 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
             'sl_kiem', 'mo_ta_loi', 'sl_lo_hang', 'hinh_anh',
             'thoi_gian_cap_nhat', 'nguoi_duyet_1', 'nguoi_duyet_2', 
             'nguoi_duyet_3', 'nguoi_duyet_4', 'nguoi_duyet_5', 
-            'huong_giai_quyet', 'ly_do_tu_choi'
+            'bien_phap_truong_bp', 'huong_giai_quyet', 'huong_xu_ly_gd', 'ly_do_tu_choi'
         ]
         
         for col in optional_cols:
@@ -392,9 +395,14 @@ def smart_append_ncr(ws, data_dict):
         return False
 
 
-def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None):
+def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None, bp_solution=None, director_solution=None):
     """
     Cập nhật trạng thái và thông tin phê duyệt cho tất cả các dòng của một số phiếu.
+    
+    Args:
+        solution: Hướng giải quyết của QC Manager (y_kien_qc)
+        bp_solution: Biện pháp xử lý tức thời của Trưởng BP (bien_phap_truong_bp)
+        director_solution: Hướng xử lý của Giám đốc (huong_xu_ly_giam_doc)
     """
     try:
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
@@ -408,7 +416,9 @@ def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, so
         idx_update = headers.index("thoi_gian_cap_nhat")
         
         idx_reject = headers.index("ly_do_tu_choi") if "ly_do_tu_choi" in headers else -1
-        idx_solution = headers.index("y_kien_qc") if "y_kien_qc" in headers else -1
+        idx_qc_solution = headers.index("y_kien_qc") if "y_kien_qc" in headers else -1
+        idx_bp_solution = headers.index("bien_phap_truong_bp") if "bien_phap_truong_bp" in headers else -1
+        idx_director_solution = headers.index("huong_xu_ly_giam_doc") if "huong_xu_ly_giam_doc" in headers else -1
         
         # Cột người duyệt dựa trên vai trò
         approver_col_name = COLUMN_MAPPING.get(ROLE_TO_APPROVER_COLUMN.get(approver_role), "")
@@ -427,9 +437,17 @@ def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, so
                 if idx_approver != -1:
                     range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_approver + 1), 'values': [[approver_name]]})
                 
-                # Hướng giải quyết (Chỉ dành cho QC Manager)
-                if solution and idx_solution != -1:
-                    range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_solution + 1), 'values': [[solution]]})
+                # Biện pháp của Trưởng BP
+                if bp_solution and idx_bp_solution != -1:
+                    range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_bp_solution + 1), 'values': [[bp_solution]]})
+                
+                # Hướng giải quyết của QC Manager
+                if solution and idx_qc_solution != -1:
+                    range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_qc_solution + 1), 'values': [[solution]]})
+                
+                # Hướng xử lý của Giám đốc
+                if director_solution and idx_director_solution != -1:
+                    range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_director_solution + 1), 'values': [[director_solution]]})
                 
                 # Lý do từ chối (Nếu có)
                 if reject_reason and idx_reject != -1:

@@ -209,6 +209,30 @@ else:
                     st.markdown(f"📝 **Mô tả lỗi / Quy cách:**\n{row.get('mo_ta_loi')}")
                 
                 st.markdown("---")
+                
+                # --- TIMELINE ĐỀ XUẤT GIẢI PHÁP ---
+                st.markdown("#### 💡 Chuỗi đề xuất xử lý")
+                has_any_solution = False
+                
+                # Biện pháp Trưởng BP
+                if row.get('bien_phap_truong_bp'):
+                    has_any_solution = True
+                    st.info(f"**👔 Trưởng BP - Biện pháp xử lý tức thời:**\n{row['bien_phap_truong_bp']}")
+                
+                # Hướng giải quyết QC Manager
+                if row.get('huong_giai_quyet'):
+                    has_any_solution = True
+                    st.success(f"**🔬 QC Manager - Hướng giải quyết:**\n{row['huong_giai_quyet']}")
+                
+                # Hướng xử lý Giám đốc
+                if row.get('huong_xu_ly_gd'):
+                    has_any_solution = True
+                    st.warning(f"**👨‍💼 Giám đốc - Hướng xử lý:**\n{row['huong_xu_ly_gd']}")
+                
+                if not has_any_solution:
+                    st.caption("_Chưa có đề xuất xử lý từ các cấp quản lý._")
+                
+                st.markdown("---")
                 st.markdown("#### ❌ Danh sách lỗi chi tiết")
                 # Get original rows for this ticket
                 ticket_rows = df_original[df_original['so_phieu'] == so_phieu]
@@ -225,15 +249,36 @@ else:
             st.write("")  # Spacer
             st.divider()
             
-            # QC Manager Logic: Pre-fill Solution
-            solution = None
+            # --- INPUT SOLUTIONS BASED ON ROLE ---
+            bp_solution = None
+            qc_solution = None
+            director_solution = None
+            
+            if selected_role == 'truong_bp':
+                pre_fill_bp = row.get('bien_phap_truong_bp', '')
+                bp_solution = st.text_area(
+                    "📋 Biện pháp xử lý tức thời (Trưởng BP):",
+                    key=f"bp_sol_{so_phieu}",
+                    value=pre_fill_bp,
+                    help="Bắt buộc nhập trước khi phê duyệt"
+                )
+            
             if selected_role == 'qc_manager':
-                # Pre-fill logic: if 'huong_giai_quyet' exists in data, use it
-                pre_fill_sol = row.get('huong_giai_quyet', '')
-                solution = st.text_area(
-                    "Hướng giải quyết (QC):",
-                    key=f"sol_{so_phieu}",
-                    value=pre_fill_sol
+                pre_fill_qc = row.get('huong_giai_quyet', '')
+                qc_solution = st.text_area(
+                    "🔬 Hướng giải quyết (QC Manager):",
+                    key=f"qc_sol_{so_phieu}",
+                    value=pre_fill_qc,
+                    help="Bắt buộc nhập trước khi phê duyệt"
+                )
+            
+            if selected_role == 'director':
+                pre_fill_dir = row.get('huong_xu_ly_gd', '')
+                director_solution = st.text_area(
+                    "👨‍💼 Hướng xử lý (Giám đốc):",
+                    key=f"dir_sol_{so_phieu}",
+                    value=pre_fill_dir,
+                    help="Bắt buộc nhập trước khi phê duyệt"
                 )
             
             # Logic for NEXT STATUS based on Flow
@@ -247,18 +292,32 @@ else:
             with col_approve:
                 approve_label = "✅ PHÊ DUYỆT" if selected_role != 'bgd_tan_phu' else "✅ HOÀN TẤT PHIẾU"
                 if st.button(approve_label, key=f"approve_{so_phieu}", type="primary", use_container_width=True):
-                    # Validation for QC Manager
-                    if selected_role == 'qc_manager' and (not solution or not solution.strip()):
+                    # Validation cho các role cần nhập solution
+                    validation_failed = False
+                    
+                    if selected_role == 'truong_bp' and (not bp_solution or not bp_solution.strip()):
+                        st.error("⚠️ Vui lòng nhập biện pháp xử lý tức thời!")
+                        validation_failed = True
+                    
+                    if selected_role == 'qc_manager' and (not qc_solution or not qc_solution.strip()):
                         st.error("⚠️ Vui lòng nhập hướng giải quyết!")
-                    else:
+                        validation_failed = True
+                    
+                    if selected_role == 'director' and (not director_solution or not director_solution.strip()):
+                        st.error("⚠️ Vui lòng nhập hướng xử lý!")
+                        validation_failed = True
+                    
+                    if not validation_failed:
                         with st.spinner("Đang xử lý..."):
                             success, message = update_ncr_status(
                                 gc=gc,
                                 so_phieu=so_phieu,
-                                new_status=next_status,  # Move to next status
+                                new_status=next_status,
                                 approver_name=user_name,
                                 approver_role=selected_role,
-                                solution=solution
+                                solution=qc_solution,
+                                bp_solution=bp_solution,
+                                director_solution=director_solution
                             )
                             
                             if success:
