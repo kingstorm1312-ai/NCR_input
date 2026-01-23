@@ -8,7 +8,7 @@ import os
 
 # Add root to path for utils import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.ncr_helpers import format_contract_code, render_input_buffer_mobile
+from utils.ncr_helpers import format_contract_code, render_input_buffer_mobile, upload_images_to_drive
 
 # --- CONFIGURATION ---
 REQUIRED_DEPT = 'fi'
@@ -144,9 +144,24 @@ with st.expander("📝 Thông tin Phiếu (Header)", expanded=not st.session_sta
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
          
     with c4:
-         # FI uses Factory (Nơi may)
-         nha_may = st.selectbox("Nơi may / Nhà GC", [""] + LIST_NHA_MAY, disabled=disable_hd)
+         nguon_goc = st.text_input("Nguồn gốc", placeholder="VD: Nhà máy A", disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, value=0, disabled=disable_hd)
+    
+    # Phân loại
+    phan_loai = st.selectbox("Phân loại", ["", "Túi TP", "NPL"], disabled=disable_hd)
+    
+    # Mô tả lỗi
+    mo_ta_loi = st.text_area("Mô tả lỗi (chi tiết)", placeholder="Nhập mô tả chi tiết về lỗi...", disabled=disable_hd, height=100)
+    
+    # Image Upload
+    st.markdown("**📷 Hình ảnh:**")
+    uploaded_images = st.file_uploader(
+        "Chọn ảnh minh họa",
+        type=['png', 'jpg', 'jpeg'],
+        accept_multiple_files=True,
+        disabled=disable_hd,
+        key="img_fi"
+    )
 
     # Lock Logic
     st.write("") # Spacer
@@ -248,6 +263,11 @@ if len(st.session_state.buffer_errors) > 0:
     if st.button("💾 LƯU", type="primary", use_container_width=True):
         try:
             with st.spinner("Đang lưu..."):
+                # Upload images first
+                hinh_anh_links = ""
+                if uploaded_images:
+                    hinh_anh_links = upload_images_to_drive(uploaded_images, so_phieu)
+                
                 sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
                 ws = sh.worksheet("NCR_DATA")
                 
@@ -260,25 +280,27 @@ if len(st.session_state.buffer_errors) > 0:
                         hop_dong,                           # 3. hop_dong
                         ma_vt,                              # 4. ma_vat_tu
                         ten_sp,                             # 5. ten_sp
-                        '',                                 # 6. phan_loai (Empty for FI)
-                        nha_may,                            # 7. nguon_goc (Was noi_may)
+                        phan_loai,                          # 6. phan_loai
+                        nguon_goc,                          # 7. nguon_goc
                         err['ten_loi'],                     # 8. ten_loi
                         err['vi_tri'],                      # 9. vi_tri_loi
                         err['sl_loi'],                      # 10. so_luong_loi
                         sl_kiem,                            # 11. so_luong_kiem
                         err['muc_do'],                      # 12. muc_do
-                        sl_lo,                              # 13. so_luong_lo_hang
-                        nguoi_lap,                          # 14. nguoi_lap_phieu
-                        nha_may,                            # 15. noi_gay_loi (Same as nguon_goc)
-                        # --- NEW APPROVAL COLUMNS ---
-                        'cho_truong_ca',                    # trang_thai
-                        now.strftime("%Y-%m-%d %H:%M:%S"),  # thoi_gian_cap_nhat
-                        '',                                 # duyet_truong_ca
-                        '',                                 # duyet_truong_bp
-                        '',                                 # y_kien_qc
-                        '',                                 # duyet_qc_manager
-                        '',                                 # duyet_giam_doc
-                        ''                                  # ly_do_tu_choi
+                        mo_ta_loi,                          # 13. mo_ta_loi (NEW)
+                        sl_lo,                              # 14. so_luong_lo_hang
+                        nguoi_lap,                          # 15. nguoi_lap_phieu
+                        nguon_goc,                          # 16. noi_gay_loi
+                        'cho_truong_ca',                    # 17. trang_thai
+                        now.strftime("%Y-%m-%d %H:%M:%S"),  # 18. thoi_gian_cap_nhat
+                        '',                                 # 19. duyet_truong_ca
+                        '',                                 # 20. duyet_truong_bp
+                        '',                                 # 21. y_kien_qc
+                        '',                                 # 22. duyet_qc_manager
+                        '',                                 # 23. duyet_giam_doc
+                        '',                                 # 24. duyet_bgd_tan_phu (NEW)
+                        '',                                 # 25. ly_do_tu_choi
+                        hinh_anh_links                      # 26. hinh_anh (NEW)
                     ])
                 
                 ws.append_rows(rows)

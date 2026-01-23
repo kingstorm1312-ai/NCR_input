@@ -1,6 +1,9 @@
 import pandas as pd
 from datetime import datetime
 import streamlit as st
+from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
+import io
 
 # --- STATUS FLOW CONFIGURATION ---
 STATUS_FLOW = {
@@ -549,3 +552,75 @@ def restart_ncr(gc, so_phieu, target_status, restart_by, restart_note=''):
         
     except Exception as e:
         return False, f"Lỗi: {str(e)}"
+
+
+# --- IMAGE UPLOAD TO GOOGLE DRIVE ---
+def upload_images_to_drive(file_list, filename_prefix):
+    """
+    Upload multiple images to Google Drive and return direct links separated by newlines.
+    
+    Args:
+        file_list: List of uploaded files from st.file_uploader
+        filename_prefix: Prefix for filename (e.g., NCR ticket number)
+    
+    Returns:
+        str: Newline-separated direct links to uploaded images
+    """
+    if not file_list:
+        return ""
+    
+    try:
+        # Get credentials from secrets
+        creds_dict = st.secrets["connections"]["gsheets"]
+        credentials = Credentials.from_service_account_info(
+            creds_dict,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        
+        # Build Drive service
+        service = build('drive', 'v3', credentials=credentials)
+        
+        # Get target folder ID
+        folder_id = st.secrets["drive"]["folder_id"]
+        
+        uploaded_links = []
+        
+        for idx, uploaded_file in enumerate(file_list):
+            # Create unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_extension = uploaded_file.name.split('.')[-1]
+            unique_filename = f"{filename_prefix}_{timestamp}_{idx+1}.{file_extension}"
+            
+            # Prepare file metadata
+            file_metadata = {
+                'name': unique_filename,
+                'parents': [folder_id]
+            }
+            
+            # Upload file
+            media = io.BytesIO(uploaded_file.getvalue())
+            file = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id, webViewLink'
+            ).execute()
+            
+            # Make file publicly accessible
+            service.permissions().create(
+                fileId=file['id'],
+                body={'type': 'anyone', 'role': 'reader'}
+            ).execute()
+            
+            # Get direct link (convert webViewLink to direct download link)
+            file_id = file['id']
+            direct_link = f"https://drive.google.com/uc?export=view&id={file_id}"
+            uploaded_links.append(direct_link)
+        
+        # Return links separated by newlines
+        return '\n'.join(uploaded_links)
+        
+    except Exception as e:
+        st.error(f"Lỗi upload ảnh: {e}")
+        import traceback
+        st.code(traceback.format_exc())
+        return ""
