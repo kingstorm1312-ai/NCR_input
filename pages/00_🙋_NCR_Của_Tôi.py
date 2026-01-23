@@ -60,6 +60,14 @@ with col2:
 
 st.divider()
 
+# --- HELPER: IMAGE POPUP ---
+@st.dialog("🖼️ Xem ảnh chi tiết")
+def preview_image(url):
+    st.image(url, use_container_width=True)
+    st.caption(f"[Link trực tiếp]({url})")
+    if st.button("Đóng", use_container_width=True):
+        st.rerun()
+
 # --- HELPER: RESUBMIT FUNCTION ---
 def resubmit_ncr(so_phieu):
     """Gửi lại phiếu NCR (reset status về cho_truong_ca)"""
@@ -545,6 +553,78 @@ with tab3:
                 st.markdown(f"### 📋 {so_phieu}")
                 st.warning(f"**Yêu cầu từ {by_role}:**\n{msg}")
                 st.write(f"📅 **Hạn chót:** {deadline}")
+                
+                # --- CHI TIẾT PHIẾU (Full Info like Approval Page) ---
+                with st.expander("🔍 Xem chi tiết phiếu & Hình ảnh", expanded=False):
+                    # --- HÌNH ẢNH ---
+                    st.markdown("#### 📷 Hình ảnh minh họa")
+                    hinh_anh_val = task.get('hinh_anh', "")
+                    if pd.notna(hinh_anh_val) and str(hinh_anh_val).strip():
+                        img_list = str(hinh_anh_val).split('\n')
+                        img_list = [url.strip() for url in img_list if url.strip() and url.lower() != 'nan']
+                        
+                        if img_list:
+                            cols_per_row = 3
+                            for i in range(0, len(img_list), cols_per_row):
+                                img_cols = st.columns(cols_per_row)
+                                for j in range(cols_per_row):
+                                    if i + j < len(img_list):
+                                        img_url = img_list[i+j]
+                                        img_cols[j].image(img_url, use_container_width=True)
+                                        if img_cols[j].button("🔍 Phóng to", key=f"zoom_kp_{so_phieu}_{i+j}"):
+                                            preview_image(img_url)
+                            
+                            st.markdown("**🔗 Link ảnh trực tiếp:**")
+                            for idx, url in enumerate(img_list):
+                                st.markdown(f"- [Chi tiết ảnh {idx+1}]({url})")
+                        else:
+                            st.info("ℹ️ Phiếu này không có hình ảnh minh họa.")
+                    else:
+                        st.info("ℹ️ Phiếu này không có hình ảnh minh họa.")
+
+                    st.markdown("---")
+
+                    # Header Info Grid
+                    st.markdown("#### 📄 Thông tin chung")
+                    ca1, ca2 = st.columns(2)
+                    with ca1:
+                        st.write(f"📁 **Hợp đồng:** {task.get('hop_dong', 'N/A')}")
+                        st.write(f"🔢 **Mã vật tư:** {task.get('ma_vat_tu', 'N/A')}")
+                        st.write(f"📦 **Tên sản phẩm:** {task.get('ten_sp', 'N/A')}")
+                        st.write(f"🏷️ **Phân loại:** {task.get('phan_loai', 'N/A')}")
+                    with ca2:
+                        st.write(f"🏢 **Nguồn gốc/NCC:** {task.get('nguon_goc', 'N/A')}")
+                        st.write(f"🔢 **SL Kiểm:** {task.get('sl_kiem', 0)}")
+                        st.write(f"📦 **SL Lô:** {task.get('sl_lo_hang', 0)}")
+                        st.write(f"🕒 **Cập nhật cuối:** {task.get('thoi_gian_cap_nhat', 'N/A')}")
+                    
+                    if task.get('mo_ta_loi'):
+                        st.markdown(f"📝 **Mô tả lỗi / Quy cách:**\n{task.get('mo_ta_loi')}")
+                    
+                    st.markdown("---")
+                    
+                    # --- TIMELINE ĐỀ XUẤT GIẢI PHÁP ---
+                    st.markdown("#### 💡 Chuỗi đề xuất xử lý")
+                    has_any_sol = False
+                    if task.get('bien_phap_truong_bp'):
+                        has_any_sol = True
+                        st.info(f"**👔 Trưởng BP - Biện pháp xử lý tức thời:**\n{task['bien_phap_truong_bp']}")
+                    if task.get('huong_giai_quyet'):
+                        has_any_sol = True
+                        st.success(f"**🔬 QC Manager - Hướng giải quyết:**\n{task['huong_giai_quyet']}")
+                    if task.get('huong_xu_ly_gd'):
+                        has_any_sol = True
+                        st.warning(f"**👨‍💼 Giám đốc - Hướng xử lý:**\n{task['huong_xu_ly_gd']}")
+                    if not has_any_sol:
+                        st.caption("_Chưa có đề xuất xử lý từ các cấp quản lý._")
+
+                    st.markdown("---")
+                    st.markdown("#### ❌ Danh sách lỗi chi tiết")
+                    tk_rows = df_all[df_all['so_phieu'] == so_phieu]
+                    if not tk_rows.empty:
+                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'muc_do']
+                        avail_cols = [col for col in display_cols if col in tk_rows.columns]
+                        st.dataframe(tk_rows[avail_cols], use_container_width=True, hide_index=True)
                 
                 # Deadline warning
                 try:
