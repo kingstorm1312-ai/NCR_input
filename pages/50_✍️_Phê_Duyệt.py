@@ -152,17 +152,52 @@ else:
                     st.info(f"📩 **Tin nhắn:** {note}")
             
             # Error details in expander
-            with st.expander("🔍 Chi tiết lỗi"):
+            with st.expander("🔍 Chi tiết lỗi & Thông tin đầy đủ"):
+                # Header Info Grid
+                st.markdown("#### 📄 Thông tin chung")
+                ca1, ca2 = st.columns(2)
+                with ca1:
+                    st.write(f"📁 **Hợp đồng:** {row.get('hop_dong', 'N/A')}")
+                    st.write(f"🔢 **Mã vật tư:** {row.get('ma_vat_tu', 'N/A')}")
+                    st.write(f"📦 **Tên sản phẩm:** {row.get('ten_sp', 'N/A')}")
+                    st.write(f"🏷️ **Phân loại:** {row.get('phan_loai', 'N/A')}")
+                with ca2:
+                    st.write(f"🏢 **Nguồn gốc/NCC:** {row.get('nguon_goc', 'N/A')}")
+                    st.write(f"🔢 **SL Kiểm:** {row.get('sl_kiem', 0)}")
+                    st.write(f"📦 **SL Lô:** {row.get('sl_lo_hang', 0)}")
+                    st.write(f"🕒 **Cập nhật cuối:** {row.get('thoi_gian_cap_nhat', 'N/A')}")
+                
+                if row.get('mo_ta_loi'):
+                    st.markdown(f"📝 **Mô tả lỗi / Quy cách:**\n{row.get('mo_ta_loi')}")
+                
+                st.markdown("---")
+                st.markdown("#### ❌ Danh sách lỗi chi tiết")
                 # Get original rows for this ticket
                 ticket_rows = df_original[df_original['so_phieu'] == so_phieu]
                 if not ticket_rows.empty:
-                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'muc_do']
+                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'md_loi']
                     available_cols = [col for col in display_cols if col in ticket_rows.columns]
                     st.dataframe(
                         ticket_rows[available_cols],
                         use_container_width=True,
                         hide_index=True
                     )
+                
+                # --- HÌNH ẢNH ---
+                if row.get('hinh_anh'):
+                    st.markdown("---")
+                    st.markdown("#### 📷 Hình ảnh minh họa")
+                    img_list = str(row['hinh_anh']).split('\n')
+                    if img_list:
+                        # Display images in a grid
+                        cols_per_row = 3
+                        for i in range(0, len(img_list), cols_per_row):
+                            img_cols = st.columns(cols_per_row)
+                            for j in range(cols_per_row):
+                                if i + j < len(img_list):
+                                    img_url = img_list[i+j].strip()
+                                    if img_url:
+                                        img_cols[j].image(img_url, use_container_width=True)
             
             # --- ACTION SECTION ---
             st.write("")  # Spacer

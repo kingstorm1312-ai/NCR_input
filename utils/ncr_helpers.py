@@ -33,13 +33,25 @@ COLUMN_MAPPING = {
     'sl_loi': 'so_luong_loi',
     'nguon_goc': 'nguon_goc',
     'phan_loai': 'phan_loai',
+    'hop_dong': 'hop_dong',
+    'ma_vat_tu': 'ma_vat_tu',
+    'ten_sp': 'ten_sp',
+    'sl_kiem': 'so_luong_kiem',
+    'md_loi': 'muc_do',
+    'mo_ta_loi': 'mo_ta_loi',
+    'sl_lo_hang': 'so_luong_lo_hang',
     'nguoi_lap_phieu': 'nguoi_lap_phieu',
+    'noi_gay_loi': 'noi_gay_loi',
+    'trang_thai': 'trang_thai',
+    'thoi_gian_cap_nhat': 'thoi_gian_cap_nhat',
     'nguoi_duyet_1': 'duyet_truong_ca',
     'nguoi_duyet_2': 'duyet_truong_bp',
     'nguoi_duyet_3': 'duyet_qc_manager',
     'nguoi_duyet_4': 'duyet_giam_doc',
     'nguoi_duyet_5': 'duyet_bgd_tan_phu',
-    'huong_giai_quyet': 'y_kien_qc'
+    'huong_giai_quyet': 'y_kien_qc',
+    'ly_do_tu_choi': 'ly_do_tu_choi',
+    'hinh_anh': 'hinh_anh'
 }
 
 ROLE_TO_APPROVER_COLUMN = {
@@ -115,15 +127,20 @@ def load_ncr_data_with_grouping(gc, filter_status=None, filter_department=None):
         # Grouping
         group_cols = {
             'ngay_lap': 'first',
-            'nguoi_lap_phieu': 'first', # Updated map key check needed if column name changed
+            'nguoi_lap_phieu': 'first',
             'trang_thai': 'first',
             'sl_loi': 'sum',
             'ten_loi': lambda x: ', '.join(sorted(set(x.astype(str))))
         }
         
         # Add optional columns if they exist
-        optional_cols = ['thoi_gian_cap_nhat', 'nguoi_duyet_1', 'nguoi_duyet_2', 
-                        'nguoi_duyet_3', 'nguoi_duyet_4', 'nguoi_duyet_5', 'huong_giai_quyet', 'ly_do_tu_choi']
+        optional_cols = [
+            'hop_dong', 'ma_vat_tu', 'ten_sp', 'phan_loai', 'nguon_goc', 
+            'sl_kiem', 'mo_ta_loi', 'sl_lo_hang', 'hinh_anh',
+            'thoi_gian_cap_nhat', 'nguoi_duyet_1', 'nguoi_duyet_2', 
+            'nguoi_duyet_3', 'nguoi_duyet_4', 'nguoi_duyet_5', 
+            'huong_giai_quyet', 'ly_do_tu_choi'
+        ]
         
         for col in optional_cols:
             if col in df_filtered.columns:
