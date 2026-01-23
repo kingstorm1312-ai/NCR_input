@@ -74,6 +74,23 @@ if 'so_phieu' in df_raw.columns:
 else:
     df_all = df_raw.copy()
 
+# --- FILTERING ---
+st.sidebar.header("🔍 Bộ lọc")
+all_depts = sorted(df_all['bo_phan'].astype(str).unique())
+selected_depts = st.sidebar.multiselect(
+    "Chọn bộ phận (Khâu):",
+    options=all_depts,
+    default=[],
+    help="Để trống để chọn Tất cả"
+)
+
+if selected_depts:
+    df_all = df_all[df_all['bo_phan'].isin(selected_depts)]
+    filter_label = ", ".join(selected_depts)
+    st.success(f"🔍 Đang lọc theo bộ phận: **{filter_label}** ({len(df_all)} phiếu)")
+else:
+    st.info(f"📋 Đang hiển thị **Tất cả bộ phận** ({len(df_all)} phiếu)")
+
 # --- PIPELINE STATUS ---
 st.subheader("📊 Pipeline Status")
 
