@@ -2,9 +2,12 @@ import pandas as pd
 from datetime import datetime
 import streamlit as st
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 from google.oauth2.service_account import Credentials
 import io
+import tempfile
+import os
 
 # --- STATUS FLOW CONFIGURATION ---
 STATUS_FLOW = {
@@ -605,13 +608,23 @@ def upload_images_to_drive(file_list, filename_prefix):
                 'parents': [folder_id]
             }
             
-            # Upload file
-            media = MediaIoBaseUpload(io.BytesIO(uploaded_file.getvalue()), mimetype=uploaded_file.type, resumable=True)
-            file = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id, webViewLink'
-            ).execute()
+            # Write to temp file first to avoid BytesIO issues
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as tmp:
+                tmp.write(uploaded_file.getvalue())
+                tmp_path = tmp.name
+
+            try:
+                # Upload file
+                media = MediaFileUpload(tmp_path, mimetype=uploaded_file.type, resumable=True)
+                file = service.files().create(
+                    body=file_metadata,
+                    media_body=media,
+                    fields='id, webViewLink'
+                ).execute()
+            finally:
+                # Cleanup temp file
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
             
             # Make file publicly accessible
             service.permissions().create(
