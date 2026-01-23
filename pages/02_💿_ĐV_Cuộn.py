@@ -11,10 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.ncr_helpers import format_contract_code, render_input_buffer_mobile, upload_images_to_cloud
 
 # --- CONFIGURATION ---
-REQUIRED_DEPT = 'trang_cat'
-PAGE_TITLE = "QC Input - Tráng Cắt"
+REQUIRED_DEPT = 'dv_cuon'
+PAGE_TITLE = "QC Input - ĐV Cuộn"
 
-st.set_page_config(page_title=PAGE_TITLE, page_icon="✂️", layout="centered")
+st.set_page_config(page_title=PAGE_TITLE, page_icon="💿", layout="centered")
 
 # --- SECURITY ---
 if "user_info" not in st.session_state or not st.session_state.user_info:
@@ -52,7 +52,7 @@ def load_master_data():
         
         # Filter Errors
         if 'nhom_loi' in df.columns:
-            target_groups = ['trang_cat', 'chung']
+            target_groups = ['dv_cuon', 'chung']
             list_loi = sorted(df[df['nhom_loi'].astype(str).str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
         else:
             list_loi = sorted(df['ten_loi'].dropna().unique().tolist())
@@ -71,7 +71,7 @@ if "buffer_errors" not in st.session_state: st.session_state.buffer_errors = []
 if "header_locked" not in st.session_state: st.session_state.header_locked = False
 
 # --- UI ---
-st.title("✂️ QC Input - Tráng Cắt")
+st.title("💿 QC Input - ĐV Cuộn")
 
 with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
@@ -79,9 +79,8 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     c1, c2 = st.columns(2)
     with c1:
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
-        phan_loai = st.radio("Phân loại", ["Tráng", "Cắt"], horizontal=True, disabled=disable_hd)
-        
-        prefix = "X2-TR" if phan_loai == "Tráng" else "X2-CA"
+        # Prefix CUON
+        prefix = "CUON"
         current_month = datetime.now().strftime("%m")
         suffix = st.text_input("Số đuôi NCR (xx)", disabled=disable_hd)
         so_phieu = f"{prefix}-{current_month}-{suffix}" if suffix else ""
@@ -96,9 +95,11 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
     with c4:
-        nguon_goc = st.text_input("Nguồn gốc (NCC/Máy)", disabled=disable_hd)
+        nguon_goc = st.text_input("Nguồn gốc (NCC)", disabled=disable_hd)
         sl_lo = st.number_input("SL Lô (so_lo)", min_value=0, disabled=disable_hd)
 
+    # Note: User asked to pass "" for phan_loai
+    
     quy_cach = st.text_area("Mô tả lỗi / Quy cách", height=100, disabled=disable_hd)
     
     st.markdown("**📷 Hình ảnh:**")
@@ -166,15 +167,13 @@ if st.session_state.buffer_errors:
                 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
                 rows = []
-                # STRICT COLUMN ORDER:
-                # [ngay_lap, nguoi_lap, bo_phan, phan_loai, nguon_goc, so_phieu_ncr, hop_dong, ma_vt, ten_sp, ten_loi, vi_tri, sl_loi, sl_kiem, muc_do, so_lo, quy_cach, hinh_anh, trang_thai, thoi_gian_cap_nhat, ly_do_tu_choi, duyet_truong_ca, duyet_truong_bp, duyet_qc_manager, duyet_giam_doc, duyet_bgd_tan_phu]
-                
+                # STRICT COLUMN ORDER
                 for err in st.session_state.buffer_errors:
                     rows.append([
                         now,                # 1. ngay_lap
                         nguoi_lap,          # 2. nguoi_lap
-                        "Tráng Cắt",        # 3. bo_phan
-                        phan_loai,          # 4. phan_loai
+                        "ĐV Cuộn",          # 3. bo_phan
+                        "",                 # 4. phan_loai
                         nguon_goc,          # 5. nguon_goc
                         so_phieu,           # 6. so_phieu_ncr
                         hop_dong,           # 7. hop_dong
@@ -186,7 +185,7 @@ if st.session_state.buffer_errors:
                         sl_kiem,            # 13. sl_kiem
                         err['muc_do'],      # 14. muc_do
                         sl_lo,              # 15. so_lo
-                        quy_cach,           # 16. quy_cach (from mo_ta_loi)
+                        quy_cach,           # 16. quy_cach
                         img_links,          # 17. hinh_anh
                         'cho_truong_ca',    # 18. trang_thai
                         now,                # 19. thoi_gian_cap_nhat
