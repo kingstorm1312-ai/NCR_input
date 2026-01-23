@@ -313,7 +313,7 @@ def render_input_buffer_mobile(buffer_list):
                 dvt = err.get('don_vi_tinh', '')
                 st.caption(f"SL: **{err['sl_loi']} {dvt}** | Vị trí: {err.get('vi_tri', '')} | Mức độ: {muc_do}")
             with c2:
-                if st.button("🗑️", key=f"del_buf_{int(datetime.now().timestamp())}_{i}", help="Xóa"):
+                if st.button("🗑️", key=f"del_buf_{err['ten_loi']}_{i}", help="Xóa"):
                     indices_to_remove.append(i)
 
     if indices_to_remove:
