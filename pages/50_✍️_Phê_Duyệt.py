@@ -252,7 +252,7 @@ else:
                     st.write(f"**Trạng thái:** {kp_status.upper()}")
                     st.write(f"**Người giao:** {kp_by} → **Người nhận:** {kp_to}")
                     st.info(f"**Nội dung yêu cầu:**\n{kp_msg}")
-                    st.write(f"**Hạn chót:** {kp_dl}")
+                    st.markdown(f"📅 **Hạn chót:** :red[**{kp_dl}**]")
                     
                     if kp_res:
                         st.success(f"**Phản hồi hoàn thành:**\n{kp_res}")

@@ -552,7 +552,7 @@ with tab3:
             with st.container(border=True):
                 st.markdown(f"### 📋 {so_phieu}")
                 st.warning(f"**Yêu cầu từ {by_role}:**\n{msg}")
-                st.write(f"📅 **Hạn chót:** {deadline}")
+                st.markdown(f"📅 **Hạn chót:** :red[**{deadline}**]")
                 
                 # --- CHI TIẾT PHIẾU (Full Info like Approval Page) ---
                 with st.expander("🔍 Xem chi tiết phiếu & Hình ảnh", expanded=False):
