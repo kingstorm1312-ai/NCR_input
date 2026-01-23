@@ -15,7 +15,8 @@ from utils.ncr_helpers import (
     get_status_color,
     ROLE_TO_STATUS,
     STATUS_FLOW,
-    REJECT_ESCALATION
+    REJECT_ESCALATION,
+    init_gspread
 )
 
 # --- PAGE SETUP ---
