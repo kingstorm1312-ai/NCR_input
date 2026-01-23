@@ -8,7 +8,7 @@ import os
 
 # Add root to path for utils import
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.ncr_helpers import format_contract_code, render_input_buffer_mobile
+from utils.ncr_helpers import format_contract_code, render_input_buffer_mobile, upload_images_to_drive
 
 # --- CONFIGURATION ---
 REQUIRED_DEPT = 'tp_dau_vao'
