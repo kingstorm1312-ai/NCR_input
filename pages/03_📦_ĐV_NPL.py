@@ -169,37 +169,44 @@ if st.session_state.buffer_errors:
                 ws = sh.worksheet("NCR_DATA")
                 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
+                # Read headers from Sheet (row 1)
+                headers = ws.row_values(1)
+                
                 rows = []
-                # CORRECT 26-COLUMN ORDER (matching Google Sheet)
                 for err in st.session_state.buffer_errors:
-                    rows.append([
-                        now,                # 1. ngày lập
-                        so_phieu,           # 2. số phiếu ncr
-                        hop_dong,           # 3. hợp đồng
-                        ma_vt,              # 4. mã vật tư
-                        ten_sp,             # 5. tên sp
-                        "",                 # 6. phân loại (empty for ĐV NPL)
-                        nguon_goc,          # 7. nguồn gốc
-                        err['ten_loi'],     # 8. tên lỗi
-                        err['vi_tri'],      # 9. vị trí lỗi
-                        err['sl_loi'],      # 10. số lượng lỗi
-                        sl_kiem,            # 11. số lượng kiểm
-                        err['muc_do'],      # 12. mức độ
-                        quy_cach,           # 13. mô tả lỗi
-                        sl_lo,              # 14. số lượng lô
-                        nguoi_lap,          # 15. người lập phiếu
-                        nguon_goc,          # 16. nơi gây lỗi
-                        'cho_truong_ca',    # 17. trạng thái
-                        now,                # 18. thời gian cập nhật
-                        '',                 # 19. duyệt trưởng ca
-                        '',                 # 20. duyệt trưởng bp
-                        '',                 # 21. ý kiến QC
-                        '',                 # 22. duyệt QC manager
-                        '',                 # 23. duyet giam doc
-                        '',                 # 24. duyet bgd tan phu
-                        '',                 # 25. ly do từ chối
-                        img_links           # 26. hình ảnh
-                    ])
+                    # Create data dictionary
+                    data = {
+                        'ngày lập': now,
+                        'số phiếu ncr': so_phieu,
+                        'hợp đồng': hop_dong,
+                        'mã vật tư': ma_vt,
+                        'tên sp': ten_sp,
+                        'phân loại': "",  # Empty for ĐV NPL
+                        'nguồn gốc': nguon_goc,
+                        'tên lỗi': err['ten_loi'],
+                        'vị trí lỗi': err['vi_tri'],
+                        'số lượng lỗi': err['sl_loi'],
+                        'số lượng kiểm': sl_kiem,
+                        'mức độ': err['muc_do'],
+                        'mô tả lỗi': quy_cach,
+                        'số lượng lô': sl_lo,
+                        'người lập phiếu': nguoi_lap,
+                        'nơi gây lỗi': nguon_goc,
+                        'trạng thái': 'cho_truong_ca',
+                        'thời gian cập nhật': now,
+                        'duyệt trưởng ca': '',
+                        'duyệt trưởng bp': '',
+                        'ý kiến QC': '',
+                        'duyệt QC manager': '',
+                        'duyet giam doc': '',
+                        'duyet bgd tan phu': '',
+                        'ly do từ chối': '',
+                        'hình ảnh': img_links
+                    }
+                    
+                    # Map to row based on headers
+                    row = [data.get(h, '') for h in headers]
+                    rows.append(row)
                 
                 ws.append_rows(rows)
                 st.success("✅ Đã lưu thành công!")
