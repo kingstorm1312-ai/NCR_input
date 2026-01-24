@@ -576,7 +576,7 @@ def restart_ncr(gc, so_phieu, target_status, user_name, note=""):
         return False, "Không tìm thấy phiếu"
     except Exception as e:
         return False, f"Lỗi: {str(e)}"
-def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline, target_department=None):
+def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline, target_department=None, target_person=None):
     """
     Giao hành động khắc phục cho cấp dưới.
     """
@@ -608,8 +608,14 @@ def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, mes
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_update + 1), 'values': [[now]]})
                 
                 final_message = message
+                prefix_info = []
                 if target_department:
-                    final_message = f"[BP: {target_department}] {final_message}"
+                    prefix_info.append(f"BP: {target_department}")
+                if target_person:
+                     prefix_info.append(f"Chỉ định: {target_person}")
+                
+                if prefix_info:
+                    final_message = f"[{' | '.join(prefix_info)}] {final_message}"
 
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_status + 1), 'values': [['active']]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_by + 1), 'values': [[assigned_by_role]]})

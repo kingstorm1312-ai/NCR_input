@@ -450,6 +450,34 @@ else:
                         ]
                         target_department = st.selectbox("Chọn bộ phận chịu trách nhiệm:", dept_list, key=f"target_dept_{so_phieu}")
 
+                        # Fetch Users for Specific Assignment
+                        target_person = None
+                        from utils.ncr_helpers import get_all_users
+                        all_users = get_all_users()
+                        
+                        # Filter Logic: Role = 'truong_bp' AND Department matches
+                        dept_key = str(target_department).lower().strip()
+                        def match_dept(u_dept, target):
+                            u = str(u_dept).lower().strip()
+                            # Loose matching for robustness (e.g. 'May A2' in 'Xuong May A2')
+                            return target in u or u in target 
+                            
+                        potential_assignees = [
+                            u['full_name'] for u in all_users 
+                            if str(u.get('role')).lower() == 'truong_bp' and match_dept(u.get('department'), dept_key)
+                        ]
+                        
+                        if potential_assignees:
+                            target_person_sel = st.selectbox(
+                                "Người nhận cụ thể (Tùy chọn):",
+                                ["-- Tất cả trưởng bộ phận --"] + sorted(potential_assignees),
+                                key=f"target_person_{so_phieu}"
+                            )
+                            if target_person_sel != "-- Tất cả trưởng bộ phận --":
+                                target_person = target_person_sel
+                        else:
+                            st.caption(f"⚠️ Không tìm thấy trưởng bộ phận nào cho '{target_department}'. Sẽ giao chung cho bộ phận.")
+
                     kp_msg = st.text_area("Yêu cầu cụ thể:", key=f"kp_msg_{so_phieu}", placeholder="Nhập yêu cầu khắc phục...")
                     kp_deadline = st.date_input("Hạn chót:", key=f"kp_dl_{so_phieu}")
                     
@@ -460,7 +488,7 @@ else:
                             with st.spinner("Đang giao task..."):
                                 from utils.ncr_helpers import assign_corrective_action
                                 success, message = assign_corrective_action(
-                                    gc, so_phieu, selected_role, assign_to, kp_msg, kp_deadline, target_department
+                                    gc, so_phieu, selected_role, assign_to, kp_msg, kp_deadline, target_department, target_person
                                 )
                                 if success:
                                     st.success(message)
