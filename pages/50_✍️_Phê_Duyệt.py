@@ -338,9 +338,9 @@ else:
                 st.markdown("### 🔀 Điều hướng phê duyệt")
                 routing_option = st.radio(
                     "Chọn cấp phê duyệt tiếp theo:",
-                    ["Chuyển Giám đốc (Director)", "Chuyển BGD Tân Phú"],
+                    ["Chuyển Giám đốc (Director)", "Chuyển BGD Tân Phú", "✅ Hoàn thành ngay (Kết thúc)"],
                     key=f"routing_{so_phieu}",
-                    horizontal=True
+                    horizontal=False
                 )
                 
                 
@@ -351,10 +351,15 @@ else:
                     next_status = "cho_giam_doc"
                     target_role_key = 'director'
                     target_label = "Giám đốc"
-                else:
+                elif routing_option == "Chuyển BGD Tân Phú":
                     next_status = "cho_bgd_tan_phu"
                     target_role_key = 'bgd_tan_phu'
                     target_label = "BGD Tân Phú"
+                else:
+                    # Case Complete Immediately
+                    next_status = "hoan_thanh"
+                    target_role_key = None
+                    target_label = None
 
                 # Fetch Potential Assignees based on selected route
                 from utils.ncr_helpers import get_all_users
@@ -365,9 +370,26 @@ else:
                     f"Chọn {target_label} cụ thể (Tùy chọn):",
                     [""] + assignees,
                     key=f"dir_assign_{so_phieu}",
+                    key=f"dir_assign_{so_phieu}",
                     help=f"Chọn nếu muốn chỉ định đích danh {target_label} nhân xử lý"
                 )
-            # --- END QC MANAGER FLEXIBLE ROUTING ---
+            
+            # --- DIRECTOR ROUTING ---
+            if selected_role == 'director':
+                st.write("---")
+                st.markdown("### 🔀 Điều hướng phê duyệt")
+                dir_routing = st.radio(
+                    "Tùy chọn xử lý:",
+                    ["Chuyển BGD Tân Phú (Default)", "✅ Hoàn thành ngay (Kết thúc)"],
+                    key=f"dir_routing_{so_phieu}",
+                    horizontal=True
+                )
+                
+                if dir_routing == "✅ Hoàn thành ngay (Kết thúc)":
+                    next_status = "hoan_thanh"
+                else:
+                    next_status = "cho_bgd_tan_phu"
+            # --- END ROUTING ---
 
             # Logic for REJECT STATUS based on Escalation
             reject_status = REJECT_ESCALATION.get(trang_thai, 'draft')
