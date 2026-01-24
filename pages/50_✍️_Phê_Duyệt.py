@@ -273,7 +273,7 @@ else:
                     st.caption("_Chưa có đề xuất xử lý từ các cấp quản lý._")
                 
                 st.markdown("---")
-                st.markdown("#### ❌ Danh sách lỗi chi tiết")
+                st.markdown("#### ❌ Mô tả sự không phù hợp")
                 # Get original rows for this ticket
                 ticket_rows = df_original[df_original['so_phieu'] == so_phieu]
                 if not ticket_rows.empty:
