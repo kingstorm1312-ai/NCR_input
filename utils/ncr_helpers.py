@@ -238,11 +238,11 @@ DEPT_PREFIX_MAP = {
     "MAY-P2": ("May", "May P2"),
     "MAY-N4": ("May", "May N4"),
     "MAY-A2": ("May", "May A2"),
-    "TP-DAU-VAO": ("TP Đầu Vào", "TP Đầu Vào"),
-    "TP_DAU_VAO": ("TP Đầu Vào", "TP Đầu Vào"),
-    "IN-D": ("In", "Xưởng D"),
-    "IN_D": ("In", "Xưởng D"),
+    "DVTP": ("TP Đầu Vào", "TP Đầu Vào"),
+    "XG-IN": ("In Xưởng D", "In"),
+    "XG-SA": ("In Xưởng D", "Siêu Âm"),
     "CAT-BAN": ("Cắt", "Cắt Bàn"),
+    "XT": ("Xeo Tỷ", "Xeo Tỷ"), # Dự trù nếu có
     "CAT_BAN": ("Cắt", "Cắt Bàn"),
 }
 

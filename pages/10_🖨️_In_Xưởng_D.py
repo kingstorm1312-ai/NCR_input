@@ -108,7 +108,19 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     c1, c2 = st.columns(2)
     with c1:
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
-        dept_prefix = "IN-D"
+        dept_prefix_base = "XG"
+        khau_in = "IN"
+        khau_sa = "SA"
+        
+        # Determine current khau
+        current_khau = 'In'
+        
+        # Needs to be before prefix generation
+        khau_selection = st.radio("Khâu:", ["In", "Siêu Âm"], horizontal=True, key="khau_selector", disabled=disable_hd)
+        
+        prefix_suffix = khau_in if khau_selection == "In" else khau_sa
+        dept_prefix = f"{dept_prefix_base}-{prefix_suffix}"
+        
         current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
         so_phieu = ""
@@ -131,7 +143,8 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
          nguon_goc = st.selectbox("Nguồn gốc (NCC)", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
          sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
     
-    phan_loai = st.selectbox("Phân loại", ["", "In", "Siêu Âm"], disabled=disable_hd)
+    phan_loai = "In" if khau_selection == "In" else "Siêu Âm"
+    # phan_loai = st.selectbox("Phân loại", ["", "In", "Siêu Âm"], disabled=disable_hd) # Remove old selectbox
     mo_ta_loi = st.text_area("Ghi chú / Mô tả thêm", disabled=disable_hd, height=60)
     
     st.markdown("**📷 Hình ảnh:**")

@@ -404,7 +404,12 @@ else:
                          is_cross_dept = st.checkbox("Giao bộ phận khác / Cross-Department?", key=f"is_cross_{so_phieu}")
                     
                     if is_cross_dept:
-                        dept_list = ["May", "In", "FI", "Tráng Cắt", "Kho", "QC", "Bảo Trì", "Nhân Sự", "Kế Hoạch", "Purchase", "Khác"]
+                        dept_list = [
+                            "May", "FI", "Tráng Cắt", 
+                            "TP Đầu Vào", "DV Cuộn", "DV NPL", 
+                            "In Xưởng D",
+                            "Kho", "QC", "Bảo Trì", "Nhân Sự", "Kế Hoạch", "Purchase", "Khác"
+                        ]
                         target_department = st.selectbox("Chọn bộ phận chịu trách nhiệm:", dept_list, key=f"target_dept_{so_phieu}")
 
                     kp_msg = st.text_area("Yêu cầu cụ thể:", key=f"kp_msg_{so_phieu}", placeholder="Nhập yêu cầu khắc phục...")
