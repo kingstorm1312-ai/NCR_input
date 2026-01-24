@@ -5,7 +5,7 @@ import json
 import base64
 import time
 from datetime import datetime
-from utils.ncr_helpers import get_now_vn, init_gspread
+from utils.ncr_helpers import get_now_vn, init_gspread, get_all_users
 
 # --- CONFIG: DEPARTMENT ROUTING ---
 DEPARTMENT_PAGES = {
@@ -94,19 +94,9 @@ def local_css():
 
 local_css()
 
-@st.cache_data(ttl=600)
-def get_all_users():
-    """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
-    try:
-        gc = init_gspread()
-        if not gc: return []
-        spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        sh = gc.open_by_key(spreadsheet_id)
-        ws = sh.worksheet("USERS")
-        data = ws.get_all_records()
-        return data
-    except Exception as e:
-        return []
+    local_css()
+
+# get_all_users moved to utils/ncr_helpers.py
 
 def get_base64_image(image_path):
     with open(image_path, "rb") as f:

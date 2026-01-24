@@ -696,3 +696,17 @@ def accept_corrective_action(gc, so_phieu, approver_role):
         return False, "Không tìm thấy số phiếu"
     except Exception as e:
         return False, f"Lỗi hệ thống: {e}"
+
+@st.cache_data(ttl=600)
+def get_all_users():
+    """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
+    try:
+        gc = init_gspread()
+        if not gc: return []
+        spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet"]
+        sh = gc.open_by_key(spreadsheet_id)
+        ws = sh.worksheet("USERS")
+        data = ws.get_all_records()
+        return data
+    except Exception as e:
+        return []
