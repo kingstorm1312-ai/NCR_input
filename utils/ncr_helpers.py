@@ -770,3 +770,36 @@ def get_all_users():
         return data
     except Exception as e:
         return []
+
+def cancel_ncr(gc, so_phieu, reason):
+    """
+    Hủy phiếu NCR: Chuyển trạng thái sang 'da_huy'
+    """
+    try:
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        data = ws.get_all_values()
+        headers = [str(h).strip().lower() for h in data[0]]
+        
+        idx_so_phieu = headers.index("so_phieu_ncr")
+        idx_status = headers.index("trang_thai")
+        idx_update = headers.index("thoi_gian_cap_nhat")
+        idx_note = headers.index("ly_do_tu_choi") # Use this col for cancel reason
+        
+        now = get_now_vn_str()
+        range_updates = []
+        
+        for i, row in enumerate(data[1:], start=2):
+            if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_status + 1), 'values': [['da_huy']]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_update + 1), 'values': [[now]]})
+                current_note = row[idx_note]
+                new_note = f"{current_note} | [Lý do hủy: {reason}]" if current_note else f"[Lý do hủy: {reason}]"
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_note + 1), 'values': [[new_note]]})
+        
+        if range_updates:
+            ws.batch_update(range_updates)
+            return True, f"Đã hủy phiếu {so_phieu}"
+        return False, "Không tìm thấy số phiếu"
+    except Exception as e:
+        return False, f"Lỗi hệ thống: {e}"

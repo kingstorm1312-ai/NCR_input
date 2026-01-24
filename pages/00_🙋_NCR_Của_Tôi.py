@@ -8,12 +8,11 @@ from datetime import datetime
 
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.ncr_helpers import (
-    get_now_vn, get_now_vn_str,
     load_ncr_data_with_grouping,
     get_status_display_name,
     get_status_color,
-    init_gspread
+    init_gspread,
+    cancel_ncr
 )
 
 # --- PAGE SETUP ---
@@ -244,10 +243,47 @@ with tab1:
                             hide_index=True
                         )
                 
-                # --- EDIT FUNCTIONALITY ---
-                edit_key = f"edit_mode_{so_phieu}"
-                if edit_key not in st.session_state:
-                    st.session_state[edit_key] = False
+                # --- ACTIONS ---
+                col_edit_btn, col_resubmit_btn, col_cancel_btn = st.columns([1, 1, 1])
+                
+                with col_edit_btn:
+                    if st.button("✏️ Chỉnh sửa", key=f"edit_btn_{so_phieu}", use_container_width=True):
+                        # Logic chuyển trang sửa (chưa có, tạm thời placeholder)
+                        st.info("Tính năng sửa chi tiết đang phát triển.")
+                
+                with col_resubmit_btn:
+                    if st.button("🚀 Gửi lại ngay", key=f"resubmit_{so_phieu}", type="primary", use_container_width=True):
+                        if resubmit_ncr(so_phieu):
+                            st.success(f"Đã gửi lại phiếu {so_phieu}!")
+                            st.rerun()
+                        else:
+                            st.error("Lỗi khi gửi lại phiếu.")
+                            
+                with col_cancel_btn:
+                    if st.button("🗑️ HỦY PHIẾU", key=f"cancel_btn_{so_phieu}", type="secondary", use_container_width=True):
+                        st.session_state[f"show_cancel_confirm_{so_phieu}"] = True
+                
+                # Cancel Confirmation
+                if st.session_state.get(f"show_cancel_confirm_{so_phieu}", False):
+                    st.warning("⚠️ **Bạn có chắc muốn hủy phiếu này không?** Hành động này không thể hoàn tác.")
+                    cancel_reason = st.text_input("Lý do hủy:", key=f"cancel_reason_{so_phieu}")
+                    
+                    c_yes, c_no = st.columns(2)
+                    with c_yes:
+                        if st.button("✅ Xác nhận Hủy", key=f"confirm_cancel_{so_phieu}"):
+                            if not cancel_reason.strip():
+                                st.error("Vui lòng nhập lý do hủy!")
+                            else:
+                                if cancel_ncr(gc, so_phieu, cancel_reason):
+                                    st.success("Đã hủy phiếu thành công!")
+                                    st.cache_data.clear()
+                                    st.rerun()
+                                else:
+                                    st.error("Lỗi khi hủy phiếu.")
+                    with c_no:
+                        if st.button("❌ Bỏ qua", key=f"ignore_cancel_{so_phieu}"):
+                            st.session_state[f"show_cancel_confirm_{so_phieu}"] = False
+                            st.rerun()
                 
                 # Toggle edit mode
                 col_edit, col_submit = st.columns(2)
