@@ -345,7 +345,15 @@ else:
                 with st.expander("🛠️ Giao hành động khắc phục (Corrective Action)", expanded=False):
                     assign_to = 'truong_bp'
                     if selected_role == 'director':
-                        assign_to = st.radio("Giao cho:", ['truong_bp', 'qc_manager'], horizontal=True, key=f"assign_to_{so_phieu}")
+                        assign_options = ['truong_bp', 'qc_manager']
+                        assign_labels = {'truong_bp': 'Trưởng bộ phận', 'qc_manager': 'QC Manager'}
+                        assign_to = st.radio(
+                            "Giao cho:", 
+                            assign_options, 
+                            format_func=lambda x: assign_labels.get(x, x),
+                            horizontal=True, 
+                            key=f"assign_to_{so_phieu}"
+                        )
                     
                     kp_msg = st.text_area("Yêu cầu cụ thể:", key=f"kp_msg_{so_phieu}", placeholder="Nhập yêu cầu khắc phục...")
                     kp_deadline = st.date_input("Hạn chót:", key=f"kp_dl_{so_phieu}")
