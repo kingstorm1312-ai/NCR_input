@@ -117,8 +117,13 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
             st.caption(f"👉 Mã phiếu: **{so_phieu}**")
 
     with c2:
-        raw_ma_vt = st.text_input("Mã VT", disabled=disable_hd)
-        ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else ""
+        raw_ma_vt = st.text_area("Mã VT (nhiều dòng)", height=68, disabled=disable_hd, help="Nhập nhiều mã cách nhau bằng dấu phẩy hoặc xuống dòng")
+        # Normalize: Join lines/commas
+        if raw_ma_vt:
+            ma_vt = ", ".join([x.strip() for x in raw_ma_vt.replace('\n', ',').split(',') if x.strip()]).upper()
+        else:
+            ma_vt = ""
+            
         raw_hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
         hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
 
@@ -127,7 +132,9 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
          sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
          ten_sp = st.text_input("Tên SP", disabled=disable_hd)
     with c4:
-         nguon_goc = st.selectbox("Nguồn gốc (Nơi may)", [""] + LIST_NOI_MAY, disabled=disable_hd)
+         nguon_goc_list = st.multiselect("Nguồn gốc (Nơi may)", LIST_NOI_MAY, disabled=disable_hd, placeholder="Chọn chuyền...")
+         nguon_goc = ", ".join(nguon_goc_list)
+         
          sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
     
     # FI không phân loại cụ thể

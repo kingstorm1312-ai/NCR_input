@@ -43,6 +43,9 @@ st.markdown("---")
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu báo cáo..."):
     df_raw = load_ncr_dataframe_v2()
+    # CRITICAL: Exclude Cancelled Tickets from Report
+    if not df_raw.empty and 'trang_thai' in df_raw.columns:
+        df_raw = df_raw[df_raw['trang_thai'] != 'da_huy'].copy()
 
 if df_raw.empty:
     st.info("Chưa có dữ liệu để báo cáo.")
@@ -77,22 +80,35 @@ if df_filtered.empty:
     st.stop()
 
 # 4. Filter Department (Hierarchy)
+# 4. Filter Department (Hierarchy)
 if 'bo_phan_full' not in df_filtered.columns:
-    df_filtered['bo_phan_full'] = df_filtered['bo_phan']
+    df_filtered['bo_phan_full'] = df_filtered['bo_phan'].astype(str)
 
-unique_depts = sorted(df_filtered['bo_phan'].dropna().unique())
+# Helper: Extract unique single departments from possibly comma-separated strings
+all_depts_list = []
+for bp in df_filtered['bo_phan'].dropna().unique():
+    parts = [p.strip() for p in str(bp).replace('\n', ',').split(',') if p.strip()]
+    all_depts_list.extend(parts)
+unique_depts = sorted(list(set(all_depts_list)))
+
 selected_depts = st.sidebar.multiselect("Bộ phận (Chính)", unique_depts)
 
-# Apply Dept Filter
+# Apply Dept Filter (Contains Logic)
 if selected_depts:
-    df_filtered = df_filtered[df_filtered['bo_phan'].isin(selected_depts)]
+    # Filter: Keep row if ANY of its 'bo_phan' parts match selected_depts
+    def match_dept(val):
+        val_parts = [p.strip().lower() for p in str(val).replace('\n', ',').split(',')]
+        sel_parts = [s.lower() for s in selected_depts]
+        return any(v in sel_parts for v in val_parts)
+        
+    df_filtered = df_filtered[df_filtered['bo_phan'].apply(match_dept)]
 
-# Filter Sub-Dept (Khâu) based on Dept
-unique_sub_depts = sorted(df_filtered['bo_phan_full'].dropna().unique())
-selected_sub_depts = st.sidebar.multiselect("Khâu (Chi tiết)", unique_sub_depts)
-
-if selected_sub_depts:
-    df_filtered = df_filtered[df_filtered['bo_phan_full'].isin(selected_sub_depts)]
+# Filter Sub-Dept (Khâu) based on Dept - Logic similar if 'khau' is used separately, 
+# but currently bo_phan_full is mostly same as bo_phan. 
+# We'll skip secondary sub-dept strict filter to avoid complexity or apply same logic.
+unique_sub_depts = sorted(df_filtered['bo_phan_full'].astype(str).unique())
+# Optional: if user wants to filter unique raw strings from DB
+# selected_sub_depts = st.sidebar.multiselect("Khâu (Raw Data)", unique_sub_depts)
 
 df_final = df_filtered
 
@@ -187,7 +203,15 @@ col3, col4 = st.columns(2)
 # Chart 3: Department Performance
 with col3:
     st.subheader("🏢 Phân bổ lỗi theo Bộ phận / Khâu")
-    count_by_dept = df_final['bo_phan_full'].value_counts().reset_index()
+    
+    # Explode 'bo_phan' to count errors for EACH involved department
+    # Create a clean series of single departments
+    df_exploded = df_final.assign(bo_phan_split=df_final['bo_phan_full'].astype(str).str.replace('\n', ',').str.split(',')).explode('bo_phan_split')
+    df_exploded['bo_phan_split'] = df_exploded['bo_phan_split'].str.strip()
+    # Filter empty
+    df_exploded = df_exploded[df_exploded['bo_phan_split'] != '']
+    
+    count_by_dept = df_exploded['bo_phan_split'].value_counts().reset_index()
     count_by_dept.columns = ['bo_phan_full', 'count']
     
     # Prettify Dept Name (Already clean from helper)
