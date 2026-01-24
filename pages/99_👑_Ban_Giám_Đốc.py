@@ -14,7 +14,10 @@ from utils.ncr_helpers import (
     get_status_display_name,
     get_status_color,
     COLUMN_MAPPING,
-    load_ncr_dataframe_v2
+    get_status_color,
+    COLUMN_MAPPING,
+    load_ncr_dataframe_v2,
+    load_pending_corrective_actions
 )
 
 # --- PAGE SETUP ---
@@ -114,6 +117,58 @@ if active_filters_msg:
     st.success(f"🔍 Đang lọc: **{' | '.join(active_filters_msg)}** — Tìm thấy {len(df_all)} phiếu")
 else:
     st.info(f"📋 Đang hiển thị **Tất cả dữ liệu** ({len(df_all)} phiếu)")
+
+# --- TRACKING: CORRECTIVE ACTIONS (NEW) ---
+st.subheader("🛠️ Theo dõi Khắc phục")
+df_tracking = load_pending_corrective_actions(gc, 'director')
+
+if not df_tracking.empty:
+    st.info(f"⚡ Có **{len(df_tracking)}** phiếu đang chờ bộ phận khác xử lý.")
+    
+    # Display as a nice table with Deadline check
+    track_display = []
+    today = datetime.now().date()
+    
+    for _, row in df_tracking.iterrows():
+        # Deadline Status
+        deadline_str = row.get('kp_deadline', '')
+        dl_status = "⚪ N/A"
+        if deadline_str:
+            try:
+                dl_date = pd.to_datetime(deadline_str).date()
+                days_left = (dl_date - today).days
+                if days_left < 0:
+                    dl_status = f"🔴 Quá hạn {abs(days_left)} ngày"
+                elif days_left <= 1:
+                    dl_status = f"🟡 Sắp đến hạn ({days_left} ngày)"
+                else:
+                    dl_status = f"🟢 Còn {days_left} ngày"
+            except: pass
+            
+        track_display.append({
+            "Mã phiếu": row['so_phieu'],
+            "Bộ phận gốc": row.get('bo_phan', ''),
+            "Người nhận": row.get('kp_assigned_to', '').upper(),
+            "Yêu cầu": row.get('kp_message', ''),
+            "Deadline": deadline_str,
+            "Trạng thái hạn": dl_status,
+            "SL Lỗi": row.get('sl_loi', 0)
+        })
+        
+    st.dataframe(
+        pd.DataFrame(track_display), 
+        use_container_width=True,
+        column_config={
+            "Mã phiếu": st.column_config.TextColumn("Mã Phiếu", width="medium"),
+            "Yêu cầu": st.column_config.TextColumn("Nội dung yêu cầu", width="large"),
+            "Trạng thái hạn": st.column_config.TextColumn("Tiến độ", width="medium"),
+        },
+        hide_index=True
+    )
+else:
+    st.success("✅ Không có phiếu nào đang chờ khắc phục.")
+
+st.divider()
 
 # --- PIPELINE STATUS ---
 st.subheader("📊 Pipeline Status")

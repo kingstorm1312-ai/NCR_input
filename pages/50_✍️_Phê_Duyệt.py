@@ -480,8 +480,11 @@ else:
                             )
                             
                             if success:
-                                st.success(f"✅ {message} -> {get_status_display_name(next_status)}")
-                                st.balloons()
+                                st.cache_data.clear() # Force clear cache to load fresh Data
+                                st.session_state.flash_msg = {
+                                    'type': 'success',
+                                    'content': f"✅ {message} -> {get_status_display_name(next_status)}\n\nDữ liệu đang được cập nhật..."
+                                }
                                 st.rerun()
                             else:
                                 st.error(f"❌ {message}")
@@ -519,7 +522,11 @@ else:
                                 )
                                 
                                 if success:
-                                    st.warning(f"❌ {message} -> {get_status_display_name(reject_status)}")
+                                    st.cache_data.clear()
+                                    st.session_state.flash_msg = {
+                                        'type': 'warning',
+                                        'content': f"❌ {message} -> {get_status_display_name(reject_status)}\n\nDữ liệu đang được cập nhật..."
+                                    }
                                     st.rerun()
                                 else:
                                     st.error(f"❌ {message}")
