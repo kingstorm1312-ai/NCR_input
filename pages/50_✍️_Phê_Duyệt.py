@@ -370,7 +370,6 @@ else:
                     f"Chọn {target_label} cụ thể (Tùy chọn):",
                     [""] + assignees,
                     key=f"dir_assign_{so_phieu}",
-                    key=f"dir_assign_{so_phieu}",
                     help=f"Chọn nếu muốn chỉ định đích danh {target_label} nhân xử lý"
                 )
             
