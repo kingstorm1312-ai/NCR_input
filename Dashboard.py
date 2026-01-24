@@ -94,9 +94,7 @@ def local_css():
 
 local_css()
 
-    local_css()
 
-# get_all_users moved to utils/ncr_helpers.py
 
 def get_base64_image(image_path):
     with open(image_path, "rb") as f:
