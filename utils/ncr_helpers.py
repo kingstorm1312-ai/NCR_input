@@ -302,6 +302,8 @@ def load_ncr_dataframe_v2():
 
 # --- HELPER FUNCTIONS ---
 def get_status_display_name(status):
+    if isinstance(status, list):
+        return " / ".join([get_status_display_name(s) for s in status])
     status = str(status).strip()
     names = {
         'draft': 'Nháp (Cần xử lý)',
@@ -312,6 +314,11 @@ def get_status_display_name(status):
         'cho_bgd_tan_phu': 'Chờ BGĐ Tân Phú',
         'hoan_thanh': 'Hoàn thành'
     }
+    # Dynamic handling for corrective action confirm
+    if status.startswith("xac_nhan_kp_"):
+         role_suffix = status.replace("xac_nhan_kp_", "")
+         return f"Xác nhận Khắc phục ({role_suffix.upper()})"
+         
     if 'tu_choi' in status:
         return f"Bị từ chối ({status})"
     return names.get(status, status)
