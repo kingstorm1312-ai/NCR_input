@@ -704,6 +704,59 @@ def accept_corrective_action(gc, so_phieu, approver_role):
     except Exception as e:
         return False, f"Lỗi hệ thống: {e}"
 
+def load_pending_corrective_actions(gc, role_name):
+    """
+    Loads tickets that are in 'khac_phuc_truong_bp' status AND were assigned by the current role.
+    """
+    try:
+        if not gc: return pd.DataFrame()
+        
+        # Load all data (cached)
+        df = load_ncr_dataframe_v2()
+        if df.empty: return pd.DataFrame()
+        
+        # Check if necessary columns exist
+        required_cols = ['trang_thai', 'kp_assigned_by', 'so_phieu', 'kp_deadline', 'kp_assigned_to']
+        for col in required_cols:
+            if col not in df.columns:
+                return pd.DataFrame() # Missing columns
+        
+        # Normalizing
+        df['status_norm'] = df['trang_thai'].astype(str).str.strip().str.lower()
+        df['by_norm'] = df['kp_assigned_by'].astype(str).str.strip().str.lower()
+        
+        # Filter Logic
+        role_norm = role_name.lower()
+        
+        mask_status = df['status_norm'] == 'khac_phuc_truong_bp'
+        mask_owner = df['by_norm'] == role_norm
+        
+        df_pending = df[mask_status & mask_owner].copy()
+        
+        if df_pending.empty:
+            return pd.DataFrame()
+            
+        # Group by Ticket
+        group_cols = {
+            'ngay_lap': 'first',
+            'kp_assigned_to': 'first',
+            'kp_deadline': 'first',
+            'kp_message': 'first',
+            'bo_phan': 'first',
+            'sl_loi': 'sum'
+        }
+        # Add dynamic cols if exist
+        for c in ['hop_dong', 'ten_sp']:
+            if c in df_pending.columns:
+                group_cols[c] = 'first'
+                
+        df_grouped = df_pending.groupby('so_phieu', as_index=False).agg(group_cols)
+        
+        return df_grouped
+        
+    except Exception as e:
+        return pd.DataFrame()
+
 @st.cache_data(ttl=600)
 def get_all_users():
     """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""

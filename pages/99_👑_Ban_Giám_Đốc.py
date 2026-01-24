@@ -14,8 +14,6 @@ from utils.ncr_helpers import (
     get_status_display_name,
     get_status_color,
     COLUMN_MAPPING,
-    get_status_color,
-    COLUMN_MAPPING,
     load_ncr_dataframe_v2,
     load_pending_corrective_actions
 )
