@@ -82,8 +82,8 @@ def load_master_data():
         
         # Lấy danh sách Lỗi (Lọc theo nhóm 'may' hoặc 'chung')
         if 'nhom_loi' in df_config.columns:
-            target_groups = ['may', 'chung']
-            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
+            target_groups = ['may']
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.strip().str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
         else:
             list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
 

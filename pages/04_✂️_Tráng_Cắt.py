@@ -76,8 +76,9 @@ def load_master_data():
         list_nha_cung_cap = df_config['nha_cung_cap'].dropna().unique().tolist() if 'nha_cung_cap' in df_config.columns else []
         
         if 'nhom_loi' in df_config.columns:
-            target_groups = ['trang_cat', 'chung']
-            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
+        if 'nhom_loi' in df_config.columns:
+            target_groups = ['trang_cat']
+            list_loi = sorted(df_config[df_config['nhom_loi'].astype(str).str.strip().str.lower().isin(target_groups)]['ten_loi'].dropna().unique().tolist())
         else:
             list_loi = sorted(df_config['ten_loi'].dropna().unique().tolist())
 
