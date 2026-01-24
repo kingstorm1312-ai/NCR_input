@@ -384,33 +384,33 @@ with tab1:
                                     all_ticket_rows = [r['sheet_row'] for r in error_rows]
                                     for r_idx in all_ticket_rows:
                                          if r_idx not in deleted_rows: # Only update non-deleted rows
+                                            # Fix: Use rowcol_to_a1 for columns > Z
+                                            cell_range = gspread.utils.rowcol_to_a1(r_idx, col_hinh_anh_idx + 1)
                                             updates.append({
-                                                'range': f'{chr(65 + col_hinh_anh_idx)}{r_idx}',
+                                                'range': cell_range,
                                                 'values': [[final_images_str]]
                                             })
 
                                     # 2. Update Quantities
                                     for upd in updated_errors:
+                                        cell_range = gspread.utils.rowcol_to_a1(upd["sheet_row"], col_sl_loi_idx + 1)
                                         updates.append({
-                                            'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
+                                            'range': cell_range,
                                             'values': [[str(upd['sl_loi'])]]
                                         })
                                     
                                     # 3. Delete Rows
-                                    # Using 'batch_clear' or setting to empty string might be better, 
-                                    # but for consistency with previous code, we'll zero-out quantity or handle specially.
-                                    # Previous code just set quantity to 0. A better approach for 'Delete' is to clearer.
-                                    # However, to be safe and simple: Set 'sl_loi' to 0 mark as deleted logic elsewhere or keep user Request simple.
-                                    # User standard: "Delete rows". 
-                                    # Let's set 'so_phieu_ncr' to "DELETED" or empty to effectively remove it from query
                                     for del_row in deleted_rows:
+                                        # Mark as deleted
+                                        range_so_phieu = gspread.utils.rowcol_to_a1(del_row, col_so_phieu_idx + 1)
                                         updates.append({
-                                            'range': f'{chr(65 + col_so_phieu_idx)}{del_row}',
+                                            'range': range_so_phieu,
                                             'values': [[f"{so_phieu}_DELETED"]] 
                                         })
                                         # Also zero out quantity
+                                        range_sl = gspread.utils.rowcol_to_a1(del_row, col_sl_loi_idx + 1)
                                         updates.append({
-                                            'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
+                                            'range': range_sl,
                                             'values': [['0']]
                                         })
                                     
