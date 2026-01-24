@@ -4,6 +4,7 @@ import gspread
 import json
 import sys
 import os
+import re
 from datetime import datetime
 
 # Add utils to path
@@ -159,9 +160,9 @@ else:
                 st.markdown("#### 📷 Hình ảnh minh họa")
                 hinh_anh_val = row.get('hinh_anh', "")
                 if pd.notna(hinh_anh_val) and str(hinh_anh_val).strip():
-                    img_list = str(hinh_anh_val).split('\n')
-                    # Filter out empty or 'nan' strings
-                    img_list = [url.strip() for url in img_list if url.strip() and url.lower() != 'nan']
+                    # Robust URL extraction using Regex
+                    # Finds http/https links, ignores surrounding text/newlines
+                    img_list = re.findall(r'(https?://[^\s]+)', str(hinh_anh_val))
                     
                     if img_list:
                         # Display images in a grid
