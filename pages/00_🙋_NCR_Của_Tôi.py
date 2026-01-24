@@ -8,6 +8,7 @@ from datetime import datetime
 
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.ncr_helpers import (
     load_ncr_data_with_grouping,
     get_status_display_name,
     get_status_color,
