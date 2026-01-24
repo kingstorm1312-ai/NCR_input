@@ -243,6 +243,12 @@ with tab1:
                             hide_index=True
                         )
                 
+                
+                # --- STATE MANAGEMENT ---
+                edit_key = f"edit_mode_{so_phieu}"
+                if edit_key not in st.session_state:
+                    st.session_state[edit_key] = False
+
                 # --- ACTIONS ---
                 col_edit_btn, col_resubmit_btn, col_cancel_btn = st.columns([1, 1, 1])
                 
