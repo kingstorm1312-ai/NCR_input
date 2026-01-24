@@ -246,7 +246,7 @@ with tab1:
                 # --- ACTIONS ---
                 col_edit_btn, col_resubmit_btn, col_cancel_btn = st.columns([1, 1, 1])
                 
-                with col_edit_btn:
+                with col_edit_btn: # Action: Edit
                     # Toggle Edit Mode Button
                     btn_label = "✏️ Chỉnh sửa" if not st.session_state[edit_key] else "❌ Hủy sửa"
                     if st.button(btn_label, key=f"edit_btn_{so_phieu}", use_container_width=True):
