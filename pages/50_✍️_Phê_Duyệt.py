@@ -315,6 +315,35 @@ else:
             # Logic for NEXT STATUS based on Flow
             next_status = STATUS_FLOW.get(trang_thai, 'hoan_thanh')
             
+            # --- START QC MANAGER FLEXIBLE ROUTING ---
+            director_assignee = None
+            if selected_role == 'qc_manager':
+                st.write("---")
+                st.markdown("### 🔀 Điều hướng phê duyệt")
+                routing_option = st.radio(
+                    "Chọn cấp phê duyệt tiếp theo:",
+                    ["Chuyển Giám đốc (Director)", "Chuyển BGD Tân Phú"],
+                    key=f"routing_{so_phieu}",
+                    horizontal=True
+                )
+                
+                if routing_option == "Chuyển Giám đốc (Director)":
+                    next_status = "cho_giam_doc"
+                    # Fetch Directors
+                    from utils.ncr_helpers import get_all_users
+                    all_users = get_all_users()
+                    directors = [u['full_name'] for u in all_users if str(u['role']).lower() == 'director']
+                    
+                    director_assignee = st.selectbox(
+                        "Chọn Giám đốc cụ thể (Tùy chọn):",
+                        [""] + directors,
+                        key=f"dir_assign_{so_phieu}",
+                        help="Chọn nếu muốn chỉ định đích danh Giám đốc xử lý"
+                    )
+                else:
+                    next_status = "cho_bgd_tan_phu"
+            # --- END QC MANAGER FLEXIBLE ROUTING ---
+
             # Logic for REJECT STATUS based on Escalation
             reject_status = REJECT_ESCALATION.get(trang_thai, 'draft')
             
@@ -344,9 +373,11 @@ else:
             if can_assign_kp:
                 with st.expander("🛠️ Giao hành động khắc phục (Corrective Action)", expanded=False):
                     assign_to = 'truong_bp'
+                    # Default Labels
+                    assign_labels = {'truong_bp': 'Trưởng bộ phận', 'qc_manager': 'QC Manager', 'cross_dept': 'Bộ phận khác'}
+                    
                     if selected_role == 'director':
                         assign_options = ['truong_bp', 'qc_manager']
-                        assign_labels = {'truong_bp': 'Trưởng bộ phận', 'qc_manager': 'QC Manager'}
                         assign_to = st.radio(
                             "Giao cho:", 
                             assign_options, 
@@ -355,6 +386,18 @@ else:
                             key=f"assign_to_{so_phieu}"
                         )
                     
+                    # Cross-Dept Logic (Director already has flexibility, adding for QC Manager too if needed or just generic)
+                    # For QC Manager, default is truong_bp. Let's add Cross-Dept option.
+                    target_department = None
+                    is_cross_dept = False
+                    
+                    if selected_role == 'qc_manager':
+                         is_cross_dept = st.checkbox("Giao bộ phận khác / Cross-Department?", key=f"is_cross_{so_phieu}")
+                    
+                    if is_cross_dept:
+                        dept_list = ["May", "In", "FI", "Tráng Cắt", "Kho", "QC", "Bảo Trì", "Nhân Sự", "Kế Hoạch", "Purchase", "Khác"]
+                        target_department = st.selectbox("Chọn bộ phận chịu trách nhiệm:", dept_list, key=f"target_dept_{so_phieu}")
+
                     kp_msg = st.text_area("Yêu cầu cụ thể:", key=f"kp_msg_{so_phieu}", placeholder="Nhập yêu cầu khắc phục...")
                     kp_deadline = st.date_input("Hạn chót:", key=f"kp_dl_{so_phieu}")
                     
@@ -365,7 +408,7 @@ else:
                             with st.spinner("Đang giao task..."):
                                 from utils.ncr_helpers import assign_corrective_action
                                 success, message = assign_corrective_action(
-                                    gc, so_phieu, selected_role, assign_to, kp_msg, kp_deadline
+                                    gc, so_phieu, selected_role, assign_to, kp_msg, kp_deadline, target_department
                                 )
                                 if success:
                                     st.success(message)
@@ -402,7 +445,8 @@ else:
                                 approver_role=selected_role,
                                 solution=qc_solution,
                                 bp_solution=bp_solution,
-                                director_solution=director_solution
+                                director_solution=director_solution,
+                                assignee=director_assignee
                             )
                             
                             if success:

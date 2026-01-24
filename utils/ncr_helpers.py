@@ -163,7 +163,30 @@ def load_ncr_data_with_grouping(gc=None, filter_status=None, filter_department=N
                     return ''
                 
                 df_filtered['bo_phan'] = df_filtered['so_phieu'].apply(extract_dept)
-                df_filtered = df_filtered[df_filtered['bo_phan'] == filter_department]
+                
+                # Normalize filter_department for comparison
+                filter_dept_norm = str(filter_department).lower().strip()
+                
+                # Condition 1: Origin Department (Standard)
+                condition_origin = df_filtered['bo_phan'] == filter_dept_norm
+                
+                # Condition 2: Cross-Department Assignment
+                # Logic: Status starts with 'khac_phuc_' AND kp_message contains [BP: Department]
+                condition_cross = pd.Series([False] * len(df_filtered), index=df_filtered.index)
+                
+                if 'kp_message' in df_filtered.columns and 'trang_thai' in df_filtered.columns:
+                    tag = f"[bp: {filter_dept_norm}]"
+                    
+                    msgs = df_filtered['kp_message'].fillna('').astype(str).str.lower()
+                    statuses = df_filtered['trang_thai'].fillna('').astype(str).str.lower()
+                    
+                    is_khac_phuc = statuses.str.startswith('khac_phuc_')
+                    has_tag = msgs.str.contains(tag, regex=False)
+                    
+                    condition_cross = is_khac_phuc & has_tag
+                
+                # Combine Filters
+                df_filtered = df_filtered[condition_origin | condition_cross]
         
         if df_filtered.empty:
             return df_original, pd.DataFrame()
@@ -439,7 +462,7 @@ def smart_append_ncr(ws, data_dict):
         return False
 
 
-def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None, bp_solution=None, director_solution=None):
+def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, solution=None, reject_reason=None, bp_solution=None, director_solution=None, assignee=None):
     """
     Cập nhật trạng thái và thông tin phê duyệt cho tất cả các dòng của một số phiếu.
     
@@ -447,6 +470,7 @@ def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, so
         solution: Hướng giải quyết của QC Manager (y_kien_qc)
         bp_solution: Biện pháp xử lý tức thời của Trưởng BP (bien_phap_truong_bp)
         director_solution: Hướng xử lý của Giám đốc (huong_xu_ly_giam_doc)
+        assignee: Tên người được chỉ định (nếu có), dùng cho việc Director cụ thể
     """
     try:
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
@@ -487,7 +511,10 @@ def update_ncr_status(gc, so_phieu, new_status, approver_name, approver_role, so
                 
                 # Hướng giải quyết của QC Manager
                 if solution and idx_qc_solution != -1:
-                    range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_qc_solution + 1), 'values': [[solution]]})
+                    full_solution = solution
+                    if assignee:
+                        full_solution = f"{full_solution}\n[Chỉ định: {assignee}]"
+                    range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_qc_solution + 1), 'values': [[full_solution]]})
                 
                 # Hướng xử lý của Giám đốc
                 if director_solution and idx_director_solution != -1:
@@ -541,7 +568,7 @@ def restart_ncr(gc, so_phieu, target_status, user_name, note=""):
         return False, "Không tìm thấy phiếu"
     except Exception as e:
         return False, f"Lỗi: {str(e)}"
-def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline):
+def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline, target_department=None):
     """
     Giao hành động khắc phục cho cấp dưới.
     """
@@ -571,10 +598,15 @@ def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, mes
             if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_status + 1), 'values': [[new_status]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_update + 1), 'values': [[now]]})
+                
+                final_message = message
+                if target_department:
+                    final_message = f"[BP: {target_department}] {final_message}"
+
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_status + 1), 'values': [['active']]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_by + 1), 'values': [[assigned_by_role]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_to + 1), 'values': [[assign_to_role]]})
-                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_msg + 1), 'values': [[message]]})
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_msg + 1), 'values': [[final_message]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_dl + 1), 'values': [[str(deadline)]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_res + 1), 'values': [['']]}) # Reset response
         
