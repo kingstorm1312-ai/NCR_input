@@ -58,6 +58,20 @@ if user_role not in allowed_roles:
 
 # --- GOOGLE SHEETS CONNECTION ---
 
+# --- FLASH MESSAGE CHECK (Must be early) ---
+if 'flash_msg' in st.session_state and st.session_state.flash_msg:
+    msg_type = st.session_state.flash_msg.get('type', 'success')
+    content = st.session_state.flash_msg.get('content', '')
+    if msg_type == 'success':
+        st.success(content)
+        st.balloons()
+    elif msg_type == 'error':
+        st.error(content)
+    elif msg_type == 'warning':
+        st.warning(content)
+    # Clear after showing
+    st.session_state.flash_msg = None
+
 gc = init_gspread()
 
 # --- HEADER ---
