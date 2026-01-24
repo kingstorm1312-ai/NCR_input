@@ -726,10 +726,13 @@ def load_pending_corrective_actions(gc, role_name):
         df['by_norm'] = df['kp_assigned_by'].astype(str).str.strip().str.lower()
         
         # Filter Logic
-        role_norm = role_name.lower()
+        if role_name == 'all':
+            mask_owner = pd.Series([True] * len(df)) # Select All
+        else:
+            role_norm = role_name.lower()
+            mask_owner = df['by_norm'] == role_norm
         
         mask_status = df['status_norm'] == 'khac_phuc_truong_bp'
-        mask_owner = df['by_norm'] == role_norm
         
         df_pending = df[mask_status & mask_owner].copy()
         
@@ -742,6 +745,7 @@ def load_pending_corrective_actions(gc, role_name):
             'kp_assigned_to': 'first',
             'kp_deadline': 'first',
             'kp_message': 'first',
+            'kp_assigned_by': 'first',
             'bo_phan': 'first',
             'sl_loi': 'sum'
         }

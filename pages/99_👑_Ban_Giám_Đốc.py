@@ -121,7 +121,13 @@ else:
 
 # --- TRACKING: CORRECTIVE ACTIONS (NEW) ---
 st.subheader("🛠️ Theo dõi Khắc phục")
-df_tracking = load_pending_corrective_actions(gc, 'director')
+
+col_track_1, col_track_2 = st.columns([1, 4])
+with col_track_1:
+    track_mode = st.radio("Chế độ xem:", ["Việc tôi giao", "Toàn bộ việc đang chờ"], label_visibility="collapsed")
+
+role_filter = 'director' if track_mode == "Việc tôi giao" else 'all'
+df_tracking = load_pending_corrective_actions(gc, role_filter)
 
 if not df_tracking.empty:
     st.info(f"⚡ Có **{len(df_tracking)}** phiếu đang chờ bộ phận khác xử lý.")
@@ -148,6 +154,7 @@ if not df_tracking.empty:
             
         track_display.append({
             "Mã phiếu": row['so_phieu'],
+            "Người giao": row.get('kp_assigned_by', '').upper(),
             "Bộ phận gốc": row.get('bo_phan', ''),
             "Người nhận": row.get('kp_assigned_to', '').upper(),
             "Yêu cầu": row.get('kp_message', ''),
