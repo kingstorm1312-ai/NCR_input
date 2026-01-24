@@ -247,9 +247,11 @@ with tab1:
                 col_edit_btn, col_resubmit_btn, col_cancel_btn = st.columns([1, 1, 1])
                 
                 with col_edit_btn:
-                    if st.button("✏️ Chỉnh sửa", key=f"edit_btn_{so_phieu}", use_container_width=True):
-                        # Logic chuyển trang sửa (chưa có, tạm thời placeholder)
-                        st.info("Tính năng sửa chi tiết đang phát triển.")
+                    # Toggle Edit Mode Button
+                    btn_label = "✏️ Chỉnh sửa" if not st.session_state[edit_key] else "❌ Hủy sửa"
+                    if st.button(btn_label, key=f"edit_btn_{so_phieu}", use_container_width=True):
+                        st.session_state[edit_key] = not st.session_state[edit_key]
+                        st.rerun()
                 
                 with col_resubmit_btn:
                     if st.button("🚀 Gửi lại ngay", key=f"resubmit_{so_phieu}", type="primary", use_container_width=True):
@@ -284,17 +286,6 @@ with tab1:
                         if st.button("❌ Bỏ qua", key=f"ignore_cancel_{so_phieu}"):
                             st.session_state[f"show_cancel_confirm_{so_phieu}"] = False
                             st.rerun()
-                
-                # Toggle edit mode
-                col_edit, col_submit = st.columns(2)
-                with col_edit:
-                    if st.button(
-                        "✏️ SỬA PHIẾU" if not st.session_state[edit_key] else "❌ HỦY SỬA",
-                        key=f"toggle_edit_{so_phieu}",
-                        use_container_width=True
-                    ):
-                        st.session_state[edit_key] = not st.session_state[edit_key]
-                        st.rerun()
                 
                 # Edit form (when edit mode is ON)
                 if st.session_state[edit_key]:
