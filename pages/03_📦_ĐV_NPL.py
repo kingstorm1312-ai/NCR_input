@@ -105,9 +105,11 @@ st.title(f"📦 {PAGE_TITLE}")
 with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
+    # R1
     c1, c2 = st.columns(2)
     with c1:
-        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
+        st.text_input("Người lập", value=user_info["name"], disabled=True)
+    with c2:
         dept_prefix = "DVNPL"
         current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
@@ -116,19 +118,38 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
             so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
             st.caption(f"👉 Mã phiếu: **{so_phieu}**")
 
-    with c2:
+    # R2
+    r2_c1, r2_c2 = st.columns(2)
+    with r2_c1:
+        so_lan = st.number_input("Số lần", min_value=1, step=1, disabled=disable_hd)
+    with r2_c2:
+        ten_sp = st.text_input("Tên SP", disabled=disable_hd)
+
+    # R3
+    r3_c1, r3_c2 = st.columns(2)
+    with r3_c1:
         raw_ma_vt = st.text_input("Mã VT", disabled=disable_hd)
         ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else ""
+    with r3_c2:
         raw_hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
         hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
 
-    c3, c4 = st.columns(2)
-    with c3:
-         sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
-         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
-    with c4:
-         nguon_goc = st.selectbox("Nguồn gốc (NCC)", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
-         sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
+    # R4
+    r4_c1, r4_c2 = st.columns(2)
+    with r4_c1:
+        sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
+    with r4_c2:
+        sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
+    
+    # R5
+    r5_c1, r5_c2 = st.columns(2)
+    with r5_c1:
+        don_vi_tinh = st.selectbox("Đơn vị tính", LIST_DON_VI_TINH, disabled=disable_hd)
+    with r5_c2:
+        nguon_goc = st.selectbox("Nguồn gốc (NCC)", [""] + LIST_NHA_CUNG_CAP, disabled=disable_hd)
+
+    # Sequence
+    mo_ta_loi = st.text_area("Mô tả lỗi / Ghi chú", disabled=disable_hd, height=60)
     
     phan_loai = st.selectbox("Phân loại", [
         "", "BXD", "Chỉ", "Cuộn foam", "Cuộn lưới", "Cuộn VKD", "Dây đai", "Dây dù", 
@@ -137,7 +158,6 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         "Hộp", "Manh", "Nắp", "Nẹp", "Nhựa", "Nút", "Ống nhựa", "Tấm lót", 
         "Tấm nhựa", "Tem", "Thùng", "Túi poly", "Túi pp"
     ], disabled=disable_hd)
-    mo_ta_loi = st.text_area("Ghi chú / Mô tả thêm", disabled=disable_hd, height=60)
     
     st.markdown("**📷 Hình ảnh:**")
     uploaded_images = st.file_uploader(
@@ -152,7 +172,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         st.session_state.header_locked = lock
         st.rerun()
 
-# === PHẦF 2: CHI TIẾT LỖI ===
+# === PHẦN 2: CHI TIẾT LỖI ===
 st.divider()
 st.subheader("Chi tiết lỗi")
 
@@ -163,32 +183,24 @@ final_so_luong = 1
 default_muc_do = "Nhẹ"
 
 with tab_chon:
-    c_sel1, c_sel2, c_sel3 = st.columns([2, 1, 1])
+    c_sel1, c_sel2 = st.columns([2, 1])
     with c_sel1:
         selected_loi = st.selectbox("Tên lỗi", ["-- Chọn --"] + LIST_LOI)
     with c_sel2:
-        sl_chon = st.number_input("SL", min_value=1.0, step=0.1, format="%.1f", key="sl_existing")
-    with c_sel3:
-        dvt_chon = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="dvt_existing")
+        sl_chon = st.number_input("SL Lỗi", min_value=1.0, step=0.1, format="%.1f", key="sl_existing")
     
     if selected_loi != "-- Chọn --":
         final_ten_loi = selected_loi
         final_so_luong = sl_chon
-        final_dvt = dvt_chon
         default_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
 
 with tab_moi:
     new_loi = st.text_input("Tên lỗi mới")
-    c_new1, c_new2 = st.columns([1, 1])
-    with c_new1:
-        sl_new = st.number_input("SL", min_value=1.0, step=0.1, format="%.1f", key="sl_new")
-    with c_new2:
-        dvt_new = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="dvt_new")
+    sl_new = st.number_input("SL Lỗi (Mới)", min_value=1.0, step=0.1, format="%.1f", key="sl_new")
         
     if new_loi:
         final_ten_loi = new_loi
         final_so_luong = sl_new
-        final_dvt = dvt_new
 
 vi_tri = st.selectbox("Vị trí lỗi", LIST_VI_TRI if LIST_VI_TRI else [""])
 if st.checkbox("Vị trí khác?"):
@@ -208,7 +220,7 @@ if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
             "vi_tri": vi_tri,
             "muc_do": final_md,
             "sl_loi": final_so_luong,
-            "don_vi_tinh": final_dvt
+            # DVT is now header
         })
         st.toast(f"Đã thêm: {final_ten_loi}")
 
@@ -239,6 +251,7 @@ if st.session_state.buffer_errors:
                     data_to_save = {
                         'ngay_lap': now,
                         'so_phieu_ncr': so_phieu,
+                        'so_lan': so_lan, # NEW
                         'hop_dong': hop_dong,
                         'ma_vat_tu': ma_vt,
                         'ten_sp': ten_sp,
@@ -256,7 +269,7 @@ if st.session_state.buffer_errors:
                         'trang_thai': 'cho_truong_ca',
                         'thoi_gian_cap_nhat': now,
                         'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': err.get('don_vi_tinh', '')
+                        'don_vi_tinh': don_vi_tinh # From header
                     }
                     if smart_append_ncr(ws, data_to_save):
                         success_count += 1

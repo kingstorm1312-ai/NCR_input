@@ -206,6 +206,7 @@ else:
                 with ca1:
                     st.write(f"📁 **Hợp đồng:** {row.get('hop_dong', 'N/A')}")
                     st.write(f"🔢 **Mã vật tư:** {row.get('ma_vat_tu', 'N/A')}")
+                    st.write(f"🔄 **Số lần:** {row.get('so_lan', 1)}")
                     st.write(f"📦 **Tên sản phẩm:** {row.get('ten_sp', 'N/A')}")
                     st.write(f"🏷️ **Phân loại:** {row.get('phan_loai', 'N/A')}")
                 with ca2:

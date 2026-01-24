@@ -89,7 +89,8 @@ COLUMN_MAPPING = {
     'kp_assigned_to': 'kp_assigned_to',
     'kp_message': 'kp_message',
     'kp_deadline': 'kp_deadline',
-    'kp_response': 'kp_response'
+    'kp_response': 'kp_response',
+    'so_lan': 'so_lan'
 }
 
 ROLE_TO_APPROVER_COLUMN = {

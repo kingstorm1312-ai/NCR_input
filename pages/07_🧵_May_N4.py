@@ -105,9 +105,11 @@ st.title(f"🧵 {PAGE_TITLE}")
 with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
+    # Hàng 1: User | Suffix
     c1, c2 = st.columns(2)
     with c1:
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
+    with c2:
         dept_prefix = "X4"
         current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
@@ -116,23 +118,41 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
             so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
             st.caption(f"👉 Mã phiếu: **{so_phieu}**")
 
-    with c2:
+    # Hàng 2: Số lần | Tên SP
+    r2_c1, r2_c2 = st.columns(2)
+    with r2_c1:
+        so_lan = st.number_input("Số lần", min_value=1, step=1, disabled=disable_hd)
+    with r2_c2:
+        ten_sp = st.text_input("Tên SP", disabled=disable_hd)
+
+    # Hàng 3: Mã VT | Hợp đồng
+    r3_c1, r3_c2 = st.columns(2)
+    with r3_c1:
         raw_ma_vt = st.text_input("Mã VT", disabled=disable_hd)
         ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else ""
+    with r3_c2:
         raw_hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
         hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
 
-    c3, c4 = st.columns(2)
-    with c3:
+    # Hàng 4: SL Kiểm | SL Lô
+    r4_c1, r4_c2 = st.columns(2)
+    with r4_c1:
          sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
-         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
-    with c4:
-         nguon_goc = st.selectbox("Chuyền / Tổ May", [""] + LIST_NOI_MAY, disabled=disable_hd)
+    with r4_c2:
          sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
     
+    # Hàng 5: ĐVT | Nguồn gốc
+    r5_c1, r5_c2 = st.columns(2)
+    with r5_c1:
+        don_vi_tinh = st.selectbox("Đơn vị tính", LIST_DON_VI_TINH, disabled=disable_hd)
+    with r5_c2:
+         nguon_goc = st.selectbox("Chuyền / Tổ May", [""] + LIST_NOI_MAY, disabled=disable_hd)
+
+    # Các trường khác
     phan_loai = st.selectbox("Phân loại", ["", "Túi TP", "NPL"], disabled=disable_hd)
     mo_ta_loi = st.text_area("Ghi chú / Mô tả thêm", disabled=disable_hd, height=60)
     
+    # Upload ảnh (Cloudinary)
     st.markdown("**📷 Hình ảnh:**")
     uploaded_images = st.file_uploader(
         "Chọn ảnh minh họa", 
@@ -141,6 +161,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         disabled=disable_hd
     )
 
+    # Nút khóa
     lock = st.checkbox("🔒 Khóa thông tin", value=st.session_state.header_locked)
     if lock != st.session_state.header_locked:
         st.session_state.header_locked = lock
@@ -233,6 +254,7 @@ if st.session_state.buffer_errors:
                     data_to_save = {
                         'ngay_lap': now,
                         'so_phieu_ncr': so_phieu,
+                        'so_lan': so_lan,
                         'hop_dong': hop_dong,
                         'ma_vat_tu': ma_vt,
                         'ten_sp': ten_sp,
@@ -250,7 +272,7 @@ if st.session_state.buffer_errors:
                         'trang_thai': 'cho_truong_ca',
                         'thoi_gian_cap_nhat': now,
                         'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': err.get('don_vi_tinh', '')
+                        'don_vi_tinh': don_vi_tinh
                     }
                     if smart_append_ncr(ws, data_to_save):
                         success_count += 1
