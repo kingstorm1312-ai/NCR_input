@@ -36,6 +36,9 @@ if user_role not in ['director', 'admin']:
         st.switch_page("Dashboard.py")
     st.stop()
 
+# --- INIT GSPREAD ---
+gc = init_gspread()
+
 # --- LOAD ALL NCR DATA ---
 # Using shared loader from utils
 def load_all_ncr_data():
