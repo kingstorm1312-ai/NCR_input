@@ -458,9 +458,9 @@ else:
                         # Filter Logic: Role = 'truong_bp' AND Department matches
                         dept_key = str(target_department).lower().strip()
                         def match_dept(u_dept, target):
-                            u = str(u_dept).lower().strip()
-                            # Loose matching for robustness (e.g. 'May A2' in 'Xuong May A2')
-                            return target in u or u in target 
+                            u = str(u_dept).lower().strip().replace('_', ' ')
+                            t = str(target).lower().strip().replace('_', ' ')
+                            return t == u or t in u or u in t 
                             
                         potential_assignees = [
                             u['full_name'] for u in all_users 
