@@ -274,13 +274,16 @@ with tab1:
                         all_data = ws.get_all_values()
                         headers = all_data[0]
                         
-                        from utils.ncr_helpers import COLUMN_MAPPING
+                        from utils.ncr_helpers import COLUMN_MAPPING, upload_images_to_cloud
                         col_so_phieu_idx = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
                         col_sl_loi_idx = headers.index(COLUMN_MAPPING.get('sl_loi', 'so_luong_loi'))
                         col_ten_loi_idx = headers.index(COLUMN_MAPPING.get('ten_loi', 'ten_loi'))
+                        col_hinh_anh_idx = headers.index(COLUMN_MAPPING.get('hinh_anh', 'hinh_anh'))
                         
                         # Find rows for this ticket
                         error_rows = []
+                        current_images_str = ""
+                        
                         for idx, row in enumerate(all_data[1:], start=2):
                             if row[col_so_phieu_idx] == so_phieu:
                                 error_rows.append({
@@ -288,9 +291,12 @@ with tab1:
                                     'ten_loi': row[col_ten_loi_idx],
                                     'sl_loi': row[col_sl_loi_idx]
                                 })
+                                # Get images from the first row found (assuming all rows of a ticket share same images)
+                                if not current_images_str:
+                                    current_images_str = row[col_hinh_anh_idx]
                         
-                        # Edit existing errors
-                        st.markdown("**Sửa lỗi hiện có:**")
+                        # --- 1. EDIT ERRORS ---
+                        st.markdown("**1. Sửa lỗi hiện có:**")
                         updated_errors = []
                         deleted_rows = []
                         
@@ -318,8 +324,40 @@ with tab1:
                                     'sl_loi': new_qty
                                 })
                         
-                        # Save changes button
+                        # --- 2. EDIT IMAGES ---
                         st.write("")
+                        st.markdown("**2. Chỉnh sửa hình ảnh:**")
+                        
+                        # Parse existing images
+                        current_images = []
+                        if current_images_str:
+                            current_images = [url.strip() for url in current_images_str.split('\n') if url.strip()]
+                        
+                        # Display existing images for deletion
+                        images_to_keep = []
+                        if current_images:
+                            st.caption("Ảnh hiện tại (Chọn để xóa):")
+                            cols_img = st.columns(3)
+                            for i, img_url in enumerate(current_images):
+                                with cols_img[i % 3]:
+                                    st.image(img_url, use_container_width=True)
+                                    # Checkbox to mark for deletion (Default: False = Keep)
+                                    if not st.checkbox(f"Xóa ảnh {i+1}", key=f"del_img_{so_phieu}_{i}"):
+                                        images_to_keep.append(img_url)
+                        else:
+                            st.info("Chưa có hình ảnh nào.")
+                            
+                        # Add new images
+                        st.caption("Thêm ảnh mới:")
+                        new_images_files = st.file_uploader(
+                            "Tải lên ảnh bổ sung",
+                            type=['png', 'jpg', 'jpeg'],
+                            accept_multiple_files=True,
+                            key=f"add_img_{so_phieu}"
+                        )
+                        
+                        # --- SAVE BUTTON ---
+                        st.write("---")
                         if st.button(
                             "💾 LƯU THAY ĐỔI",
                             key=f"save_edit_{so_phieu}",
@@ -327,30 +365,62 @@ with tab1:
                             use_container_width=True
                         ):
                             try:
-                                updates = []
-                                
-                                # Update quantities
-                                for upd in updated_errors:
-                                    updates.append({
-                                        'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
-                                        'values': [[str(upd['sl_loi'])]]
-                                    })
-                                
-                                # Delete rows (set all columns to empty for now, or delete entirely)
-                                # For simplicity, we'll update sl_loi to 0 to mark as deleted
-                                for del_row in deleted_rows:
-                                    updates.append({
-                                        'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
-                                        'values': [['0']]
-                                    })
-                                
-                                if updates:
-                                    ws.batch_update(updates)
-                                    st.success("✅ Đã lưu thay đổi!")
-                                    st.session_state[edit_key] = False
-                                    st.rerun()
-                                else:
-                                    st.info("Không có thay đổi nào")
+                                with st.spinner("Đang lưu thay đổi..."):
+                                    updates = []
+                                    
+                                    # 1. Handle Images
+                                    final_image_list = images_to_keep.copy()
+                                    
+                                    # Upload new images
+                                    if new_images_files:
+                                        new_urls_str = upload_images_to_cloud(new_images_files, so_phieu)
+                                        if new_urls_str:
+                                            final_image_list.extend(new_urls_str.split('\n'))
+                                    
+                                    final_images_str = "\n".join(final_image_list)
+                                    
+                                    # Update 'hinh_anh' column for ALL rows of this ticket
+                                    # (Since all rows share same header info)
+                                    all_ticket_rows = [r['sheet_row'] for r in error_rows]
+                                    for r_idx in all_ticket_rows:
+                                         if r_idx not in deleted_rows: # Only update non-deleted rows
+                                            updates.append({
+                                                'range': f'{chr(65 + col_hinh_anh_idx)}{r_idx}',
+                                                'values': [[final_images_str]]
+                                            })
+
+                                    # 2. Update Quantities
+                                    for upd in updated_errors:
+                                        updates.append({
+                                            'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
+                                            'values': [[str(upd['sl_loi'])]]
+                                        })
+                                    
+                                    # 3. Delete Rows
+                                    # Using 'batch_clear' or setting to empty string might be better, 
+                                    # but for consistency with previous code, we'll zero-out quantity or handle specially.
+                                    # Previous code just set quantity to 0. A better approach for 'Delete' is to clearer.
+                                    # However, to be safe and simple: Set 'sl_loi' to 0 mark as deleted logic elsewhere or keep user Request simple.
+                                    # User standard: "Delete rows". 
+                                    # Let's set 'so_phieu_ncr' to "DELETED" or empty to effectively remove it from query
+                                    for del_row in deleted_rows:
+                                        updates.append({
+                                            'range': f'{chr(65 + col_so_phieu_idx)}{del_row}',
+                                            'values': [[f"{so_phieu}_DELETED"]] 
+                                        })
+                                        # Also zero out quantity
+                                        updates.append({
+                                            'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
+                                            'values': [['0']]
+                                        })
+                                    
+                                    if updates:
+                                        ws.batch_update(updates)
+                                        st.success("✅ Đã lưu thay đổi!")
+                                        st.session_state[edit_key] = False
+                                        st.rerun()
+                                    else:
+                                        st.info("Không có thay đổi nào")
                                     
                             except Exception as e:
                                 st.error(f"Lỗi khi lưu: {str(e)}")
