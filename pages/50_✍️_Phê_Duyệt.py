@@ -221,7 +221,7 @@ else:
                 st.markdown("---")
                 
                 # --- TIMELINE ĐỀ XUẤT GIẢI PHÁP ---
-                st.markdown("#### 💡 Chuỗi đề xuất xử lý")
+                st.markdown("#### 💡 Chuỗi xử lý tức thời")
                 has_any_solution = False
                 
                 # Biện pháp Trưởng BP
