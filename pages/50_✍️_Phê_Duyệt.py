@@ -405,7 +405,8 @@ else:
                     
                     if is_cross_dept:
                         dept_list = [
-                            "May", "FI", "Tráng Cắt", 
+                            "May A2", "May P2", "May N4", "May I",
+                            "FI", "Tráng Cắt", 
                             "TP Đầu Vào", "DV Cuộn", "DV NPL", 
                             "In Xưởng D",
                             "Kho", "QC", "Bảo Trì", "Nhân Sự", "Kế Hoạch", "Purchase", "Khác"
