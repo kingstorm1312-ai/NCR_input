@@ -327,21 +327,30 @@ else:
                     horizontal=True
                 )
                 
+                
+                target_role_key = 'director'
+                target_label = "Giám đốc"
+                
                 if routing_option == "Chuyển Giám đốc (Director)":
                     next_status = "cho_giam_doc"
-                    # Fetch Directors
-                    from utils.ncr_helpers import get_all_users
-                    all_users = get_all_users()
-                    directors = [u['full_name'] for u in all_users if str(u['role']).lower() == 'director']
-                    
-                    director_assignee = st.selectbox(
-                        "Chọn Giám đốc cụ thể (Tùy chọn):",
-                        [""] + directors,
-                        key=f"dir_assign_{so_phieu}",
-                        help="Chọn nếu muốn chỉ định đích danh Giám đốc xử lý"
-                    )
+                    target_role_key = 'director'
+                    target_label = "Giám đốc"
                 else:
                     next_status = "cho_bgd_tan_phu"
+                    target_role_key = 'bgd_tan_phu'
+                    target_label = "BGD Tân Phú"
+
+                # Fetch Potential Assignees based on selected route
+                from utils.ncr_helpers import get_all_users
+                all_users = get_all_users()
+                assignees = [u['full_name'] for u in all_users if str(u['role']).lower() == target_role_key]
+                
+                director_assignee = st.selectbox(
+                    f"Chọn {target_label} cụ thể (Tùy chọn):",
+                    [""] + assignees,
+                    key=f"dir_assign_{so_phieu}",
+                    help=f"Chọn nếu muốn chỉ định đích danh {target_label} nhân xử lý"
+                )
             # --- END QC MANAGER FLEXIBLE ROUTING ---
 
             # Logic for REJECT STATUS based on Escalation
