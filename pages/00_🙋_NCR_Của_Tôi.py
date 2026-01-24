@@ -462,24 +462,7 @@ with tab1:
                     except Exception as e:
                         st.error(f"Lỗi khi load dữ liệu edit: {str(e)}")
                 
-                # Action button (only show when NOT in edit mode)
-                if not st.session_state[edit_key]:
-                    st.write("")
-                    if st.button(
-                        "🔄 GỬI LẠI ĐỂ PHÊ DUYỆT",
-                        key=f"resubmit_{so_phieu}",
-                        type="primary",
-                        use_container_width=True
-                    ):
-                        with st.spinner("Đang xử lý..."):
-                            success, message = resubmit_ncr(so_phieu)
-                            
-                            if success:
-                                st.success(f"✅ {message}")
-                                st.balloons()
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {message}")
+                # End of loop logic
 
 # --- TAB 2: PENDING APPROVAL ---
 with tab2:
