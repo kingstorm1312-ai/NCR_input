@@ -262,8 +262,21 @@ else:
     dept_code = user['department']
     has_dept_page = dept_code in DEPARTMENT_PAGES
     
-    # --- VIEW 1: QC MANAGER & DIRECTOR & ADMIN & BGD ---
-    if role in ['qc_manager', 'director', 'bgd_tan_phu', 'admin']:
+    # --- VIEW 1: DIRECTOR & BGD ---
+    if role in ['director', 'bgd_tan_phu']:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
+                st.switch_page("pages/50_✍️_Phê_Duyệt.py")
+        with c2:
+            if st.button("👑 Ban Giám Đốc", use_container_width=True):
+                st.switch_page("pages/99_👑_Ban_Giám_Đốc.py")
+        with c3:
+            if st.button("📊 Báo Cáo", use_container_width=True):
+                st.switch_page("pages/90_📊_Báo_Cáo.py")
+
+    # --- VIEW 2: QC MANAGER & ADMIN ---
+    elif role in ['qc_manager', 'admin']:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
