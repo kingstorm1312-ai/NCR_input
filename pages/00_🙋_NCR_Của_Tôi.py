@@ -130,6 +130,14 @@ def render_export_buttons(so_phieu, ticket_rows):
                         # Fix Path: Use relative path for Cloud compatibility
                         template_path = os.path.join(os.getcwd(), "Template", "Template BBK FI.docx")
                         
+                        # --- ENRICH CONTEXT ---
+                        # Map code keys back to sheet keys for template compatibility
+                        # e.g. 'sl_lo_hang' (in logic) -> 'so_luong_lo_hang' (in template)
+                        from utils.ncr_helpers import COLUMN_MAPPING
+                        for code_key, sheet_key in COLUMN_MAPPING.items():
+                            if code_key in ticket_info:
+                                ticket_info[sheet_key] = ticket_info[code_key]
+                        
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
                         
                         # Store in session state
@@ -182,6 +190,12 @@ def render_export_buttons(so_phieu, ticket_rows):
                         
                         # Fix Path: Use relative path
                         template_path = os.path.join(os.getcwd(), "Template", "Template NCR FI.docx")
+                        
+                        # --- ENRICH CONTEXT ---
+                        from utils.ncr_helpers import COLUMN_MAPPING
+                        for code_key, sheet_key in COLUMN_MAPPING.items():
+                            if code_key in ticket_info:
+                                ticket_info[sheet_key] = ticket_info[code_key]
                         
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
                         
