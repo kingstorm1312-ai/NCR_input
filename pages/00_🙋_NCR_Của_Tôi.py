@@ -109,8 +109,14 @@ def resubmit_ncr(so_phieu):
         return False, f"Lỗi: {str(e)}"
 
 # --- HELPER: RENDER EXPORT BUTTONS ---
-def render_export_buttons(so_phieu, ticket_rows):
-    """Hiển thị nút xuất PDF cho một phiếu"""
+def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
+    """
+    Hiển thị nút xuất PDF cho một phiếu.
+    Args:
+        so_phieu: Mã phiếu
+        ticket_rows: Dòng Grouped (df_draft...) dùng để lấy thông tin chung
+        df_raw: (Optional) DataFrame chứa Rows chi tiết (df_all) dùng để lấy list lỗi
+    """
     st.write("")
     st.markdown("##### 🖨️ Xuất báo cáo:")
     
@@ -125,7 +131,11 @@ def render_export_buttons(so_phieu, ticket_rows):
                     try:
                         from utils.export_helper import generate_ncr_pdf
                         ticket_info = ticket_rows.iloc[0].to_dict()
-                        df_errs = ticket_rows
+                        
+                        # Use Raw Data if available, else fallback to ticket_rows (Grouped)
+                        # NOTE: ticket_rows is grouped so it has only 1 row (summary). 
+                        # To list errors, we need RAW data.
+                        df_errs = df_raw if df_raw is not None else ticket_rows
                         
                         # Fix Path: Use relative path for Cloud compatibility
                         template_path = os.path.join(os.getcwd(), "Template", "Template BBK FI.docx")
@@ -186,7 +196,7 @@ def render_export_buttons(so_phieu, ticket_rows):
                     try:
                         from utils.export_helper import generate_ncr_pdf
                         ticket_info = ticket_rows.iloc[0].to_dict()
-                        df_errs = ticket_rows
+                        df_errs = df_raw if df_raw is not None else ticket_rows
                         
                         # Fix Path: Use relative path
                         template_path = os.path.join(os.getcwd(), "Template", "Template NCR FI.docx")
@@ -383,7 +393,9 @@ with tab1:
                         
                         
                         # --- EXPORT BUTTONS ---
-                        render_export_buttons(so_phieu, ticket_rows)
+                        # Pass raw rows for accurate error listing
+                        raw_rows = df_all[df_all['so_phieu'] == so_phieu]
+                        render_export_buttons(so_phieu, ticket_rows, raw_rows)
                 
                 
                 # --- STATE MANAGEMENT ---
@@ -668,8 +680,10 @@ with tab2:
                         )
                         
                         
+                        
                         # --- EXPORT BUTTONS ---
-                        render_export_buttons(so_phieu, ticket_rows)
+                        raw_rows = df_all[df_all['so_phieu'] == so_phieu]
+                        render_export_buttons(so_phieu, ticket_rows, raw_rows)
 
                 # --- EDIT FUNCTIONALITY (Only for 'cho_truong_ca') ---
                 if status == 'cho_truong_ca':
@@ -880,7 +894,8 @@ with tab3:
                         )
 
                         # --- EXPORT BUTTONS ---
-                        render_export_buttons(so_phieu, tk_rows)
+                        raw_rows = df_all[df_all['so_phieu'] == so_phieu]
+                        render_export_buttons(so_phieu, tk_rows, raw_rows)
                 
                 # Deadline warning
                 try:

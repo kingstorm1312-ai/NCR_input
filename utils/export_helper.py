@@ -113,8 +113,8 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
                     except:
                         qty = 0.0
                     
-                    # Lấy mức độ
-                    severity = str(row.get('muc_do', '')).strip().lower()
+                    # Lấy mức độ (ưu tiên key 'md_loi' do df đã rename)
+                    severity = str(row.get('md_loi') or row.get('muc_do') or '').strip().lower()
                     
                     if 'nặng' in severity or 'major' in severity:
                         sum_major += qty
@@ -143,7 +143,7 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
                     'vi_tri': row.get('vi_tri_loi', ''),
                     'sl': row.get('sl_loi', 0),
                     'dvt': row.get('don_vi_tinh', ''),
-                    'muc_do': row.get('muc_do', ''),
+                    'muc_do': row.get('md_loi') or row.get('muc_do', ''),
                     'ghi_chu': '' # Thêm nếu cần
                 }
                 list_errors.append(err_item)
