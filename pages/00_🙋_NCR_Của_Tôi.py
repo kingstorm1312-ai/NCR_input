@@ -320,7 +320,8 @@ with tab1:
                             hide_index=True
                         )
                         
-                        # --- EXPORT BUTTONS (DRAFT) ---
+                        
+                        # --- EXPORT BUTTONS ---
                         render_export_buttons(so_phieu, ticket_rows)
                 
                 
@@ -605,7 +606,8 @@ with tab2:
                             hide_index=True
                         )
                         
-                        # --- EXPORT BUTTONS (PENDING) ---
+                        
+                        # --- EXPORT BUTTONS ---
                         render_export_buttons(so_phieu, ticket_rows)
 
                 # --- EDIT FUNCTIONALITY (Only for 'cho_truong_ca') ---
@@ -816,7 +818,7 @@ with tab3:
                             hide_index=True
                         )
 
-                        # --- EXPORT BUTTONS (TASK) ---
+                        # --- EXPORT BUTTONS ---
                         render_export_buttons(so_phieu, tk_rows)
                 
                 # Deadline warning
