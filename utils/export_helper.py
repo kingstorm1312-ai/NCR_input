@@ -235,4 +235,4 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
             
     except Exception as e:
         print(f"Lỗi tạo file báo cáo: {e}")
-        return None, None
+        raise e # Re-raise to show in UI
