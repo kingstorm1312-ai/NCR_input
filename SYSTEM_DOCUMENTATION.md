@@ -60,3 +60,23 @@ Khi thực hiện query hoặc tạo báo cáo từ `NCR_DATA`:
 
 2. **Đếm số lượng phiếu:** Phải group by `so_phieu_ncr` trước khi đếm (vì 1 phiếu có nhiều dòng).
 3. **Hierarchy:** `bo_phan` (Bộ phận chính) -> Prefix mã phiếu (Khâu/Chuyền chi tiết).
+
+## 6. User Management System
+
+### A. Đăng ký & Tài khoản
+
+- **Status (Trạng thái):**
+  - `active`: Tài khoản đã được duyệt, có thể đăng nhập và sử dụng hệ thống.
+  - `pending`: Tài khoản mới đăng ký, đang chờ Admin phê duyệt (Không thể đăng nhập).
+  - `rejected`: Tài khoản bị từ chối hoặc bị khóa.
+- **Quy trình:**
+  1. Người dùng điền form "Đăng ký" trên Dashboard.
+  2. Hệ thống tạo dòng mới trong sheet `USERS` với `status='pending'`.
+  3. Admin truy cập trang Quản lý User để duyệt (`active`) hoặc từ chối (`rejected`).
+
+### B. Admin Dashboard (`pages/98_⚙️_Quản_Lý_User.py`)
+
+- **Quyền hạn:** Chỉ có tài khoản với `role='admin'` mới truy cập được trang này.
+- **Chức năng chính:**
+  - **Tab 1 - Phê Duyệt:** Hiển thị danh sách user `pending`. Admin có thể duyệt hoặc từ chối.
+  - **Tab 2 - Danh Sách:** Hiển thị toàn bộ user `active`. Hỗ trợ tìm kiếm và chỉnh sửa `role` (Chức vụ), `department` (Bộ phận).
