@@ -219,15 +219,18 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
         rt = RichText()
         
         for i, item in enumerate(list_errors_grouped):
-            # Xuống dòng giữa các mục (trừ mục đầu tiên)
+            # Xuống dòng đơn (tiết kiệm không gian)
             if i > 0:
-                rt.add('\n\n') # Double break = spacing
+                rt.add('\n') 
             
-            # Format: 1. Tên lỗi (Đậm) : SL ...
+            # Format: 1. Tên lỗi (Đậm) [Tab] SL [Tab] | Vị trí: ... [Tab] | Mức độ: ...
             rt.add(f"{item['stt']}. {item['ten_loi']}", bold=True)
-            rt.add(f": {item['tong_sl']} ")
-            rt.add(f"| Vị trí: {item['chi_tiet']} ")
-            rt.add(f"| Mức độ: {item['muc_do']}")
+            rt.add(":\t")   # Tab sau tên lỗi
+            rt.add(f"{item['tong_sl']}")
+            rt.add("\t| Vị trí: ") # Tab trước Vị trí
+            rt.add(f"{item['chi_tiet']}")
+            rt.add("\t| Mức độ: ") # Tab trước Mức độ
+            rt.add(f"{item['muc_do']}")
         
         context['text_danh_sach_loi'] = rt
         context['danh_sach_loi_text'] = rt # Alias
