@@ -108,6 +108,82 @@ def resubmit_ncr(so_phieu):
     except Exception as e:
         return False, f"Lỗi: {str(e)}"
 
+# --- HELPER: RENDER EXPORT BUTTONS ---
+def render_export_buttons(so_phieu, ticket_rows):
+    """Hiển thị nút xuất PDF cho một phiếu"""
+    st.write("")
+    st.markdown("##### 🖨️ Xuất báo cáo:")
+    
+    xc1, xc2 = st.columns(2)
+    
+    # --- EXPORT BBK ---
+    with xc1:
+        if st.button(f"📄 Xuất BBK (PDF)", key=f"exp_bbk_{so_phieu}"):
+            with st.spinner("Đang tạo file BBK..."):
+                try:
+                    from utils.export_helper import generate_ncr_pdf
+                    ticket_info = ticket_rows.iloc[0].to_dict()
+                    df_errs = ticket_rows
+                    template_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template BBK FI.docx"
+                    
+                    pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
+                    
+                    if pdf_path and os.path.exists(pdf_path):
+                        with open(pdf_path, "rb") as f:
+                            st.download_button(
+                                label=f"⬇️ Tải BBK PDF",
+                                data=f,
+                                file_name=os.path.basename(pdf_path),
+                                mime="application/pdf",
+                                key=f"dl_bbk_pdf_{so_phieu}"
+                            )
+                    elif docx_path and os.path.exists(docx_path):
+                            st.warning("Không thể tạo PDF, vui lòng tải file Word.")
+                            with open(docx_path, "rb") as f:
+                            st.download_button(
+                                label=f"⬇️ Tải BBK Word",
+                                data=f,
+                                file_name=os.path.basename(docx_path),
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                key=f"dl_bbk_docx_{so_phieu}"
+                            )
+                except Exception as e:
+                    st.error(f"Lỗi xuất file: {str(e)}")
+
+    # --- EXPORT NCR ---
+    with xc2:
+        if st.button(f"📄 Xuất NCR (PDF)", key=f"exp_ncr_{so_phieu}"):
+            with st.spinner("Đang tạo file NCR..."):
+                try:
+                    from utils.export_helper import generate_ncr_pdf
+                    ticket_info = ticket_rows.iloc[0].to_dict()
+                    df_errs = ticket_rows
+                    template_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template NCR FI.docx"
+                    
+                    pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
+                    
+                    if pdf_path and os.path.exists(pdf_path):
+                        with open(pdf_path, "rb") as f:
+                            st.download_button(
+                                label=f"⬇️ Tải NCR PDF",
+                                data=f,
+                                file_name=os.path.basename(pdf_path),
+                                mime="application/pdf",
+                                key=f"dl_ncr_pdf_{so_phieu}"
+                            )
+                    elif docx_path and os.path.exists(docx_path):
+                            st.warning("Không thể tạo PDF, vui lòng tải file Word.")
+                            with open(docx_path, "rb") as f:
+                            st.download_button(
+                                label=f"⬇️ Tải NCR Word",
+                                data=f,
+                                file_name=os.path.basename(docx_path),
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                key=f"dl_ncr_docx_{so_phieu}"
+                            )
+                except Exception as e:
+                    st.error(f"Lỗi xuất file: {str(e)}")
+
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
     # Load all NCR data (no status filter)
@@ -243,6 +319,10 @@ with tab1:
                             use_container_width=True,
                             hide_index=True
                         )
+                    
+                    
+                    # --- EXPORT BUTTONS (DRAFT) ---
+                    render_export_buttons(so_phieu, ticket_rows)
                 
                 
                 # --- STATE MANAGEMENT ---
@@ -525,6 +605,9 @@ with tab2:
                             use_container_width=True,
                             hide_index=True
                         )
+                    
+                    # --- EXPORT BUTTONS (PENDING) ---
+                    render_export_buttons(so_phieu, ticket_rows)
 
                 # --- EDIT FUNCTIONALITY (Only for 'cho_truong_ca') ---
                 if status == 'cho_truong_ca':
@@ -733,6 +816,9 @@ with tab3:
                             use_container_width=True, 
                             hide_index=True
                         )
+
+                    # --- EXPORT BUTTONS (TASK) ---
+                    render_export_buttons(so_phieu, tk_rows)
                 
                 # Deadline warning
                 try:
@@ -808,89 +894,8 @@ with tab4:
                         hide_index=True
                     )
                 
-                # --- EXPORT BUTTONS ---
-                st.write("")
-                st.markdown("##### 🖨️ Xuất báo cáo:")
-                
-                # Layout export buttons
-                xc1, xc2 = st.columns(2)
-                
-                # --- EXPORT BBK ---
-                with xc1:
-                    if st.button(f"📄 Xuất BBK (PDF)", key=f"exp_bbk_{so_phieu}"):
-                        with st.spinner("Đang tạo file BBK..."):
-                            try:
-                                # Prepare data
-                                from utils.export_helper import generate_ncr_pdf
-                                
-                                # Lấy thông tin chung (dòng đầu tiên)
-                                ticket_info = ticket_rows.iloc[0].to_dict()
-                                # Lấy bảng lỗi
-                                df_errs = ticket_rows
-                                
-                                # Template Path
-                                template_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template BBK FI.docx"
-                                
-                                pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
-                                
-                                if pdf_path and os.path.exists(pdf_path):
-                                    with open(pdf_path, "rb") as f:
-                                        st.download_button(
-                                            label=f"⬇️ Tải BBK PDF",
-                                            data=f,
-                                            file_name=os.path.basename(pdf_path),
-                                            mime="application/pdf",
-                                            key=f"dl_bbk_pdf_{so_phieu}"
-                                        )
-                                elif docx_path and os.path.exists(docx_path):
-                                     st.warning("Không thể tạo PDF (do thiếu MS Word?), vui lòng tải file Word.")
-                                     with open(docx_path, "rb") as f:
-                                        st.download_button(
-                                            label=f"⬇️ Tải BBK Word",
-                                            data=f,
-                                            file_name=os.path.basename(docx_path),
-                                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                            key=f"dl_bbk_docx_{so_phieu}"
-                                        )
-                            except Exception as e:
-                                st.error(f"Lỗi xuất file: {str(e)}")
-
-                # --- EXPORT NCR ---
-                with xc2:
-                    if st.button(f"📄 Xuất NCR (PDF)", key=f"exp_ncr_{so_phieu}"):
-                        with st.spinner("Đang tạo file NCR..."):
-                            try:
-                                # Prepare data
-                                from utils.export_helper import generate_ncr_pdf
-                                ticket_info = ticket_rows.iloc[0].to_dict()
-                                df_errs = ticket_rows
-                                
-                                # Template Path
-                                template_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template NCR FI.docx"
-                                
-                                pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
-                                
-                                if pdf_path and os.path.exists(pdf_path):
-                                    with open(pdf_path, "rb") as f:
-                                        st.download_button(
-                                            label=f"⬇️ Tải NCR PDF",
-                                            data=f,
-                                            file_name=os.path.basename(pdf_path),
-                                            mime="application/pdf",
-                                            key=f"dl_ncr_pdf_{so_phieu}"
-                                        )
-                                elif docx_path and os.path.exists(docx_path):
-                                     st.warning("Không thể tạo PDF (do thiếu MS Word?), vui lòng tải file Word.")
-                                     with open(docx_path, "rb") as f:
-                                        st.download_button(
-                                            label=f"⬇️ Tải NCR Word",
-                                            data=f,
-                                            file_name=os.path.basename(docx_path),
-                                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                            key=f"dl_ncr_docx_{so_phieu}"
-                                        )
-                            except Exception as e:
-                                st.error(f"Lỗi xuất file: {str(e)}")
+                # --- EXPORT BUTTONS (COMPLETED) ---
+                render_export_buttons(so_phieu, ticket_rows)
 
 # --- FOOTER ---
 st.divider()
