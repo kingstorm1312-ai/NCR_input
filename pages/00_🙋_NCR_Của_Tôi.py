@@ -319,10 +319,9 @@ with tab1:
                             use_container_width=True,
                             hide_index=True
                         )
-                    
-                    
-                    # --- EXPORT BUTTONS (DRAFT) ---
-                    render_export_buttons(so_phieu, ticket_rows)
+                        
+                        # --- EXPORT BUTTONS (DRAFT) ---
+                        render_export_buttons(so_phieu, ticket_rows)
                 
                 
                 # --- STATE MANAGEMENT ---
@@ -605,9 +604,9 @@ with tab2:
                             use_container_width=True,
                             hide_index=True
                         )
-                    
-                    # --- EXPORT BUTTONS (PENDING) ---
-                    render_export_buttons(so_phieu, ticket_rows)
+                        
+                        # --- EXPORT BUTTONS (PENDING) ---
+                        render_export_buttons(so_phieu, ticket_rows)
 
                 # --- EDIT FUNCTIONALITY (Only for 'cho_truong_ca') ---
                 if status == 'cho_truong_ca':
@@ -817,8 +816,8 @@ with tab3:
                             hide_index=True
                         )
 
-                    # --- EXPORT BUTTONS (TASK) ---
-                    render_export_buttons(so_phieu, tk_rows)
+                        # --- EXPORT BUTTONS (TASK) ---
+                        render_export_buttons(so_phieu, tk_rows)
                 
                 # Deadline warning
                 try:
