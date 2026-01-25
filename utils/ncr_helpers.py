@@ -136,8 +136,8 @@ def load_ncr_data_with_grouping(gc=None, filter_status=None, filter_department=N
             st.warning("📊 Sheet NCR_DATA trống. Chưa có dữ liệu để hiển thị.")
             return pd.DataFrame(), pd.DataFrame()
         
-        # Normalize column names
-        df_original.columns = df_original.columns.str.strip()
+        # Normalize column names (Lower case for robust mapping)
+        df_original.columns = df_original.columns.str.strip().str.lower()
         
         # Create reverse mapping
         reverse_mapping = {v: k for k, v in COLUMN_MAPPING.items()}
@@ -261,8 +261,8 @@ def load_ncr_dataframe_v2():
         if df.empty:
             return pd.DataFrame()
         
-        df.columns = df.columns.str.strip()
-        inv_map = {v: k for k, v in COLUMN_MAPPING.items()}
+        df.columns = df.columns.str.strip().str.lower()
+        inv_map = {v.lower(): k for k, v in COLUMN_MAPPING.items()}
         df.rename(columns=inv_map, inplace=True)
         
         if 'ngay_lap' in df.columns:
