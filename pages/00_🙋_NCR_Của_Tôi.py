@@ -138,7 +138,7 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         df_errs = df_raw if df_raw is not None else ticket_rows
                         
                         # Fix Path: Use clean generated template V2
-                        template_path = os.path.join(os.getcwd(), "Template", "Template BBK Fix 2.docx")
+                        template_path = os.path.join(os.getcwd(), "Template", "Template BBK FI.docx")
                         
                         # --- ENRICH CONTEXT ---
                         # Map code keys back to sheet keys for template compatibility
