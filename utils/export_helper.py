@@ -205,6 +205,17 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
             
         context['danh_sach_loi_rut_gon'] = list_errors_grouped
         
+        # --- 2c. CHUẨN BỊ DẠNG TEXT (FALLBACK) ---
+        # Nếu bảng bị lỗi tag, dùng biến text này để hiện danh sách dạng liệt kê
+        lines = []
+        for item in list_errors_grouped:
+            # Format: 1. Tên lỗi: 10 - Chi tiết: ... - Mức độ: ...
+            line = f"{item['stt']}. {item['ten_loi']}: {item['tong_sl']} (Vị trí: {item['chi_tiet']}) - Mức độ: {item['muc_do']}"
+            lines.append(line)
+        
+        context['text_danh_sach_loi'] = "\n".join(lines)
+        context['danh_sach_loi_text'] = context['text_danh_sach_loi'] # Alias
+        
         # --- RENDER TABLE LỖI ---
         # Tự động tính toán Field Summary nếu chưa có
         if list_errors:
