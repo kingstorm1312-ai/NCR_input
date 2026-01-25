@@ -118,71 +118,109 @@ def render_export_buttons(so_phieu, ticket_rows):
     
     # --- EXPORT BBK ---
     with xc1:
-        if st.button(f"📄 Xuất BBK (PDF)", key=f"exp_bbk_{so_phieu}"):
-            with st.spinner("Đang tạo file BBK..."):
-                try:
-                    from utils.export_helper import generate_ncr_pdf
-                    ticket_info = ticket_rows.iloc[0].to_dict()
-                    df_errs = ticket_rows
-                    template_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template BBK FI.docx"
-                    
-                    pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
-                    
-                    if pdf_path and os.path.exists(pdf_path):
-                        with open(pdf_path, "rb") as f:
-                            st.download_button(
-                                label=f"⬇️ Tải BBK PDF",
-                                data=f,
-                                file_name=os.path.basename(pdf_path),
-                                mime="application/pdf",
-                                key=f"dl_bbk_pdf_{so_phieu}"
-                            )
-                    elif docx_path and os.path.exists(docx_path):
-                        st.warning("Không thể tạo PDF, vui lòng tải file Word.")
-                        with open(docx_path, "rb") as f:
-                            st.download_button(
-                                label=f"⬇️ Tải BBK Word",
-                                data=f,
-                                file_name=os.path.basename(docx_path),
-                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                key=f"dl_bbk_docx_{so_phieu}"
-                            )
-                except Exception as e:
-                    st.error(f"Lỗi xuất file: {str(e)}")
+        bbk_key = f"bbk_ready_{so_phieu}"
+        if bbk_key not in st.session_state:
+            if st.button(f"🔄 Tạo BBK (PDF)", key=f"gen_bbk_{so_phieu}"):
+                with st.spinner("Đang tạo file BBK..."):
+                    try:
+                        from utils.export_helper import generate_ncr_pdf
+                        ticket_info = ticket_rows.iloc[0].to_dict()
+                        df_errs = ticket_rows
+                        
+                        # Fix Path: Use relative path for Cloud compatibility
+                        template_path = os.path.join(os.getcwd(), "Template", "Template BBK FI.docx")
+                        
+                        pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
+                        
+                        # Store in session state
+                        st.session_state[bbk_key] = {
+                            "pdf": pdf_path if pdf_path and os.path.exists(pdf_path) else None,
+                            "docx": docx_path if docx_path and os.path.exists(docx_path) else None
+                        }
+                        st.rerun() # Rerun to show download button
+                    except Exception as e:
+                        st.error(f"Lỗi: {str(e)}")
+        
+        # Show Download Button if ready
+        if bbk_key in st.session_state:
+            paths = st.session_state[bbk_key]
+            if paths["pdf"]:
+                with open(paths["pdf"], "rb") as f:
+                    st.download_button(
+                        label="⬇️ Tải BBK (.pdf)",
+                        data=f,
+                        file_name=os.path.basename(paths["pdf"]),
+                        mime="application/pdf",
+                        key=f"dl_bbk_{so_phieu}"
+                    )
+            elif paths["docx"]:
+                st.warning("⚠️ Không thể tạo PDF (Server thiếu font/lib), hãy tải Word:")
+                with open(paths["docx"], "rb") as f:
+                    st.download_button(
+                        label="⬇️ Tải BBK (.docx)",
+                        data=f,
+                        file_name=os.path.basename(paths["docx"]),
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key=f"dl_bbk_{so_phieu}"
+                    )
+            
+            # Reset button
+            if st.button("❌ Hủy / Tạo lại", key=f"reset_bbk_{so_phieu}"):
+                del st.session_state[bbk_key]
+                st.rerun()
 
     # --- EXPORT NCR ---
     with xc2:
-        if st.button(f"📄 Xuất NCR (PDF)", key=f"exp_ncr_{so_phieu}"):
-            with st.spinner("Đang tạo file NCR..."):
-                try:
-                    from utils.export_helper import generate_ncr_pdf
-                    ticket_info = ticket_rows.iloc[0].to_dict()
-                    df_errs = ticket_rows
-                    template_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template NCR FI.docx"
-                    
-                    pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
-                    
-                    if pdf_path and os.path.exists(pdf_path):
-                        with open(pdf_path, "rb") as f:
-                            st.download_button(
-                                label=f"⬇️ Tải NCR PDF",
-                                data=f,
-                                file_name=os.path.basename(pdf_path),
-                                mime="application/pdf",
-                                key=f"dl_ncr_pdf_{so_phieu}"
-                            )
-                    elif docx_path and os.path.exists(docx_path):
-                        st.warning("Không thể tạo PDF, vui lòng tải file Word.")
-                        with open(docx_path, "rb") as f:
-                            st.download_button(
-                                label=f"⬇️ Tải NCR Word",
-                                data=f,
-                                file_name=os.path.basename(docx_path),
-                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                key=f"dl_ncr_docx_{so_phieu}"
-                            )
-                except Exception as e:
-                    st.error(f"Lỗi xuất file: {str(e)}")
+        ncr_key = f"ncr_ready_{so_phieu}"
+        if ncr_key not in st.session_state:
+            if st.button(f"🔄 Tạo NCR (PDF)", key=f"gen_ncr_{so_phieu}"):
+                with st.spinner("Đang tạo file NCR..."):
+                    try:
+                        from utils.export_helper import generate_ncr_pdf
+                        ticket_info = ticket_rows.iloc[0].to_dict()
+                        df_errs = ticket_rows
+                        
+                        # Fix Path: Use relative path
+                        template_path = os.path.join(os.getcwd(), "Template", "Template NCR FI.docx")
+                        
+                        pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
+                        
+                        # Store in session state
+                        st.session_state[ncr_key] = {
+                            "pdf": pdf_path if pdf_path and os.path.exists(pdf_path) else None,
+                            "docx": docx_path if docx_path and os.path.exists(docx_path) else None
+                        }
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Lỗi: {str(e)}")
+
+        # Show Download Button if ready
+        if ncr_key in st.session_state:
+            paths = st.session_state[ncr_key]
+            if paths["pdf"]:
+                with open(paths["pdf"], "rb") as f:
+                    st.download_button(
+                        label="⬇️ Tải NCR (.pdf)",
+                        data=f,
+                        file_name=os.path.basename(paths["pdf"]),
+                        mime="application/pdf",
+                        key=f"dl_ncr_{so_phieu}"
+                    )
+            elif paths["docx"]:
+                st.warning("⚠️ Không thể tạo PDF (Server thiếu font/lib), hãy tải Word:")
+                with open(paths["docx"], "rb") as f:
+                    st.download_button(
+                        label="⬇️ Tải NCR (.docx)",
+                        data=f,
+                        file_name=os.path.basename(paths["docx"]),
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        key=f"dl_ncr_{so_phieu}"
+                    )
+            
+            # Reset button
+            if st.button("❌ Hủy / Tạo lại", key=f"reset_ncr_{so_phieu}"):
+                del st.session_state[ncr_key]
+                st.rerun()
 
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
