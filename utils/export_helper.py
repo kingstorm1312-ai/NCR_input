@@ -99,6 +99,36 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
             # Kết luận: Nếu trạng thái là Hoàn thành -> Đạt ? (Logic này tùy biến)
             'ket_luan': "ĐẠT" if str(ticket_data.get('trang_thai', '')).lower() == 'hoan_thanh' else "CHƯA KẾT LUẬN"
         })
+
+        # --- TÍNH TOÁN TỔNG LỖI NẶNG / NHẸ ---
+        try:
+            sum_major = 0.0
+            sum_minor = 0.0
+            
+            if not df_errors.empty:
+                for _, row in df_errors.iterrows():
+                    # Lấy số lượng (xử lý an toàn)
+                    try:
+                        qty = float(row.get('sl_loi', 0) if pd.notna(row.get('sl_loi')) else 0)
+                    except:
+                        qty = 0.0
+                    
+                    # Lấy mức độ
+                    severity = str(row.get('muc_do', '')).strip().lower()
+                    
+                    if 'nặng' in severity or 'major' in severity:
+                        sum_major += qty
+                    elif 'nhẹ' in severity or 'minor' in severity:
+                        sum_minor += qty
+            
+            # Update context
+            context.update({
+                'tong_loi_nang': sum_major if sum_major % 1 != 0 else int(sum_major),
+                'tong_loi_nhe': sum_minor if sum_minor % 1 != 0 else int(sum_minor),
+                'tong_loi_tong': (sum_major + sum_minor) if (sum_major + sum_minor) % 1 != 0 else int(sum_major + sum_minor)
+            })
+        except Exception as e:
+            print(f"Lỗi tính tổng lỗi: {e}")
         
         # 2. CHUẨN BỊ BẢNG TABLE (Dynamic Rows)
         # Cần check xem trong template dùng tên biến gì cho vòng lặp
