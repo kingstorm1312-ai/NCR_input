@@ -5,7 +5,7 @@ import json
 import base64
 import time
 from datetime import datetime
-from utils.ncr_helpers import get_now_vn, init_gspread, get_all_users
+from utils.ncr_helpers import get_now_vn, init_gspread, get_all_users, register_user
 
 # --- CONFIG: DEPARTMENT ROUTING ---
 DEPARTMENT_PAGES = {
@@ -122,16 +122,25 @@ def login_user(username, password):
         clean_pass = str(password).strip()
         
         # Find user (Case Insensitive)
-        user = df_users[df_users['username_lower'] == clean_user_lower]
+        user_rows = df_users[df_users['username_lower'] == clean_user_lower]
         
-        if not user.empty:
-            stored_password = user.iloc[0]['password']
+        if not user_rows.empty:
+            user = user_rows.iloc[0]
+            stored_password = user['password']
+            
             if clean_pass == stored_password:
+                # Check Status if exists
+                if 'status' in df_users.columns:
+                    status = str(user['status']).strip().lower()
+                    if status != 'active' and status != '':
+                        st.error(f"Tài khoản đang ở trạng thái: {status.upper()}. Vui lòng liên hệ Admin.")
+                        return None
+                        
                 return {
-                    "name": user.iloc[0]['full_name'],
-                    "username": user.iloc[0]['username'],
-                    "role": user.iloc[0]['role'],
-                    "department": user.iloc[0]['department']
+                    "name": user['full_name'],
+                    "username": user['username'],
+                    "role": user['role'],
+                    "department": user['department']
                 }
     except Exception as e:
         st.error(f"Lỗi đăng nhập: {e}")
@@ -169,32 +178,92 @@ if st.session_state.user_info is None:
             st.markdown("<h3 style='text-align: center; color: #212121;'>HỆ THỐNG QUẢN LÝ CHẤT LƯỢNG (QC)</h3>", unsafe_allow_html=True)
             st.markdown("---")
             
-            with st.form("login_form"):
-                username = st.text_input("Tên đăng nhập", placeholder="Nhập username...")
-                password = st.text_input("Mật khẩu", type="password", placeholder="Nhập mật khẩu...")
-                
-                st.write("") # Spacer
-                submit = st.form_submit_button("ĐĂNG NHẬP", type="primary", use_container_width=True)
-                
-                if submit:
-                    if not username or not password:
-                        st.warning("Vui lòng nhập đầy đủ thông tin.")
-                    else:
-                        with st.spinner("Đang kiểm tra..."):
-                            user = login_user(username, password)
-                            if user:
-                                st.session_state.user_info = user
-                                st.toast(f"Chào mừng {user['name']}!", icon="👋")
-                                time.sleep(0.5)
-                                
-                                # Auto Routing
-                                user_dept = user['department']
-                                if user['role'] != 'admin' and user_dept in DEPARTMENT_PAGES:
-                                     st.switch_page(DEPARTMENT_PAGES[user_dept])
+            # --- TOGGLE LOGIN / REGISTER ---
+            if "show_register" not in st.session_state:
+                st.session_state.show_register = False
+
+            if st.session_state.show_register:
+                st.markdown("#### 📝 Đăng ký tài khoản mới")
+                with st.form("register_form"):
+                    new_user = st.text_input("Tên đăng nhập (Username)*", placeholder="Viết liền, không dấu")
+                    new_pass = st.text_input("Mật khẩu*", type="password")
+                    confirm_pass = st.text_input("Nhập lại mật khẩu*", type="password")
+                    full_name = st.text_input("Tên hiển thị (Họ tên)*", placeholder="Ví dụ: Nguyễn Văn A")
+                    
+                    # Department Selection
+                    dept_keys = list(DEPARTMENT_PAGES.keys())
+                    dept_labels = [d.upper().replace('_', ' ') for d in dept_keys]
+                    sel_dept_idx = st.selectbox("Bộ phận làm việc*", range(len(dept_labels)), format_func=lambda x: dept_labels[x])
+                    selected_dept = dept_keys[sel_dept_idx]
+                    
+                    # Role Selection
+                    role_map = {
+                        'staff': 'Nhân viên (Staff)',
+                        'truong_ca': 'Trưởng ca',
+                        'truong_bp': 'Trưởng bộ phận',
+                        'qc_manager': 'QC Manager',
+                        'director': 'Giám đốc',
+                        'bgd_tan_phu': 'BGĐ Tân Phú'
+                    }
+                    role_keys = list(role_map.keys())
+                    sel_role_idx = st.selectbox("Chức vụ*", range(len(role_keys)), format_func=lambda x: role_map[role_keys[x]])
+                    selected_role = role_keys[sel_role_idx]
+                    
+                    st.caption("(*): Thông tin bắt buộc")
+                    st.markdown("---")
+                    
+                    submitted_reg = st.form_submit_button("GỬI ĐĂNG KÝ", type="primary", use_container_width=True)
+                    
+                    if submitted_reg:
+                        if not new_user or not new_pass or not full_name:
+                            st.warning("⚠️ Vui lòng điền đầy đủ thông tin (*)")
+                        elif new_pass != confirm_pass:
+                            st.error("❌ Mật khẩu nhập lại không khớp!")
+                        else:
+                            with st.spinner("Đang xử lý đăng ký..."):
+                                success, msg = register_user(new_user, new_pass, full_name, selected_dept, selected_role)
+                                if success:
+                                    st.success(msg)
+                                    time.sleep(2)
+                                    st.session_state.show_register = False
+                                    st.rerun()
                                 else:
-                                     st.rerun()
-                            else:
-                                st.error("Sai tên đăng nhập hoặc mật khẩu!")
+                                    st.error(f"❌ {msg}")
+                
+                if st.button("⬅️ Quay lại Đăng nhập", use_container_width=True):
+                    st.session_state.show_register = False
+                    st.rerun()
+                    
+            else:
+                # LOGIN UI
+                with st.form("login_form"):
+                    username = st.text_input("Tên đăng nhập", placeholder="Nhập username...")
+                    password = st.text_input("Mật khẩu", type="password", placeholder="Nhập mật khẩu...")
+                    
+                    st.write("") # Spacer
+                    submit = st.form_submit_button("ĐĂNG NHẬP", type="primary", use_container_width=True)
+                    
+                    if submit:
+                        if not username or not password:
+                            st.warning("Vui lòng nhập đầy đủ thông tin.")
+                        else:
+                            with st.spinner("Đang kiểm tra..."):
+                                user = login_user(username, password)
+                                if user:
+                                    st.session_state.user_info = user
+                                    st.toast(f"Chào mừng {user['name']}!", icon="👋")
+                                    time.sleep(0.5)
+                                    
+                                    # Auto Routing
+                                    user_dept = user['department']
+                                    if user['role'] != 'admin' and user_dept in DEPARTMENT_PAGES:
+                                         st.switch_page(DEPARTMENT_PAGES[user_dept])
+                                    else:
+                                         st.rerun()
+                
+                if st.button("📝 Đăng ký tài khoản mới", use_container_width=True):
+                    st.session_state.show_register = True
+                    st.rerun()
             
             st.markdown("<div style='text-align: center; color: #9E9E9E; font-size: 12px; margin-top: 20px;'>© 2026 Dai Luc CPC - IT Department</div>", unsafe_allow_html=True)
 

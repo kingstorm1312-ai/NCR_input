@@ -768,9 +768,12 @@ def load_pending_corrective_actions(gc, role_name):
     except Exception as e:
         return pd.DataFrame()
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300)
 def get_all_users():
-    """Lấy danh sách toàn bộ nhân viên từ sheet USERS"""
+    """
+    Lấy danh sách toàn bộ nhân viên từ sheet USERS.
+    Now normalized and robust.
+    """
     try:
         gc = init_gspread()
         if not gc: return []
@@ -778,9 +781,131 @@ def get_all_users():
         sh = gc.open_by_key(spreadsheet_id)
         ws = sh.worksheet("USERS")
         data = ws.get_all_records()
-        return data
+        
+        # Clean data keys
+        cleaned_data = []
+        for row in data:
+            clean_row = {k.strip().lower(): v for k, v in row.items()}
+            cleaned_data.append(clean_row)
+            
+        return cleaned_data
     except Exception as e:
         return []
+
+def register_user(username, password, full_name, department, role="staff"):
+    """
+    Đăng ký user mới và lưu vào Google Sheets với status='pending'.
+    Tự động thêm cột 'status' nếu chưa có.
+    """
+    try:
+        gc = init_gspread()
+        if not gc: return False, "Lỗi kết nối Database"
+        
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        
+        # 1. Get Headers & Data
+        headers = ws.row_values(1)
+        headers_norm = [str(h).strip().lower() for h in headers]
+        
+        # 2. Check duplicate username
+        # Find column index for username
+        if 'username' not in headers_norm:
+             return False, "Cấu trúc Sheet không hợp lệ (Thiếu cột username)"
+        
+        idx_username = headers_norm.index('username')
+        existing_usernames = ws.col_values(idx_username + 1)[1:] # Skip header
+        
+        if str(username).strip() in [str(u).strip() for u in existing_usernames]:
+            return False, f"Tên đăng nhập '{username}' đã tồn tại!"
+            
+        # 3. Handle 'status' column
+        if 'status' not in headers_norm:
+            # Add status column header
+            ws.update_cell(1, len(headers) + 1, "status")
+            headers.append("status")
+            headers_norm.append("status")
+            
+        # 4. Prepare Row Data
+        # Map values to headers
+        row_data = []
+        for h in headers_norm:
+            if h == 'username': row_data.append(username)
+            elif h == 'password': row_data.append(password) # Should hash in real prod, but plain for now as per system
+            elif h == 'full_name': row_data.append(full_name)
+            elif h == 'department': row_data.append(department)
+            elif h == 'role': row_data.append(role)
+            elif h == 'status': row_data.append('pending')
+            else: row_data.append('') # Empty for unknown cols
+            
+        # 5. Append
+        ws.append_row(row_data)
+        return True, "Đăng ký thành công! Vui lòng chờ Admin duyệt."
+        
+    except Exception as e:
+        return False, f"Lỗi đăng ký: {str(e)}"
+
+def update_user_status(username, new_status):
+    """
+    Duyệt hoặc từ chối User.
+    new_status: 'active' | 'rejected'
+    """
+    try:
+        gc = init_gspread()
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        
+        # Find User Row
+        cell = ws.find(username)
+        if not cell:
+            return False, "Không tìm thấy user này."
+            
+        # Find Status Column
+        headers = [str(h).strip().lower() for h in ws.row_values(1)]
+        if 'status' not in headers:
+            # If no status col, create it
+            ws.update_cell(1, len(headers) + 1, "status")
+            col_status = len(headers) + 1
+        else:
+            col_status = headers.index('status') + 1
+            
+        ws.update_cell(cell.row, col_status, new_status)
+        return True, f"Đã cập nhật trạng thái: {new_status}"
+        
+    except Exception as e:
+        return False, f"Lỗi cập nhật: {str(e)}"
+
+def update_user_info(target_username, new_role=None, new_dept=None):
+    """
+    Cập nhật Role và Department cho User.
+    """
+    try:
+        gc = init_gspread()
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        
+        cell = ws.find(target_username)
+        if not cell:
+            return False, "Không tìm thấy user."
+            
+        headers = [str(h).strip().lower() for h in ws.row_values(1)]
+        
+        updates = []
+        
+        if new_role:
+             if 'role' in headers:
+                 col = headers.index('role') + 1
+                 ws.update_cell(cell.row, col, new_role)
+        
+        if new_dept:
+             if 'department' in headers:
+                 col = headers.index('department') + 1
+                 ws.update_cell(cell.row, col, new_dept)
+                 
+        return True, "Cập nhật thông tin thành công."
+        
+    except Exception as e:
+        return False, f"Lỗi cập nhật thông tin: {str(e)}"
 
 def cancel_ncr(gc, so_phieu, reason):
     """
