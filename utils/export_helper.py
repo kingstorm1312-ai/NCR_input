@@ -157,50 +157,58 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
             for _, row in df_errors.iterrows():
                 name = str(row.get('ten_loi') or 'Khác').strip()
                 loc = str(row.get('vi_tri_loi') or 'K/XĐ').strip()
+                sev = str(row.get('md_loi') or row.get('muc_do') or '').strip()
                 
                 try:
                     qty = float(row.get('sl_loi', 0) if pd.notna(row.get('sl_loi')) else 0)
                 except:
                     qty = 0.0
                 
-                sev = str(row.get('md_loi') or row.get('muc_do') or '').strip()
+                # Update: Group by Name AND Severity (Key = tuple)
+                # Để Rách (Nặng) và Rách (Nhẹ) thành 2 dòng khác nhau
+                key = (name, sev)
                 
-                if name not in grouped_errors:
-                    grouped_errors[name] = {
+                if key not in grouped_errors:
+                    grouped_errors[key] = {
+                        'name': name,
+                        'sev': sev,
                         'sl_total': 0.0,
                         'details': {}, # map: location -> qty
-                        'severities': set()
                     }
                 
-                grouped_errors[name]['sl_total'] += qty
-                if sev:
-                    grouped_errors[name]['severities'].add(sev)
+                grouped_errors[key]['sl_total'] += qty
                 
-                if loc not in grouped_errors[name]['details']:
-                    grouped_errors[name]['details'][loc] = 0.0
-                grouped_errors[name]['details'][loc] += qty
+                if loc not in grouped_errors[key]['details']:
+                    grouped_errors[key]['details'][loc] = 0.0
+                grouped_errors[key]['details'][loc] += qty
 
+        # Convert to list and SORT (by Name then Severity)
+        # sorted_items = sorted(grouped_errors.values(), key=lambda x: (x['name'], x['sev']))
+        # Wait, dictionary order is insertion order in Python 3.7+. Sort explicit for safety.
+        sorted_keys = sorted(grouped_errors.keys())
+        
         list_errors_grouped = []
-        for i, (name, data) in enumerate(grouped_errors.items()):
+        for i, key in enumerate(sorted_keys):
+            data = grouped_errors[key]
+            
             # Format details: "Miệng - 2, Thân - 1"
             loc_parts = []
             for k, v in data['details'].items():
                 val_str = f"{v:g}" if v % 1 == 0 else f"{v:.1f}"
                 if k == 'K/XĐ':
-                    loc_parts.append(f"{val_str}") # Nếu ko có vị trí thì chỉ hiện số
+                    loc_parts.append(f"{val_str}")
                 else:
                     loc_parts.append(f"{k} - {val_str}")
             
             loc_display = ", ".join(loc_parts)
-            sev_display = "/".join(sorted(data['severities']))
             total_str = f"{data['sl_total']:g}" if data['sl_total'] % 1 == 0 else f"{data['sl_total']:.1f}"
             
             list_errors_grouped.append({
                 'stt': i + 1,
-                'ten_loi': name,
+                'ten_loi': data['name'],
                 'tong_sl': total_str,
-                'chi_tiet': loc_display,     # VD: "Miệng - 2, Thân - 1"
-                'muc_do': sev_display
+                'chi_tiet': loc_display,
+                'muc_do': data['sev'] # Now singular severity
             })
             
         context['danh_sach_loi_rut_gon'] = list_errors_grouped
