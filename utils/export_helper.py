@@ -4,7 +4,6 @@ import pandas as pd
 from datetime import datetime
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
-from docx2pdf import convert
 import tempfile
 import requests
 import shutil
@@ -135,6 +134,7 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
         
         try:
             # Lưu ý: Hàm này yêu cầu MS Word cài trên máy
+            from docx2pdf import convert
             convert(docx_path, pdf_path)
             return pdf_path, docx_path
         except Exception as e:
