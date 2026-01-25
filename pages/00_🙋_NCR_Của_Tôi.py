@@ -138,8 +138,8 @@ def render_export_buttons(so_phieu, ticket_rows):
                                 key=f"dl_bbk_pdf_{so_phieu}"
                             )
                     elif docx_path and os.path.exists(docx_path):
-                            st.warning("Không thể tạo PDF, vui lòng tải file Word.")
-                            with open(docx_path, "rb") as f:
+                        st.warning("Không thể tạo PDF, vui lòng tải file Word.")
+                        with open(docx_path, "rb") as f:
                             st.download_button(
                                 label=f"⬇️ Tải BBK Word",
                                 data=f,
@@ -172,8 +172,8 @@ def render_export_buttons(so_phieu, ticket_rows):
                                 key=f"dl_ncr_pdf_{so_phieu}"
                             )
                     elif docx_path and os.path.exists(docx_path):
-                            st.warning("Không thể tạo PDF, vui lòng tải file Word.")
-                            with open(docx_path, "rb") as f:
+                        st.warning("Không thể tạo PDF, vui lòng tải file Word.")
+                        with open(docx_path, "rb") as f:
                             st.download_button(
                                 label=f"⬇️ Tải NCR Word",
                                 data=f,
