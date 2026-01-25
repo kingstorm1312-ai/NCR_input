@@ -4,3 +4,5 @@ st-gsheets-connection>=0.0.3
 plotly>=5.0.0
 google-api-python-client>=2.0.0
 cloudinary>=1.36.0
+docxtpl>=0.16.0
+docx2pdf>=0.1.8
