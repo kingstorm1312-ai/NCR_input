@@ -148,7 +148,62 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
                 }
                 list_errors.append(err_item)
         
-        context['danh_sach_loi'] = list_errors # Key này phải khớp với vòng lặp trong Word
+        context['danh_sach_loi'] = list_errors 
+        
+        # --- 2b. CHUẨN BỊ DANH SÁCH RÚT GỌN (GROUPED BY ERROR NAME) ---
+        # Mục đích: Gom nhóm lỗi để báo cáo gọn hơn (VD: 10 dòng Cà manh -> 1 dòng tổng)
+        grouped_errors = {}
+        if not df_errors.empty:
+            for _, row in df_errors.iterrows():
+                name = str(row.get('ten_loi') or 'Khác').strip()
+                loc = str(row.get('vi_tri_loi') or 'K/XĐ').strip()
+                
+                try:
+                    qty = float(row.get('sl_loi', 0) if pd.notna(row.get('sl_loi')) else 0)
+                except:
+                    qty = 0.0
+                
+                sev = str(row.get('md_loi') or row.get('muc_do') or '').strip()
+                
+                if name not in grouped_errors:
+                    grouped_errors[name] = {
+                        'sl_total': 0.0,
+                        'details': {}, # map: location -> qty
+                        'severities': set()
+                    }
+                
+                grouped_errors[name]['sl_total'] += qty
+                if sev:
+                    grouped_errors[name]['severities'].add(sev)
+                
+                if loc not in grouped_errors[name]['details']:
+                    grouped_errors[name]['details'][loc] = 0.0
+                grouped_errors[name]['details'][loc] += qty
+
+        list_errors_grouped = []
+        for i, (name, data) in enumerate(grouped_errors.items()):
+            # Format details: "Miệng - 2, Thân - 1"
+            loc_parts = []
+            for k, v in data['details'].items():
+                val_str = f"{v:g}" if v % 1 == 0 else f"{v:.1f}"
+                if k == 'K/XĐ':
+                    loc_parts.append(f"{val_str}") # Nếu ko có vị trí thì chỉ hiện số
+                else:
+                    loc_parts.append(f"{k} - {val_str}")
+            
+            loc_display = ", ".join(loc_parts)
+            sev_display = "/".join(sorted(data['severities']))
+            total_str = f"{data['sl_total']:g}" if data['sl_total'] % 1 == 0 else f"{data['sl_total']:.1f}"
+            
+            list_errors_grouped.append({
+                'stt': i + 1,
+                'ten_loi': name,
+                'tong_sl': total_str,
+                'chi_tiet': loc_display,     # VD: "Miệng - 2, Thân - 1"
+                'muc_do': sev_display
+            })
+            
+        context['danh_sach_loi_rut_gon'] = list_errors_grouped
         
         # --- RENDER TABLE LỖI ---
         # Tự động tính toán Field Summary nếu chưa có
