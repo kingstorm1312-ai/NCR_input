@@ -61,7 +61,13 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
         
         # 1. CHUẨN BỊ DỮ LIỆU MAPPING (Bridge)
         # Dictionary này đóng vai trò cầu nối giữa Header Sheet và PlaceHolder Word
-        context = {
+        
+        # FIX: Khởi tạo context bằng dữ liệu gốc (ticket_data) trước
+        # Để đảm bảo mọi key trong ticket_data đều có mặt trong template (vd: ten_sp, so_luong_lo_hang...)
+        context = ticket_data.copy() if isinstance(ticket_data, dict) else ticket_data.to_dict()
+        
+        # Sau đó Override/Bổ sung các key chuẩn hóa nếu cần
+        context.update({
             # --- HEADER INFO ---
             'so_phieu': ticket_data.get('so_phieu', ''),
             'ngay_lap': format_date_vn(ticket_data.get('ngay_lap', '')),
@@ -92,7 +98,7 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
             
             # Kết luận: Nếu trạng thái là Hoàn thành -> Đạt ? (Logic này tùy biến)
             'ket_luan': "ĐẠT" if str(ticket_data.get('trang_thai', '')).lower() == 'hoan_thanh' else "CHƯA KẾT LUẬN"
-        }
+        })
         
         # 2. CHUẨN BỊ BẢNG TABLE (Dynamic Rows)
         # Cần check xem trong template dùng tên biến gì cho vòng lặp
