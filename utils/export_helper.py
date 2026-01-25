@@ -206,15 +206,23 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
         context['danh_sach_loi_rut_gon'] = list_errors_grouped
         
         # --- 2c. CHUẨN BỊ DẠNG TEXT (FALLBACK) ---
-        # Nếu bảng bị lỗi tag, dùng biến text này để hiện danh sách dạng liệt kê
-        lines = []
-        for item in list_errors_grouped:
-            # Format: 1. Tên lỗi: 10 - Chi tiết: ... - Mức độ: ...
-            line = f"{item['stt']}. {item['ten_loi']}: {item['tong_sl']} (Vị trí: {item['chi_tiet']}) - Mức độ: {item['muc_do']}"
-            lines.append(line)
+        # Update: Dùng RichText để format đẹp hơn (Đậm tên lỗi, xuống dòng thoáng)
+        from docxtpl import RichText
+        rt = RichText()
         
-        context['text_danh_sach_loi'] = "\n".join(lines)
-        context['danh_sach_loi_text'] = context['text_danh_sach_loi'] # Alias
+        for i, item in enumerate(list_errors_grouped):
+            # Xuống dòng giữa các mục (trừ mục đầu tiên)
+            if i > 0:
+                rt.add('\n\n') # Double break = spacing
+            
+            # Format: 1. Tên lỗi (Đậm) : SL ...
+            rt.add(f"{item['stt']}. {item['ten_loi']}", bold=True)
+            rt.add(f": {item['tong_sl']} ")
+            rt.add(f"| Vị trí: {item['chi_tiet']} ")
+            rt.add(f"| Mức độ: {item['muc_do']}")
+        
+        context['text_danh_sach_loi'] = rt
+        context['danh_sach_loi_text'] = rt # Alias
         
         # --- RENDER TABLE LỖI ---
         # Tự động tính toán Field Summary nếu chưa có
