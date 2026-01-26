@@ -108,7 +108,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     # R1
     c1, c2 = st.columns(2)
     with c1:
-        st.text_input("Người lập", value=user_info["name"], disabled=True)
+        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
     with c2:
         dept_prefix = "DVNPL"
         current_month = get_now_vn().strftime("%m")

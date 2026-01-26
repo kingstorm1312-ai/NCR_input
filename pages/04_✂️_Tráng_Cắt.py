@@ -108,7 +108,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     # R1
     c1, c2 = st.columns(2)
     with c1:
-        st.text_input("Người lập", value=user_info["name"], disabled=True)
+        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
     with c2:
         # Placeholder for visual calc, actual calc at bottom
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)

@@ -108,7 +108,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     # Row 1: Số phiếu (NCR Suffix) & Số lần
     c1, c2 = st.columns(2)
     with c1:
-        st.text_input("Người lập", value=user_info["name"], disabled=True)
+        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
     with c2:
         dept_prefix = "FI"
         current_month = get_now_vn().strftime("%m")
