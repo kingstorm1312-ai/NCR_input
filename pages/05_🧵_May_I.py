@@ -287,7 +287,7 @@ if st.session_state.buffer_errors:
                         'so_luong_lo_hang': sl_lo,
                         'nguoi_lap_phieu': nguoi_lap,
                         'noi_gay_loi': nguon_goc,
-                        'trang_thai': 'cho_truong_ca',
+                        'trang_thai': get_initial_status(REQUIRED_DEPT),
                         'thoi_gian_cap_nhat': now,
                         'hinh_anh': hinh_anh_links,
                         'don_vi_tinh': don_vi_tinh

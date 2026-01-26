@@ -58,6 +58,17 @@ DEPARTMENTS_SKIP_BP = [
     'tp_dau_vao'
 ]
 
+def get_initial_status(department_code):
+    """
+    Xác định trạng thái KHỞI TẠO của phiếu mới.
+    - Bộ phận Skip BP -> Nhảy thẳng lên 'cho_qc_manager'
+    - Bộ phận thường -> Bắt đầu 'cho_truong_ca'
+    """
+    dept = str(department_code).strip().lower()
+    if dept in DEPARTMENTS_SKIP_BP:
+        return 'cho_qc_manager'
+    return 'cho_truong_ca'
+
 def get_next_status(current_status, department_code):
     """
     Xác định trạng thái tiếp theo dựa trên cấu hình bộ phận.
