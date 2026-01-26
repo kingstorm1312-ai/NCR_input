@@ -175,8 +175,28 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         st.session_state.header_locked = lock
         st.rerun()
 
+# --- IMPORT AQL MANAGER ---
+from utils.aql_manager import get_aql_standard, evaluate_lot_quality
+
+# === PHẦN 1.2: THÔNG TIN AQL (TỰ ĐỘNG) ===
+st.markdown("### 📊 Tiêu chuẩn AQL (Level II - 2.5/4.0)")
+aql_info = get_aql_standard(sl_lo)
+if aql_info:
+    c_aql1, c_aql2, c_aql3, c_aql4 = st.columns(4)
+    c_aql1.metric("Mã Chữ", aql_info['code'])
+    c_aql2.metric("SL Mẫu", aql_info['sample_size'])
+    c_aql3.metric("Lỗi Nặng (Ac/Re)", f"{aql_info['ac_major']} / {aql_info['ac_major']+1}")
+    c_aql4.metric("Lỗi Nhẹ (Ac/Re)", f"{aql_info['ac_minor']} / {aql_info['ac_minor']+1}")
+    
+    # Auto-fill SL Kiem if empty or default
+    if sl_kiem == 0:
+        st.warning(f"💡 Gợi ý: Với lô {sl_lo}, bạn cần kiểm tra **{aql_info['sample_size']}** mẫu.")
+
+else:
+    st.info("Nhập 'SL Lô Hàng' để xem tiêu chuẩn AQL.")
+
 # === PHẦN 1.5: KIỂM TRA ĐẶC BIỆT (SPECIAL INSPECTION) ===
-with st.expander("📊 Bảng II: Kiểm tra Cấp độ đặc biệt", expanded=False):
+with st.expander("📝 Bảng II: Kiểm tra Cấp độ đặc biệt", expanded=False):
     st.markdown("#### 1. Kích thước (Size)")
     c_sz1, c_sz2, c_sz3 = st.columns(3)
     with c_sz1:
@@ -260,79 +280,119 @@ if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
         })
         st.toast(f"Đã thêm: {final_ten_loi}")
 
-# === PHẦN 3: DANH SÁCH CHỜ & LƯU ===
-st.markdown("### 📋 Danh sách lỗi chờ lưu")
+# === PHẦN 3: ĐÁNH GIÁ & LƯU ===
+st.markdown("---")
+st.markdown("### 🏆 Đánh giá & Lưu kết quả")
 
-if st.session_state.buffer_errors:
-    # Note: buffer no longer has don_vi_tinh per row, but render might look for it.
-    # render_input_buffer_mobile uses err.get('don_vi_tinh', '') so it will show blank if missing.
-    # That is acceptable as DVT is now Global for the ticket.
-    # Or we can inject it just for display? No, keep it simple.
+st.session_state.buffer_errors = render_input_buffer_mobile(st.session_state.buffer_errors)
+
+# Tính tổng lỗi
+total_major = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] in ['Nặng', 'Nghiêm trọng']])
+total_minor = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] == 'Nhẹ'])
+
+# Đánh giá AQL
+inspection_result, aql_details = evaluate_lot_quality(sl_lo, total_major, total_minor)
+
+if inspection_result == 'Pass':
+    st.success(f"✅ KẾT QUẢ: ĐẠT (PASS) - Không cần tạo NCR")
+    save_label = "💾 LƯU BIÊN BẢN KIỂM TRA (Pass)"
+    save_type = "primary"
+    final_status = "Hoàn thành"
+    final_ncr_num = "" # No NCR number for Pass
     
-    st.session_state.buffer_errors = render_input_buffer_mobile(st.session_state.buffer_errors)
+    # Logic Pass: Nếu không có lỗi nào được nhập, ta vẫn cần lưu 1 dòng 'dummy' để ghi nhận biên bản
+    if not st.session_state.buffer_errors:
+        st.info("ℹ️ Danh sách lỗi đang trống. Hệ thống sẽ lưu dòng 'Không có lỗi'.")
+
+else:
+    st.error(f"❌ KẾT QUẢ: KHÔNG ĐẠT (FAIL) - Cần tạo phiếu NCR")
+    st.write(f"- Lỗi Nặng: {total_major} (Giới hạn: {aql_details.get('standard', {}).get('ac_major', 0)})")
+    st.write(f"- Lỗi Nhẹ: {total_minor} (Giới hạn: {aql_details.get('standard', {}).get('ac_minor', 0)})")
     
-    if st.button("💾 LƯU PHIẾU NCR", type="primary", use_container_width=True):
-        if not so_phieu:
-            st.error("⚠️ Chưa nhập số đuôi NCR!")
-            st.stop()
+    save_label = "🚨 LƯU & TẠO PHIẾU NCR (Fail)"
+    save_type = "primary"
+    final_status = get_initial_status(REQUIRED_DEPT)
+    final_ncr_num = so_phieu # Use input NCR number
+
+# Nút Lưu logic kép
+if st.button(save_label, type=save_type, use_container_width=True):
+    if inspection_result == 'Fail' and not final_ncr_num:
+         st.error("⚠️ Vui lòng nhập Số đuôi NCR để tạo phiếu!")
+         st.stop()
+         
+    try:
+        with st.spinner("Đang lưu dữ liệu..."):
+            hinh_anh_links = ""
+            if uploaded_images:
+                with st.spinner("Đang tải ảnh lên Cloud..."):
+                    hinh_anh_links = upload_images_to_cloud(uploaded_images, final_ncr_num if final_ncr_num else "PASS_INSPECTION")
             
-        try:
-            with st.spinner("Đang xử lý..."):
-                hinh_anh_links = ""
-                if uploaded_images:
-                    with st.spinner("Đang tải ảnh lên Cloud..."):
-                        hinh_anh_links = upload_images_to_cloud(uploaded_images, so_phieu)
+            sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+            ws = sh.worksheet("NCR_DATA")
+            now = get_now_vn_str()
+            
+            # Chuẩn bị list lỗi để lưu
+            errors_to_save = st.session_state.buffer_errors
+            
+            # Nếu Pass và không có lỗi, tạo 1 dòng dummy
+            if inspection_result == 'Pass' and not errors_to_save:
+                errors_to_save = [{
+                    "ten_loi": "Không có lỗi",
+                    "vi_tri": "",
+                    "muc_do": "",
+                    "sl_loi": 0
+                }]
+            
+            success_count = 0
+            for err in errors_to_save:
+                data_to_save = {
+                    'ngay_lap': now,
+                    'so_phieu_ncr': final_ncr_num, # Empty if Pass
+                    'so_lan': so_lan,
+                    'hop_dong': hop_dong,
+                    'ma_vat_tu': ma_vt,
+                    'ten_sp': ten_sp,
+                    'phan_loai': phan_loai,
+                    'nguon_goc': nguon_goc,
+                    'ten_loi': err['ten_loi'],
+                    'vi_tri_loi': err['vi_tri'],
+                    'so_luong_loi': err['sl_loi'],
+                    'so_luong_kiem': sl_kiem,
+                    'muc_do': err['muc_do'],
+                    'mo_ta_loi': mo_ta_loi,
+                    'so_luong_lo_hang': sl_lo,
+                    'nguoi_lap_phieu': nguoi_lap,
+                    'noi_gay_loi': nguon_goc,
+                    'trang_thai': final_status, # "Hoàn thành" if Pass
+                    'thoi_gian_cap_nhat': now,
+                    'hinh_anh': hinh_anh_links,
+                    'don_vi_tinh': don_vi_tinh,
+                    'ket_qua_kiem_tra': inspection_result, # Pass/Fail
+                    # --- SPECIAL INSPECTION FIELDS ---
+                    'spec_size': spec_size,
+                    'tol_size': tol_size,
+                    'meas_size': meas_size,
+                    'spec_weight': spec_weight,
+                    'tol_weight': tol_weight,
+                    'meas_weight': meas_weight,
+                    'check_barcode': check_barcode,
+                    'check_weight_box': check_weight_box,
+                    'check_print': check_print,
+                    'check_color': check_color,
+                    'check_other': check_other
+                }
+                if smart_append_ncr(ws, data_to_save):
+                    success_count += 1
+            
+            if success_count > 0:
+                st.success(f"✅ Đã lưu thành công! (Kết quả: {inspection_result})")
+                st.balloons()
+                st.session_state.buffer_errors = []
+                st.session_state.header_locked = False
+                # Optional: Rerun to clear form
+                # st.rerun()
+            else:
+                st.warning("⚠️ Có lỗi khi lưu dữ liệu.")
                 
-                sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
-                ws = sh.worksheet("NCR_DATA")
-                now = get_now_vn_str()
-                
-                success_count = 0
-                for err in st.session_state.buffer_errors:
-                    data_to_save = {
-                        'ngay_lap': now,
-                        'so_phieu_ncr': so_phieu,
-                        'so_lan': so_lan, # NEW
-                        'hop_dong': hop_dong,
-                        'ma_vat_tu': ma_vt,
-                        'ten_sp': ten_sp,
-                        'phan_loai': phan_loai,
-                        'nguon_goc': nguon_goc,
-                        'ten_loi': err['ten_loi'],
-                        'vi_tri_loi': err['vi_tri'],
-                        'so_luong_loi': err['sl_loi'],
-                        'so_luong_kiem': sl_kiem,
-                        'muc_do': err['muc_do'],
-                        'mo_ta_loi': mo_ta_loi,
-                        'so_luong_lo_hang': sl_lo,
-                        'nguoi_lap_phieu': nguoi_lap,
-                        'noi_gay_loi': nguon_goc,
-                        'trang_thai': get_initial_status(REQUIRED_DEPT),
-                        'thoi_gian_cap_nhat': now,
-                        'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': don_vi_tinh, # From Header
-                        # --- SPECIAL INSPECTION FIELDS ---
-                        'spec_size': spec_size,
-                        'tol_size': tol_size,
-                        'meas_size': meas_size,
-                        'spec_weight': spec_weight,
-                        'tol_weight': tol_weight,
-                        'meas_weight': meas_weight,
-                        'check_barcode': check_barcode,
-                        'check_weight_box': check_weight_box,
-                        'check_print': check_print,
-                        'check_color': check_color,
-                        'check_other': check_other
-                    }
-                    if smart_append_ncr(ws, data_to_save):
-                        success_count += 1
-                
-                if success_count == len(st.session_state.buffer_errors):
-                    st.success(f"✅ Đã lưu thành công {success_count} dòng lỗi!")
-                    st.balloons()
-                    st.session_state.buffer_errors = []
-                    st.session_state.header_locked = False
-                else:
-                    st.warning(f"⚠️ Chỉ lưu được {success_count}/{len(st.session_state.buffer_errors)} dòng.")
-        except Exception as e:
-            st.error(f"❌ Lỗi hệ thống: {e}")
+    except Exception as e:
+        st.error(f"❌ Lỗi hệ thống: {e}")

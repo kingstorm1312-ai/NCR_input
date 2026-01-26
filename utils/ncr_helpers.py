@@ -153,7 +153,9 @@ ROLE_TO_APPROVER_COLUMN = {
     'truong_bp': 'nguoi_duyet_2',
     'qc_manager': 'nguoi_duyet_3',
     'director': 'nguoi_duyet_4',
-    'bgd_tan_phu': 'nguoi_duyet_5'
+    'bgd_tan_phu': 'nguoi_duyet_5',
+    # --- INSPECTION FIELDS ---
+    'ket_qua_kiem_tra': 'ket_qua_kiem_tra'
 }
 
 ROLE_TO_STATUS = {
