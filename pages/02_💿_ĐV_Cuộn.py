@@ -19,6 +19,8 @@ from utils.ncr_helpers import (
     LIST_DON_VI_TINH,
     get_initial_status
 )
+from utils.config import NCR_DEPARTMENT_PREFIXES
+
 
 # --- CẤU HÌNH TRANG ---
 REQUIRED_DEPT = 'dv_cuon'
@@ -111,7 +113,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     with c1:
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
     with c2:
-        dept_prefix = "NPLDV"
+        dept_prefix = NCR_DEPARTMENT_PREFIXES["DV_CUON"]
         current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
         so_phieu = ""

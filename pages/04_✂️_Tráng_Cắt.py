@@ -19,6 +19,9 @@ from utils.ncr_helpers import (
     LIST_DON_VI_TINH,
     get_initial_status
 )
+from utils.config import NCR_DEPARTMENT_PREFIXES
+
+
 
 # --- CẤU HÌNH TRANG ---
 REQUIRED_DEPT = 'trang_cat'
@@ -112,14 +115,16 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         # Toggle Tráng / Cắt
         phan_loai = st.radio("Phân loại:", ["Tráng", "Cắt"], horizontal=True, key="phan_loai_radio", disabled=disable_hd)
         
-        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
-    with c2:
-        dept_prefix = "X2-TR" if phan_loai == "Tráng" else "X2-CA"
+        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)        
+        # Dept Prefix logic
+        dept_prefix = NCR_DEPARTMENT_PREFIXES["TRANG"] if phan_loai == "Tráng" else NCR_DEPARTMENT_PREFIXES["CAT"]
         current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
         so_phieu = ""
         if ncr_suffix:
             so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
+    with c2:
+        if so_phieu:
             st.caption(f"👉 Mã phiếu: **{so_phieu}**")
 
     # R2

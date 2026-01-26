@@ -20,6 +20,8 @@ from utils.ncr_helpers import (
     get_initial_status
 )
 from utils.aql_manager import get_aql_standard, evaluate_lot_quality
+from utils.config import NCR_DEPARTMENT_PREFIXES
+
 
 # --- CẤU HÌNH TRANG ---
 REQUIRED_DEPT = 'may_i'
@@ -369,7 +371,7 @@ else:
     st.markdown("#### 📝 Thông tin NCR bổ sung")
     
     # NCR Number Input (Only for Fail)
-    dept_prefix = "I'" # Mã bộ phận May I
+    dept_prefix = NCR_DEPARTMENT_PREFIXES["MAY_I"] # Mã bộ phận May I
     curr_month = get_now_vn().strftime("%m")
     c_ncr1, c_ncr2 = st.columns([1, 2])
     ncr_suffix = c_ncr1.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối của phiếu", max_chars=3)

@@ -19,6 +19,8 @@ from utils.ncr_helpers import (
     LIST_DON_VI_TINH,
     get_initial_status
 )
+from utils.config import NCR_DEPARTMENT_PREFIXES
+
 
 # --- CẤU HÌNH TRANG ---
 REQUIRED_DEPT = 'in_d'
@@ -112,8 +114,9 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
         
         dept_prefix_base = "XG"
-        khau_in = "IN"
-        khau_sa = "SA"
+        khau_in = NCR_DEPARTMENT_PREFIXES["IN"].replace("XG-", "") # Extract specific part if needed or use full logic
+        khau_sa = NCR_DEPARTMENT_PREFIXES["SIEU_AM"].replace("XG-", "")
+
         
         # Needs to be before prefix generation
         khau_selection = st.radio("Khâu:", ["In", "Siêu Âm"], horizontal=True, key="khau_selector", disabled=disable_hd)
