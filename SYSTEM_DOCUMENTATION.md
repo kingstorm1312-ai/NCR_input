@@ -40,6 +40,14 @@ Nếu bất kỳ cấp nào từ chối, phiếu sẽ quay về trạng thái **
   - Cột `trang_thai` được cập nhật thành `da_huy`.
   - **Critical Rule:** Các phiếu `da_huy` phải bị **LOẠI BỎ HOÀN TOÀN** khỏi các báo cáo thống kê, biểu đồ và KPI. Xem như phiếu này chưa từng tồn tại về mặt sản xuất.
 
+### D. Logic Skip Level (Rút gọn quy trình)
+
+Một số bộ phận thiếu nhân sự (Trưởng BP) sẽ áp dụng quy trình rút gọn:
+
+- **Từ Trưởng Ca (`cho_truong_ca`)** -> Nhảy thẳng lên **QC Manager (`cho_qc_manager`)**.
+- **Danh sách áp dụng:** `FI`, `ĐV Cuộn`, `ĐV NPL`, `TP Đầu Vào`, và các xưởng `May` (I, P2, N4, A2).
+- **Cấu hình:** Được định nghĩa trong `utils/ncr_helpers.py` biến `DEPARTMENTS_SKIP_BP`.
+
 ## 4. Sub-Process: Corrective Action (Hành động khắc phục)
 
 QC Manager hoặc Director có thể giao task khắc phục cho bộ phận khác:

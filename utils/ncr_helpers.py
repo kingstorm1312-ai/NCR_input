@@ -44,6 +44,38 @@ STATUS_FLOW = {
     'hoan_thanh': 'hoan_thanh'
 }
 
+# --- SKIP LEVEL CONFIGURATION ---
+# Các bộ phận này sẽ bỏ qua bước duyệt của Trưởng Bộ Phận (truong_bp)
+# Từ 'cho_truong_ca' -> nhảy thẳng lên 'cho_qc_manager'
+DEPARTMENTS_SKIP_BP = [
+    'fi', 
+    'dv_cuon', 
+    'dv_npl', 
+    'may_i', 
+    'may_p2', 
+    'may_n4', 
+    'may_a2', 
+    'tp_dau_vao'
+]
+
+def get_next_status(current_status, department_code):
+    """
+    Xác định trạng thái tiếp theo dựa trên cấu hình bộ phận.
+    """
+    current_status = str(current_status).strip()
+    dept = str(department_code).strip().lower()
+    
+    # Logic đặc biệt: Trưởng ca duyệt
+    if current_status == 'cho_truong_ca':
+        # Nếu bộ phận thuộc danh sách Skip -> Lên thẳng QC Manager
+        if dept in DEPARTMENTS_SKIP_BP:
+            return 'cho_qc_manager'
+        # Ngược lại -> Lên Trưởng BP như thường
+        return 'cho_truong_bp'
+        
+    # Các trường hợp khác tuân theo Flow chuẩn
+    return STATUS_FLOW.get(current_status, 'hoan_thanh')
+
 # Rejection escalation mapping
 REJECT_ESCALATION = {
     'cho_truong_ca': 'draft',

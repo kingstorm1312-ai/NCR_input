@@ -350,6 +350,11 @@ else:
              if has_dept_page:
                  if st.button(f"📥 Nhập Liệu ({dept_code})", use_container_width=True):
                      st.switch_page(DEPARTMENT_PAGES[dept_code])
+        
+        # Admin Special Button
+        if role == 'admin':
+            if st.button("⚙️ Quản lý User (Admin)", use_container_width=True):
+                st.switch_page("pages/98_⚙️_Quản_Lý_User.py")
 
     # --- VIEW 2: TRƯỞNG CA & TRƯỞNG BP ---
     elif role in ['truong_ca', 'truong_bp']:

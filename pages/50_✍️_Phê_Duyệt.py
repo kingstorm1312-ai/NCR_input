@@ -17,7 +17,8 @@ from utils.ncr_helpers import (
     ROLE_TO_STATUS,
     STATUS_FLOW,
     REJECT_ESCALATION,
-    init_gspread
+    init_gspread,
+    get_next_status
 )
 
 # --- PAGE SETUP ---
@@ -57,6 +58,7 @@ if user_role not in allowed_roles:
     st.stop()
 
 # --- GOOGLE SHEETS CONNECTION ---
+gc = init_gspread()
 
 # --- FLASH MESSAGE CHECK (Must be early) ---
 if 'flash_msg' in st.session_state and st.session_state.flash_msg:
@@ -71,8 +73,6 @@ if 'flash_msg' in st.session_state and st.session_state.flash_msg:
         st.warning(content)
     # Clear after showing
     st.session_state.flash_msg = None
-
-gc = init_gspread()
 
 # --- HEADER ---
 st.title("✍️ Phê Duyệt NCR")
@@ -144,11 +144,13 @@ else:
     
     # --- RENDER TICKETS ---
     for _, row in df_grouped.iterrows():
-        so_phieu = row['so_phieu']
-        trang_thai = row['trang_thai']
-        ngay_lap = row['ngay_lap']
-        nguoi_lap = row['nguoi_lap_phieu']
-        tong_loi = row['sl_loi']
+        # EXTRACT DATA SAFELY
+        so_phieu = row.get('so_phieu', 'Unknown')
+        trang_thai = row.get('trang_thai', 'Unknown')
+        ngay_lap = row.get('ngay_lap', 'N/A')
+        # Handle nguoi_lap_phieu explicitly
+        nguoi_lap = row.get('nguoi_lap_phieu', 'N/A')
+        tong_loi = row.get('sl_loi', 0)
         
         status_name = get_status_display_name(trang_thai)
         expander_label = f"📋 {so_phieu} | {status_name} | 👤 {nguoi_lap} | ⚠️ {tong_loi} lỗi"
@@ -160,7 +162,7 @@ else:
                 st.write(f"📅 **Ngày tạo:** {ngay_lap}")
             with col2:
                 if 'bo_phan' in row:
-                    st.write(f"🏢 **Bộ phận:** {row['bo_phan'].upper()}")
+                    st.write(f"🏢 **Bộ phận:** {str(row['bo_phan']).upper()}")
             
             # Display Note/Message (from ly_do_tu_choi)
             if 'ly_do_tu_choi' in row and row['ly_do_tu_choi']:
@@ -174,10 +176,7 @@ else:
                 st.markdown("#### 📷 Hình ảnh minh họa")
                 hinh_anh_val = row.get('hinh_anh', "")
                 if pd.notna(hinh_anh_val) and str(hinh_anh_val).strip():
-                    # Robust URL extraction using Regex
-                    # Finds http/https links, ignores surrounding text/newlines
                     img_list = re.findall(r'(https?://[^\s]+)', str(hinh_anh_val))
-                    
                     if img_list:
                         # Display images in a grid
                         cols_per_row = 3
@@ -188,8 +187,6 @@ else:
                                     img_url = img_list[i+j]
                                     img_cols[j].image(img_url, use_container_width=True)
                                     img_cols[j].link_button("🔍 Phóng to", img_url, use_container_width=True)
-                        
-                        # Add direct links
                         st.markdown("**🔗 Link ảnh trực tiếp:**")
                         for idx, url in enumerate(img_list):
                             st.markdown(f"- [Chi tiết ảnh {idx+1}]({url})")
@@ -328,8 +325,8 @@ else:
                     help="Bắt buộc nhập trước khi phê duyệt"
                 )
             
-            # Logic for NEXT STATUS based on Flow
-            next_status = STATUS_FLOW.get(trang_thai, 'hoan_thanh')
+            # Logic for NEXT STATUS based on Flow (Dynamic)
+            next_status = get_next_status(trang_thai, row.get('bo_phan', ''))
             
             # --- START QC MANAGER FLEXIBLE ROUTING ---
             director_assignee = None
@@ -343,244 +340,112 @@ else:
                     horizontal=False
                 )
                 
-                
                 target_role_key = 'director'
                 target_label = "Giám đốc"
                 
                 if routing_option == "Chuyển Giám đốc (Director)":
-                    next_status = "cho_giam_doc"
-                    target_role_key = 'director'
-                    target_label = "Giám đốc"
+                   next_status = 'cho_giam_doc'
+                   target_role_key = 'director'
+                   target_label = "Giám đốc"
+                   
                 elif routing_option == "Chuyển BGD Tân Phú":
-                    next_status = "cho_bgd_tan_phu"
-                    target_role_key = 'bgd_tan_phu'
-                    target_label = "BGD Tân Phú"
-                else:
-                    # Case Complete Immediately
-                    next_status = "hoan_thanh"
-                    target_role_key = None
-                    target_label = None
-
-                # Fetch Potential Assignees based on selected route
-                from utils.ncr_helpers import get_all_users
-                all_users = get_all_users()
-                assignees = [u['full_name'] for u in all_users if str(u['role']).lower() == target_role_key]
+                   next_status = 'cho_bgd_tan_phu'
+                   target_role_key = 'bgd_tan_phu'
+                   target_label = "BGD Tân Phú"
+                   
+                elif routing_option == "✅ Hoàn thành ngay (Kết thúc)":
+                   next_status = 'hoan_thanh'
                 
-                director_assignee = st.selectbox(
-                    f"Chọn {target_label} cụ thể (Tùy chọn):",
-                    [""] + assignees,
-                    key=f"dir_assign_{so_phieu}",
-                    help=f"Chọn nếu muốn chỉ định đích danh {target_label} nhân xử lý"
-                )
+                # Dynamic Director Assignment (Only if sending to Director)
+                if next_status == 'cho_giam_doc':
+                    directors = {
+                        "director": "Giám Đốc (Mặc định)",
+                        "giam_doc_1": "Giám Đốc 1", # Add real users if needed
+                        "giam_doc_2": "Giám Đốc 2"
+                    }
+                    # For now just informational
+                    # st.info(f"Phiếu sẽ được chuyển đến: {target_label}")
+            # --- END QC MANAGER FLEXIBLE ROUTING ---
+
+            # --- ACTION BUTTONS ---
+            st.write("")
+            col_b1, col_b2 = st.columns(2)
             
-            # --- DIRECTOR ROUTING ---
-            if selected_role == 'director':
-                st.write("---")
-                st.markdown("### 🔀 Điều hướng phê duyệt")
-                dir_routing = st.radio(
-                    "Tùy chọn xử lý:",
-                    ["Chuyển BGD Tân Phú (Default)", "✅ Hoàn thành ngay (Kết thúc)"],
-                    key=f"dir_routing_{so_phieu}",
-                    horizontal=True
-                )
+            with col_b1:
+                confirm_label = "✅ PHÊ DUYỆT"
+                if selected_role == 'qc_manager' and next_status == 'hoan_thanh':
+                     confirm_label = "✅ KẾT THÚC PHIẾU"
                 
-                if dir_routing == "✅ Hoàn thành ngay (Kết thúc)":
-                    next_status = "hoan_thanh"
-                else:
-                    next_status = "cho_bgd_tan_phu"
-            # --- END ROUTING ---
-
-            # Logic for REJECT STATUS based on Escalation
-            reject_status = REJECT_ESCALATION.get(trang_thai, 'draft')
-            
-            # Special Logic for Corrective Action Acceptance
-            is_awaiting_kp_confirm = str(trang_thai).startswith("xac_nhan_kp_")
-            
-            if is_awaiting_kp_confirm:
-                st.markdown("### 🔍 Xác nhận Hành động khắc phục")
-                st.write("Người nhận đã gửi phản hồi. Bạn có chấp nhận kết quả này không?")
-                if st.button("✅ Chấp nhận & Quay lại xét duyệt", key=f"accept_kp_{so_phieu}", type="primary", use_container_width=True):
-                    with st.spinner("Đang xác nhận..."):
-                        from utils.ncr_helpers import accept_corrective_action
-                        success, message = accept_corrective_action(gc, so_phieu, selected_role)
-                        if success:
-                            st.success(message)
-                            st.rerun()
-                        else:
-                            st.error(message)
-                st.divider()
-
-            col_approve, col_reject = st.columns(2)
-            
-            # Additional Action: Assign Corrective Action
-            can_assign_kp = (selected_role == 'qc_manager' and trang_thai == 'cho_qc_manager') or \
-                           (selected_role == 'director' and trang_thai == 'cho_giam_doc')
-            
-            if can_assign_kp:
-                with st.expander("🛠️ Giao hành động khắc phục (Corrective Action)", expanded=False):
-                    assign_to = 'truong_bp'
-                    # Default Labels
-                    assign_labels = {'truong_bp': 'Trưởng bộ phận', 'qc_manager': 'QC Manager', 'cross_dept': 'Bộ phận khác'}
-                    
-                    if selected_role == 'director':
-                        assign_options = ['truong_bp', 'qc_manager']
-                        assign_to = st.radio(
-                            "Giao cho:", 
-                            assign_options, 
-                            format_func=lambda x: assign_labels.get(x, x),
-                            horizontal=True, 
-                            key=f"assign_to_{so_phieu}"
-                        )
-                    
-                    # Cross-Dept Logic (Director already has flexibility, adding for QC Manager too if needed or just generic)
-                    # For QC Manager, default is truong_bp. Let's add Cross-Dept option.
-                    target_department = None
-                    is_cross_dept = False
-                    
-                    if selected_role == 'qc_manager':
-                         is_cross_dept = st.checkbox("Giao bộ phận khác / Cross-Department?", key=f"is_cross_{so_phieu}")
-                    
-                    if is_cross_dept:
-                        dept_list = [
-                            "May A2", "May P2", "May N4", "May I",
-                            "FI", "Tráng Cắt", 
-                            "TP Đầu Vào", "DV Cuộn", "DV NPL", 
-                            "In Xưởng D",
-                            "Kho", "QC", "Bảo Trì", "Nhân Sự", "Kế Hoạch", "Purchase", "Khác"
-                        ]
-                        target_department = st.selectbox("Chọn bộ phận chịu trách nhiệm:", dept_list, key=f"target_dept_{so_phieu}")
-
-                        # Fetch Users for Specific Assignment
-                        target_person = None
-                        from utils.ncr_helpers import get_all_users
-                        all_users = get_all_users()
+                if st.button(confirm_label, key=f"btn_approve_{so_phieu}", type="primary", use_container_width=True):
+                    # Validation
+                    if selected_role == 'truong_bp' and not str(bp_solution).strip():
+                        st.error("⚠️ Vui lòng nhập 'Biện pháp xử lý tức thời'!")
+                    elif selected_role == 'qc_manager' and not str(qc_solution).strip():
+                        st.error("⚠️ Vui lòng nhập 'Hướng giải quyết'!")
+                    elif selected_role == 'director' and not str(director_solution).strip():
+                        st.error("⚠️ Vui lòng nhập 'Hướng xử lý'!")
+                    else:
+                        # Prepare data to update
+                        updates = {}
+                        if bp_solution: updates['bien_phap_truong_bp'] = bp_solution
+                        if qc_solution: updates['huong_giai_quyet'] = qc_solution
+                        if director_solution: updates['huong_xu_ly_gd'] = director_solution
                         
-                        # Filter Logic: Role = 'truong_bp' AND Department matches
-                        dept_key = str(target_department).lower().strip()
-                        def match_dept(u_dept, target):
-                            u = str(u_dept).lower().strip().replace('_', ' ')
-                            t = str(target).lower().strip().replace('_', ' ')
-                            return t == u or t in u or u in t 
-                            
-                        potential_assignees = [
-                            u['full_name'] for u in all_users 
-                            if str(u.get('role')).lower() == 'truong_bp' and match_dept(u.get('department'), dept_key)
-                        ]
+                        # Add approver timestamp/user
+                        approver_col = ROLE_TO_STATUS.get(selected_role, 'unknown') # map to status? No
+                        # better mapping in helper: ROLE_TO_APPROVER_COLUMN
                         
-                        if potential_assignees:
-                            target_person_sel = st.selectbox(
-                                "Người nhận cụ thể (Tùy chọn):",
-                                ["-- Tất cả trưởng bộ phận --"] + sorted(potential_assignees),
-                                key=f"target_person_{so_phieu}"
-                            )
-                            if target_person_sel != "-- Tất cả trưởng bộ phận --":
-                                target_person = target_person_sel
-                        else:
-                            st.caption(f"⚠️ Không tìm thấy trưởng bộ phận nào cho '{target_department}'. Sẽ giao chung cho bộ phận.")
-
-                    kp_msg = st.text_area("Yêu cầu cụ thể:", key=f"kp_msg_{so_phieu}", placeholder="Nhập yêu cầu khắc phục...")
-                    kp_deadline = st.date_input("Hạn chót:", key=f"kp_dl_{so_phieu}")
-                    
-                    if st.button("🚀 Gửi yêu cầu khắc phục", key=f"send_kp_{so_phieu}", use_container_width=True):
-                        if not kp_msg.strip():
-                            st.error("Vui lòng nhập nội dung yêu cầu!")
-                        else:
-                            with st.spinner("Đang giao task..."):
-                                from utils.ncr_helpers import assign_corrective_action
-                                success, message = assign_corrective_action(
-                                    gc, so_phieu, selected_role, assign_to, kp_msg, kp_deadline, target_department, target_person
-                                )
-                                if success:
-                                    st.success(message)
-                                    st.rerun()
-                                else:
-                                    st.error(message)
-                st.write("")
-            
-            with col_approve:
-                approve_label = "✅ PHÊ DUYỆT" if selected_role != 'bgd_tan_phu' else "✅ HOÀN TẤT PHIẾU"
-                if st.button(approve_label, key=f"approve_{so_phieu}", type="primary", use_container_width=True):
-                    # Validation cho các role cần nhập solution
-                    validation_failed = False
-                    
-                    if selected_role == 'truong_bp' and (not bp_solution or not bp_solution.strip()):
-                        st.error("⚠️ Vui lòng nhập biện pháp xử lý tức thời!")
-                        validation_failed = True
-                    
-                    if selected_role == 'qc_manager' and (not qc_solution or not qc_solution.strip()):
-                        st.error("⚠️ Vui lòng nhập hướng giải quyết!")
-                        validation_failed = True
-                    
-                    if selected_role == 'director' and (not director_solution or not director_solution.strip()):
-                        st.error("⚠️ Vui lòng nhập hướng xử lý!")
-                        validation_failed = True
-                    
-                    if not validation_failed:
+                        # Execute Update
                         with st.spinner("Đang xử lý..."):
-                            success, message = update_ncr_status(
-                                gc=gc,
-                                so_phieu=so_phieu,
-                                new_status=next_status,
-                                approver_name=user_name,
-                                approver_role=selected_role,
-                                solution=qc_solution,
-                                bp_solution=bp_solution,
-                                director_solution=director_solution,
-                                assignee=director_assignee
+                            success, msg = update_ncr_status(
+                                gc, 
+                                so_phieu, 
+                                next_status, 
+                                user_name, 
+                                role=selected_role,
+                                additional_data=updates
                             )
-                            
                             if success:
-                                st.cache_data.clear() # Force clear cache to load fresh Data
-                                st.session_state.flash_msg = {
-                                    'type': 'success',
-                                    'content': f"✅ {message} -> {get_status_display_name(next_status)}\n\nDữ liệu đang được cập nhật..."
-                                }
+                                st.session_state.flash_msg = {'type': 'success', 'content': f"Đã phê duyệt phiếu {so_phieu} thành công!"}
+                                st.cache_data.clear()
                                 st.rerun()
                             else:
-                                st.error(f"❌ {message}")
+                                st.error(f"Lỗi: {msg}")
+
+            with col_b2:
+                if st.button("❌ TỪ CHỐI / TRẢ VỀ", key=f"btn_reject_{so_phieu}", type="secondary", use_container_width=True):
+                    # Ask for reason (Simplest way: use the text area if available or new dialog)
+                    # For rejection, we usually require a reason.
+                    # Since we can't pop up input easily in Streamlit loop without rerun, 
+                    # we demand the user to fill the 'Solution' box with the rejection reason OR add a specific input.
+                    
+                    # Better UX: Expander for rejection
+                    st.session_state[f"show_reject_{so_phieu}"] = True
             
-            with col_reject:
-                if st.button(
-                    "❌ TỪ CHỐI",
-                    key=f"reject_btn_{so_phieu}",
-                    use_container_width=True
-                ):
-                    st.session_state[f'show_reject_{so_phieu}'] = True
-            
-            # Reject reason input (conditional)
-            if st.session_state.get(f'show_reject_{so_phieu}', False):
-                reject_reason = st.text_area(
-                    "Lý do từ chối (Ghi chú):",
-                    key=f"reject_reason_{so_phieu}",
-                    placeholder="Nhập lý do..."
-                )
-                
-                col_confirm, col_cancel = st.columns(2)
-                with col_confirm:
-                    if st.button("Xác nhận từ chối", key=f"confirm_reject_{so_phieu}", type="secondary"):
-                        if not reject_reason or reject_reason.strip() == '':
-                            st.warning("Vui lòng nhập lý do từ chối!")
+            if st.session_state.get(f"show_reject_{so_phieu}", False):
+                with st.form(key=f"reject_form_{so_phieu}"):
+                    reject_reason = st.text_area("Lý do từ chối/trả về:", placeholder="Nhập lý do...")
+                    submit_reject = st.form_submit_button("Xác nhận Từ chối")
+                    
+                    if submit_reject:
+                        if not reject_reason.strip():
+                            st.error("Vui lòng nhập lý do từ chối!")
                         else:
-                            with st.spinner("Đang xử lý..."):
-                                success, message = update_ncr_status(
-                                    gc=gc,
-                                    so_phieu=so_phieu,
-                                    new_status=reject_status, # Escalation status
-                                    approver_name=user_name,
-                                    approver_role=selected_role,
-                                    reject_reason=reject_reason
+                            # Logic reject
+                            prev_status = REJECT_ESCALATION.get(trang_thai, 'draft')
+                            
+                            with st.spinner("Đang trả phiếu về..."):
+                                success, msg = update_ncr_status(
+                                    gc,
+                                    so_phieu,
+                                    prev_status,
+                                    user_name,
+                                    role=selected_role,
+                                    additional_data={'ly_do_tu_choi': reject_reason}
                                 )
-                                
                                 if success:
+                                    st.session_state.flash_msg = {'type': 'warning', 'content': f"Đã trả phiếu {so_phieu} về {prev_status}."}
                                     st.cache_data.clear()
-                                    st.session_state.flash_msg = {
-                                        'type': 'warning',
-                                        'content': f"❌ {message} -> {get_status_display_name(reject_status)}\n\nDữ liệu đang được cập nhật..."
-                                    }
                                     st.rerun()
                                 else:
-                                    st.error(f"❌ {message}")
-                with col_cancel:
-                    if st.button("Hủy", key=f"cancel_reject_{so_phieu}"):
-                         st.session_state[f'show_reject_{so_phieu}'] = False
-                         st.rerun()
+                                    st.error(msg)
