@@ -148,7 +148,7 @@ with st.expander("📝 Thông tin chi tiết (SP, HĐ, Nguồn gốc...)", expan
     with col_new1:
         so_po = st.text_input("Số PO", placeholder="VD: 4500123456", disabled=disable_hd)
     with col_new2:
-        don_vi_kiem = st.text_input("Đơn vị kiểm", value=user_info.get("name"), disabled=disable_hd, help="Mặc định: Tên user đang đăng nhập")
+        don_vi_kiem = st.text_input("Đơn vị kiểm", value="", placeholder="Nhập đơn vị kiểm...", disabled=disable_hd)
     with col_new3:
         # Khách hàng auto từ Hợp đồng (3 ký tự cuối)
         # Sẽ xử lý logic hiển thị
