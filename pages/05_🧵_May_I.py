@@ -211,87 +211,87 @@ st.divider()
 st.subheader("Chi tiết lỗi")
 
 # Lock Toggle Check
-    if "inp_ten_loi" not in st.session_state: st.session_state["inp_ten_loi"] = "-- Chọn --"
-    if "inp_ten_loi_moi" not in st.session_state: st.session_state["inp_ten_loi_moi"] = ""
-    
-    # Toggle Input Mode
-    mode_input = st.radio("Chế độ nhập:", ["Chọn từ danh sách", "Nhập mới"], horizontal=True, key="radio_mode")
-    
-    c_def1, c_def2 = st.columns([2, 1])
-    
-    if mode_input == "Chọn từ danh sách":
-        c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
+if "inp_ten_loi" not in st.session_state: st.session_state["inp_ten_loi"] = "-- Chọn --"
+if "inp_ten_loi_moi" not in st.session_state: st.session_state["inp_ten_loi_moi"] = ""
+
+# Toggle Input Mode
+mode_input = st.radio("Chế độ nhập:", ["Chọn từ danh sách", "Nhập mới"], horizontal=True, key="radio_mode")
+
+c_def1, c_def2 = st.columns([2, 1])
+
+if mode_input == "Chọn từ danh sách":
+    c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
+else:
+    c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
+
+# SL & DVT
+with c_def2:
+    sl_loi_input = st.number_input("SL Lỗi", min_value=1.0, step=0.1, format="%.1f", key="inp_sl_loi")
+
+c_def3, c_def4 = st.columns(2)
+with c_def3:
+    dvt_input = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="inp_dvt")
+
+# Position & Severity
+vi_tri_sel = c_def4.selectbox("Vị trí", [""] + LIST_VI_TRI, key="inp_vi_tri_sel")
+
+# Allow manual position if select is empty or user wants strict control? 
+# Current flow in FI uses text input if select is empty. adopting that.
+vi_tri_txt = ""
+if not vi_tri_sel:
+    vi_tri_txt = st.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
+
+md_opts = ["Nhẹ", "Nặng", "Nghiêm trọng"]
+st.pills("Mức độ", md_opts, default="Nhẹ", key="inp_muc_do")
+
+def add_defect_callback():
+    mode = st.session_state.get("radio_mode", "Chọn từ danh sách")
+    final_name = ""
+    if mode == "Chọn từ danh sách":
+        s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
+        if s_loi == "-- Chọn --":
+            st.session_state["add_err_msg"] = "⚠️ Chưa chọn tên lỗi!"
+            return
+        final_name = s_loi
     else:
-        c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
-    
-    # SL & DVT
-    with c_def2:
-        sl_loi_input = st.number_input("SL Lỗi", min_value=1.0, step=0.1, format="%.1f", key="inp_sl_loi")
-    
-    c_def3, c_def4 = st.columns(2)
-    with c_def3:
-        dvt_input = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="inp_dvt")
-    
-    # Position & Severity
-    vi_tri_sel = c_def4.selectbox("Vị trí", [""] + LIST_VI_TRI, key="inp_vi_tri_sel")
-    
-    # Allow manual position if select is empty or user wants strict control? 
-    # Current flow in FI uses text input if select is empty. adopting that.
-    vi_tri_txt = ""
-    if not vi_tri_sel:
-        vi_tri_txt = st.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
-
-    md_opts = ["Nhẹ", "Nặng", "Nghiêm trọng"]
-    st.pills("Mức độ", md_opts, default="Nhẹ", key="inp_muc_do")
-
-    def add_defect_callback():
-        mode = st.session_state.get("radio_mode", "Chọn từ danh sách")
-        final_name = ""
-        if mode == "Chọn từ danh sách":
-            s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
-            if s_loi == "-- Chọn --":
-                st.session_state["add_err_msg"] = "⚠️ Chưa chọn tên lỗi!"
-                return
-            final_name = s_loi
-        else:
-            s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
-            if not s_loi_moi:
-                st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
-                return
-            final_name = s_loi_moi
-            
-        s_qty = st.session_state.get("inp_sl_loi", 1.0)
-        s_dvt = st.session_state.get("inp_dvt", "Chiếc")
-        s_pos = st.session_state.get("inp_vi_tri_sel", "") or st.session_state.get("inp_vi_tri_txt", "").strip()
-        s_sev = st.session_state.get("inp_muc_do", "Nhẹ")
+        s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
+        if not s_loi_moi:
+            st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
+            return
+        final_name = s_loi_moi
         
-        st.session_state.buffer_errors.append({
-            "ten_loi": final_name,
-            "vi_tri": s_pos,
-            "muc_do": s_sev,
-            "sl_loi": s_qty,
-            "don_vi_tinh": s_dvt
-        })
-        st.session_state["success_msg"] = f"Đã thêm: {final_name}"
-        st.session_state["add_err_msg"] = ""
-        
-        # Reset
-        st.session_state["inp_ten_loi"] = "-- Chọn --"
-        st.session_state["inp_ten_loi_moi"] = ""
-        st.session_state["inp_sl_loi"] = 1.0
-        st.session_state["inp_vi_tri_sel"] = ""
-        st.session_state["inp_vi_tri_txt"] = ""
-        st.session_state["inp_muc_do"] = "Nhẹ"
+    s_qty = st.session_state.get("inp_sl_loi", 1.0)
+    s_dvt = st.session_state.get("inp_dvt", "Chiếc")
+    s_pos = st.session_state.get("inp_vi_tri_sel", "") or st.session_state.get("inp_vi_tri_txt", "").strip()
+    s_sev = st.session_state.get("inp_muc_do", "Nhẹ")
+    
+    st.session_state.buffer_errors.append({
+        "ten_loi": final_name,
+        "vi_tri": s_pos,
+        "muc_do": s_sev,
+        "sl_loi": s_qty,
+        "don_vi_tinh": s_dvt
+    })
+    st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+    st.session_state["add_err_msg"] = ""
+    
+    # Reset
+    st.session_state["inp_ten_loi"] = "-- Chọn --"
+    st.session_state["inp_ten_loi_moi"] = ""
+    st.session_state["inp_sl_loi"] = 1.0
+    st.session_state["inp_vi_tri_sel"] = ""
+    st.session_state["inp_vi_tri_txt"] = ""
+    st.session_state["inp_muc_do"] = "Nhẹ"
 
-    st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True, on_click=add_defect_callback)
+st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True, on_click=add_defect_callback)
 
-    if st.session_state.get("add_err_msg"):
-        st.error(st.session_state["add_err_msg"])
-        st.session_state["add_err_msg"] = "" 
-        
-    if st.session_state.get("success_msg"):
-        st.toast(st.session_state["success_msg"])
-        st.session_state["success_msg"] = ""
+if st.session_state.get("add_err_msg"):
+    st.error(st.session_state["add_err_msg"])
+    st.session_state["add_err_msg"] = "" 
+    
+if st.session_state.get("success_msg"):
+    st.toast(st.session_state["success_msg"])
+    st.session_state["success_msg"] = ""
 
 # === PHẦN 3: DANH SÁCH CHỜ & LƯU ===
 st.markdown("### 📋 Danh sách lỗi chờ lưu")
@@ -299,75 +299,75 @@ st.markdown("### 📋 Danh sách lỗi chờ lưu")
 if st.session_state.buffer_errors:
     # Hiển thị bảng buffer (Dùng hàm từ Utils để code gọn)
     st.session_state.buffer_errors = render_input_buffer_mobile(st.session_state.buffer_errors)
-    
-    # Nút Lưu Chính Thức
-    if st.button("💾 LƯU PHIẾU NCR", type="primary", use_container_width=True):
-        if not so_phieu:
-            st.error("⚠️ Chưa nhập số đuôi NCR!")
-            st.stop()
+
+# Nút Lưu Chính Thức
+if st.button("💾 LƯU PHIẾU NCR", type="primary", use_container_width=True):
+    if not so_phieu:
+        st.error("⚠️ Chưa nhập số đuôi NCR!")
+        st.stop()
+        
+    try:
+        with st.spinner("Đang xử lý..."):
+            # 1. Upload ảnh lên Cloudinary
+            hinh_anh_links = ""
+            if uploaded_images:
+                with st.spinner("Đang tải ảnh lên Cloud..."):
+                    hinh_anh_links = upload_images_to_cloud(uploaded_images, so_phieu)
             
-        try:
-            with st.spinner("Đang xử lý..."):
-                # 1. Upload ảnh lên Cloudinary
-                hinh_anh_links = ""
-                if uploaded_images:
-                    with st.spinner("Đang tải ảnh lên Cloud..."):
-                        hinh_anh_links = upload_images_to_cloud(uploaded_images, so_phieu)
+            # 2. Kết nối Sheet
+            sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+            ws = sh.worksheet("NCR_DATA")
+            now = get_now_vn_str()
+            
+            # 3. Duyệt qua từng lỗi trong Buffer và Lưu
+            success_count = 0
+            for err in st.session_state.buffer_errors:
+                # Tạo Dictionary dữ liệu (Key phải khớp với Header trên Sheet)
+                data_to_save = {
+                    'ngay_lap': now,
+                    'so_phieu_ncr': so_phieu,
+                    'so_lan': so_lan,
+                    'hop_dong': hop_dong,
+                    'ma_vat_tu': ma_vt,
+                    'ten_sp': ten_sp,
+                    'phan_loai': phan_loai,
+                    'nguon_goc': nguon_goc,  # Cột quan trọng
+                    'ten_loi': err['ten_loi'],
+                    'vi_tri_loi': err['vi_tri'],
+                    'so_luong_loi': err['sl_loi'],
+                    'so_luong_kiem': sl_kiem,
+                    'muc_do': err['muc_do'],
+                    'mo_ta_loi': mo_ta_loi,
+                    'so_luong_lo_hang': sl_lo,
+                    'nguoi_lap_phieu': nguoi_lap,
+                    'noi_gay_loi': nguon_goc,
+                    'trang_thai': get_initial_status(REQUIRED_DEPT),
+                    'thoi_gian_cap_nhat': now,
+                    'hinh_anh': hinh_anh_links,
+                    'don_vi_tinh': don_vi_tinh,
+                    # New Fields
+                    'so_po': so_po,
+                    'khach_hang': khach_hang,
+                    'don_vi_kiem': don_vi_kiem,
+                    'sample_size': sample_size,
+                    'aql_code': aql_code,
+                    'ac_major': ac_major,
+                    'ac_minor': ac_minor
+                }
                 
-                # 2. Kết nối Sheet
-                sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
-                ws = sh.worksheet("NCR_DATA")
-                now = get_now_vn_str()
-                
-                # 3. Duyệt qua từng lỗi trong Buffer và Lưu
-                success_count = 0
-                for err in st.session_state.buffer_errors:
-                    # Tạo Dictionary dữ liệu (Key phải khớp với Header trên Sheet)
-                    data_to_save = {
-                        'ngay_lap': now,
-                        'so_phieu_ncr': so_phieu,
-                        'so_lan': so_lan,
-                        'hop_dong': hop_dong,
-                        'ma_vat_tu': ma_vt,
-                        'ten_sp': ten_sp,
-                        'phan_loai': phan_loai,
-                        'nguon_goc': nguon_goc,  # Cột quan trọng
-                        'ten_loi': err['ten_loi'],
-                        'vi_tri_loi': err['vi_tri'],
-                        'so_luong_loi': err['sl_loi'],
-                        'so_luong_kiem': sl_kiem,
-                        'muc_do': err['muc_do'],
-                        'mo_ta_loi': mo_ta_loi,
-                        'so_luong_lo_hang': sl_lo,
-                        'nguoi_lap_phieu': nguoi_lap,
-                        'noi_gay_loi': nguon_goc,
-                        'trang_thai': get_initial_status(REQUIRED_DEPT),
-                        'thoi_gian_cap_nhat': now,
-                        'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': don_vi_tinh,
-                        # New Fields
-                        'so_po': so_po,
-                        'khach_hang': khach_hang,
-                        'don_vi_kiem': don_vi_kiem,
-                        'sample_size': sample_size,
-                        'aql_code': aql_code,
-                        'ac_major': ac_major,
-                        'ac_minor': ac_minor
-                    }
-                    
-                    # Dùng hàm lưu thông minh (không lo lệch cột)
-                    if smart_append_ncr(ws, data_to_save):
-                        success_count += 1
-                
-                if success_count == len(st.session_state.buffer_errors):
-                    st.success(f"✅ Đã lưu thành công {success_count} dòng lỗi!")
-                    st.balloons()
-                    # Xóa buffer và reset form
-                    st.session_state.buffer_errors = []
-                    st.session_state.header_locked = False
-                    # st.rerun() # Tự động reload nếu cần
-                else:
-                    st.warning(f"⚠️ Chỉ lưu được {success_count}/{len(st.session_state.buffer_errors)} dòng. Vui lòng kiểm tra lại.")
-                
-        except Exception as e:
-            st.error(f"❌ Lỗi hệ thống: {e}")
+                # Dùng hàm lưu thông minh (không lo lệch cột)
+                if smart_append_ncr(ws, data_to_save):
+                    success_count += 1
+            
+            if success_count == len(st.session_state.buffer_errors):
+                st.success(f"✅ Đã lưu thành công {success_count} dòng lỗi!")
+                st.balloons()
+                # Xóa buffer và reset form
+                st.session_state.buffer_errors = []
+                st.session_state.header_locked = False
+                # st.rerun() # Tự động reload nếu cần
+            else:
+                st.warning(f"⚠️ Chỉ lưu được {success_count}/{len(st.session_state.buffer_errors)} dòng. Vui lòng kiểm tra lại.")
+            
+    except Exception as e:
+        st.error(f"❌ Lỗi hệ thống: {e}")
