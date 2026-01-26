@@ -97,7 +97,20 @@ def generate_ncr_pdf(template_path, ticket_data, df_errors, output_filename_pref
             'y_kien_gd': ticket_data.get('huong_xu_ly_gd', ''),
             
             # Kết luận: Nếu trạng thái là Hoàn thành -> Đạt ? (Logic này tùy biến)
-            'ket_luan': "ĐẠT" if str(ticket_data.get('trang_thai', '')).lower() == 'hoan_thanh' else "CHƯA KẾT LUẬN"
+            'ket_luan': "ĐẠT" if str(ticket_data.get('trang_thai', '')).lower() == 'hoan_thanh' else "CHƯA KẾT LUẬN",
+
+            # --- SPECIAL INSPECTION (BẢNG II) ---
+            'spec_size': ticket_data.get('spec_size', ''),
+            'tol_size': ticket_data.get('tol_size', ''),
+            'meas_size': ticket_data.get('meas_size', ''),
+            'spec_weight': ticket_data.get('spec_weight', ''),
+            'tol_weight': ticket_data.get('tol_weight', ''),
+            'meas_weight': ticket_data.get('meas_weight', ''),
+            'check_barcode': ticket_data.get('check_barcode', ''),
+            'check_weight_box': ticket_data.get('check_weight_box', ''),
+            'check_print': ticket_data.get('check_print', ''),
+            'check_color': ticket_data.get('check_color', ''),
+            'check_other': ticket_data.get('check_other', '')
         })
 
         # --- TÍNH TOÁN TỔNG LỖI NẶNG / NHẸ ---
