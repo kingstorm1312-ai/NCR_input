@@ -248,7 +248,13 @@ def generate_docx(template_path, data_row):
     
     # Calculate AQL Limits on-the-fly
     try:
-        sl_lo = int(float(str(data_row.get('so_luong_lo_hang', 0) or 0)))
+        # NOTE: load_ncr_dataframe_v2 converts Sheet Headers to Internal Keys
+        # Sheet: 'so_luong_lo_hang' -> Internal: 'sl_lo_hang'
+        sl_lo_raw = data_row.get('sl_lo_hang', 0)
+        # Fallback if raw data usage
+        if not sl_lo_raw: sl_lo_raw = data_row.get('so_luong_lo_hang', 0)
+        
+        sl_lo = int(float(str(sl_lo_raw or 0)))
         aql_info = get_aql_standard(sl_lo)
         
         if aql_info:
