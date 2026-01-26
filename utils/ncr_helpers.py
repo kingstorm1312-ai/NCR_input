@@ -133,7 +133,19 @@ COLUMN_MAPPING = {
     'kp_message': 'kp_message',
     'kp_deadline': 'kp_deadline',
     'kp_response': 'kp_response',
-    'so_lan': 'so_lan'
+    'so_lan': 'so_lan',
+    # --- SPECIAL INSPECTION FIELDS ---
+    'spec_size': 'spec_size',
+    'tol_size': 'tol_size',
+    'meas_size': 'meas_size',
+    'spec_weight': 'spec_weight',
+    'tol_weight': 'tol_weight',
+    'meas_weight': 'meas_weight',
+    'check_barcode': 'check_barcode',
+    'check_weight_box': 'check_weight_box',
+    'check_print': 'check_print',
+    'check_color': 'check_color',
+    'check_other': 'check_other'
 }
 
 ROLE_TO_APPROVER_COLUMN = {

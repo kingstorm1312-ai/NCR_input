@@ -184,7 +184,7 @@ with st.expander("📊 Bảng II: Kiểm tra Cấp độ đặc biệt", expande
     with c_sz2:
         tol_size = st.text_input("Dung sai (Size)", placeholder="VD: +/- 1cm", disabled=st.session_state.header_locked)
     with c_sz3:
-        meas_size = st.text_area("Thực tế (Size)", placeholder="Nhập các giá trị đo...", height=68, disabled=st.session_state.header_locked)
+        meas_size = st.text_area("Thực tế (Size)", placeholder="VD: 20, 21, 19.5...", help="Nhập các giá trị cách nhau bằng dấu phẩy hoặc xuống dòng", height=68, disabled=st.session_state.header_locked)
 
     st.divider()
     st.markdown("#### 2. Trọng lượng (Weight)")
@@ -194,7 +194,7 @@ with st.expander("📊 Bảng II: Kiểm tra Cấp độ đặc biệt", expande
     with c_w2:
         tol_weight = st.text_input("Dung sai (Weight)", placeholder="VD: +/- 5g", disabled=st.session_state.header_locked)
     with c_w3:
-        meas_weight = st.text_area("Thực tế (Weight)", placeholder="Nhập các giá trị cân...", height=68, disabled=st.session_state.header_locked)
+        meas_weight = st.text_area("Thực tế (Weight)", placeholder="VD: 501, 499, 500...", help="Nhập các giá trị cách nhau bằng dấu phẩy hoặc xuống dòng", height=68, disabled=st.session_state.header_locked)
 
     st.divider()
     st.markdown("#### 3. Checklist & Khác")
