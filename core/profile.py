@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import List
 
 @dataclass
 class DeptProfile:
@@ -15,6 +16,10 @@ class DeptProfile:
     skip_bp: bool
     sheet_spreadsheet_id: str
     sheet_worksheet_name: str
+    
+    # New fields for flexibility
+    has_aql: bool = True
+    phan_loai_options: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         """

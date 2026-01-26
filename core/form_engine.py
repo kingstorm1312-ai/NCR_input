@@ -17,7 +17,7 @@ from utils.aql_manager import get_aql_standard, evaluate_lot_quality
 def run_inspection_page(profile: DeptProfile):
     """
     Engine chạy trang inspection/kiểm tra NCR dựa trên DeptProfile.
-    Di chuyển từ pages/05_may_i.py
+    Hỗ trợ cả các bộ phận có AQL (FI, May) và không có AQL (DV NPL).
     """
     # Require dept access
     require_dept_access(profile.code)
@@ -64,41 +64,48 @@ def run_inspection_page(profile: DeptProfile):
     # ==========================================
     st.subheader("1️⃣ Thiết lập kiểm tra")
     
-    # Row 1: SL Lô & SL Mẫu
+    # Row 1: SL Lô & SL Mẫu (Sử dụng AQL nếu có)
     c_sl1, c_sl2 = st.columns([1, 1])
     with c_sl1:
         sl_lo = st.number_input("📦 SL Lô Hàng", min_value=0, disabled=st.session_state.header_locked)
     
-    # Tính toán AQL tự động
-    aql_info = get_aql_standard(sl_lo)
-    calc_sample_size = 0
-    if aql_info:
-        calc_sample_size = aql_info['sample_size']
-    
-    with c_sl2:
-        # Logic Toggle sửa SL Mẫu
-        col_inp, col_tog = st.columns([0.8, 0.2])
-        with col_tog:
-            st.write("")
-            st.write("") 
-            is_custom = st.checkbox("🔓", value=st.session_state.custom_sample_size, help="Mở khóa để sửa SL Mẫu", key="chk_custom_sample")
-            st.session_state.custom_sample_size = is_custom
+    sl_kiem = 0
+    aql_info = None
+    if profile.has_aql:
+        # Tính toán AQL tự động
+        aql_info = get_aql_standard(sl_lo)
+        calc_sample_size = 0
+        if aql_info:
+            calc_sample_size = aql_info['sample_size']
         
-        with col_inp:
-            if st.session_state.custom_sample_size:
-                 sl_kiem = st.number_input("SL Mẫu (Tùy chỉnh)", min_value=0, value=calc_sample_size, disabled=st.session_state.header_locked)
-            else:
-                 sl_kiem = st.number_input("SL Mẫu (AQL)", value=calc_sample_size, disabled=True, help="Tự động tính theo AQL Level II")
-    
-    # Hiển thị thông tin AQL
-    if aql_info:
-        st.info(f"📊 **AQL Level II**: Mã **{aql_info['code']}** | Giới hạn: Nặng **{aql_info['ac_major']}/{aql_info['ac_major']+1}** - Nhẹ **{aql_info['ac_minor']}/{aql_info['ac_minor']+1}**", icon="ℹ️")
-    
+        with c_sl2:
+            # Logic Toggle sửa SL Mẫu
+            col_inp, col_tog = st.columns([0.8, 0.2])
+            with col_tog:
+                st.write("")
+                st.write("") 
+                is_custom = st.checkbox("🔓", value=st.session_state.custom_sample_size, help="Mở khóa để sửa SL Mẫu", key="chk_custom_sample")
+                st.session_state.custom_sample_size = is_custom
+            
+            with col_inp:
+                if st.session_state.custom_sample_size:
+                     sl_kiem = st.number_input("SL Mẫu (Tùy chỉnh)", min_value=0, value=calc_sample_size, disabled=st.session_state.header_locked)
+                else:
+                     sl_kiem = st.number_input("SL Mẫu (AQL)", value=calc_sample_size, disabled=True, help="Tự động tính theo AQL Level II")
+        
+        # Hiển thị thông tin AQL
+        if aql_info:
+            st.info(f"📊 **AQL Level II**: Mã **{aql_info['code']}** | Giới hạn: Nặng **{aql_info['ac_major']}/{aql_info['ac_major']+1}** - Nhẹ **{aql_info['ac_minor']}/{aql_info['ac_minor']+1}**", icon="ℹ️")
+    else:
+        # Nếu không dùng AQL, cho phép nhập SL Kiểm tự do
+        with c_sl2:
+            sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=st.session_state.header_locked)
+
     # Row 2: Thông tin định danh
     with st.expander("📝 Thông tin chi tiết (SP, HĐ, Nguồn gốc...)", expanded=not st.session_state.header_locked):
         disable_hd = st.session_state.header_locked
         
-        # 3 CỘT INPUT MỚI
+        # 3 CỘT INPUT MỚI (CHUNG)
         col_new1, col_new2, col_new3 = st.columns(3)
         with col_new1:
             so_po = st.text_input("Số PO", placeholder="VD: 4500123456", disabled=disable_hd)
@@ -143,9 +150,14 @@ def run_inspection_page(profile: DeptProfile):
             so_lan = st.number_input("Số lần kiểm", min_value=1, step=1, disabled=disable_hd)
             don_vi_tinh = st.selectbox("Đơn vị tính", LIST_DON_VI_TINH, disabled=disable_hd)
     
-        # Nguồn gốc (Đặc thù May: Chọn Chuyền/Tổ May)
-        nguon_goc_list = st.multiselect("Chuyền / Tổ May", LIST_NOI_MAY, disabled=disable_hd)
+        # Nguồn gốc (Sử dụng LIST_NOI_MAY chuẩn)
+        nguon_goc_list = st.multiselect("Nguồn gốc (Chuyền/Tổ/NCC)", LIST_NOI_MAY, disabled=disable_hd)
         nguon_goc = ", ".join(nguon_goc_list)
+
+        # Phan loai (nếu profile yêu cầu)
+        phan_loai = ""
+        if profile.phan_loai_options:
+            phan_loai = st.selectbox("Phân loại", profile.phan_loai_options, disabled=disable_hd)
     
         # Lock Toggle
         lock = st.checkbox("🔒 Khóa thông tin chung", value=st.session_state.header_locked)
@@ -159,33 +171,48 @@ def run_inspection_page(profile: DeptProfile):
     st.markdown("---")
     st.subheader("2️⃣ Kết quả kiểm tra")
     
-    # Tabbed Interface
-    tab_measure, tab_defects = st.tabs(["📏 Đo đạc & Checklist", "🐞 Chi tiết Lỗi"])
+    # Tabbed Interface or Single List
+    show_tabs = profile.has_measurements or profile.has_checklist
     
-    # --- TAB 1: ĐO ĐẠC & CHECKLIST ---
-    with tab_measure:
-        st.markdown("**1. Kích thước (Size)**")
-        c_sz1, c_sz2, c_sz3 = st.columns(3)
-        spec_size = c_sz1.text_input("Tiêu chuẩn (Size)", placeholder="VD: 20x30", disabled=st.session_state.header_locked)
-        tol_size = c_sz2.text_input("Dung sai (Size)", placeholder="VD: +/- 1cm", disabled=st.session_state.header_locked)
-        meas_size = c_sz3.text_area("Thực tế (Size)", placeholder="VD: 20, 21...", height=68, disabled=st.session_state.header_locked)
-    
-        st.markdown("**2. Trọng lượng (Weight)**")
-        c_w1, c_w2, c_w3 = st.columns(3)
-        spec_weight = c_w1.text_input("Tiêu chuẩn (Weight)", placeholder="VD: 500g", disabled=st.session_state.header_locked)
-        tol_weight = c_w2.text_input("Dung sai (Weight)", placeholder="VD: +/- 5g", disabled=st.session_state.header_locked)
-        meas_weight = c_w3.text_area("Thực tế (Weight)", placeholder="VD: 501, 499...", height=68, disabled=st.session_state.header_locked)
-    
-        st.markdown("**3. Checklist**")
-        c_ch1, c_ch2 = st.columns(2)
-        check_barcode = c_ch1.selectbox("Mã vạch", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
-        check_weight_box = c_ch1.selectbox("Cân thùng", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
-        check_print = c_ch2.selectbox("In ấn", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
-        check_color = c_ch2.selectbox("Màu sắc", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
-        check_other = st.text_area("Ghi chú khác", height=68, disabled=st.session_state.header_locked)
-    
-    # --- TAB 2: CHI TIẾT LỖI ---
+    # Initialize measurement/checklist vars so they are always in scope for save record
+    spec_size = tol_size = meas_size = ""
+    spec_weight = tol_weight = meas_weight = ""
+    check_barcode = check_weight_box = check_print = check_color = "N/A"
+    check_other = ""
+
+    if show_tabs:
+        tab_measure, tab_defects = st.tabs(["📏 Đo đạc & Checklist", "🐞 Chi tiết Lỗi"])
+        
+        with tab_measure:
+            if profile.has_measurements:
+                st.markdown("**1. Kích thước (Size)**")
+                c_sz1, c_sz2, c_sz3 = st.columns(3)
+                spec_size = c_sz1.text_input("Tiêu chuẩn (Size)", placeholder="VD: 20x30", disabled=st.session_state.header_locked)
+                tol_size = c_sz2.text_input("Dung sai (Size)", placeholder="VD: +/- 1cm", disabled=st.session_state.header_locked)
+                meas_size = c_sz3.text_area("Thực tế (Size)", placeholder="VD: 20, 21...", height=68, disabled=st.session_state.header_locked)
+            
+                st.markdown("**2. Trọng lượng (Weight)**")
+                c_w1, c_w2, c_w3 = st.columns(3)
+                spec_weight = c_w1.text_input("Tiêu chuẩn (Weight)", placeholder="VD: 500g", disabled=st.session_state.header_locked)
+                tol_weight = c_w2.text_input("Dung sai (Weight)", placeholder="VD: +/- 5g", disabled=st.session_state.header_locked)
+                meas_weight = c_w3.text_area("Thực tế (Weight)", placeholder="VD: 501, 499...", height=68, disabled=st.session_state.header_locked)
+            
+            if profile.has_checklist:
+                st.markdown("**3. Checklist**")
+                c_ch1, c_ch2 = st.columns(2)
+                check_barcode = c_ch1.selectbox("Mã vạch", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+                check_weight_box = c_ch1.selectbox("Cân thùng", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+                check_print = c_ch2.selectbox("In ấn", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+                check_color = c_ch2.selectbox("Màu sắc", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+                check_other = st.text_area("Ghi chú khác", height=68, disabled=st.session_state.header_locked)
+    else:
+        # Nếu không có tabs, chỉ có error list
+        tab_defects = st.container()
+
+    # --- Đóng gói logic nhập lỗi ---
     with tab_defects:
+        if not show_tabs: st.markdown("##### 🐞 Chi tiết Lỗi")
+        
         # Toggle Input Mode
         mode_input = st.radio("Chế độ nhập:", ["Chọn từ danh sách", "Nhập mới"], horizontal=True, key="radio_mode")
     
@@ -196,28 +223,21 @@ def run_inspection_page(profile: DeptProfile):
         else:
             c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
     
-        # SL Lỗi
-        sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=1.0, key="inp_sl_loi")
+        sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=0.1, format="%.1f", key="inp_sl_loi")
     
-        # Mức độ & Vị trí
         c_extra1, c_extra2 = st.columns(2)
-    
         final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
         final_md = c_extra1.pills("Mức độ", final_md_options, default="Nhẹ", key="inp_muc_do")
     
         vi_tri_sel = c_extra2.selectbox("Vị trí", [""] + LIST_VI_TRI, key="inp_vi_tri_sel")
-        vi_tri = vi_tri_sel
+        vi_tri = vi_tri_sel if vi_tri_sel else st.session_state.get("inp_vi_tri_txt", "")
     
-        vi_tri_txt = "" 
         if not vi_tri_sel: 
             vi_tri_txt = c_extra2.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
             vi_tri = vi_tri_txt
     
-        # Function to handle adding error
         def add_defect_callback():
-            # Get values from state
             mode = st.session_state.get("radio_mode", "Chọn từ danh sách")
-            
             final_name = ""
             if mode == "Chọn từ danh sách":
                 s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
@@ -231,19 +251,13 @@ def run_inspection_page(profile: DeptProfile):
                     st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
                     return
                 final_name = s_loi_moi
-    
-            # Qty
+
             s_qty = st.session_state.get("inp_sl_loi", 1.0)
-            
-            # Position
             s_pos_sel = st.session_state.get("inp_vi_tri_sel", "")
             s_pos_txt = st.session_state.get("inp_vi_tri_txt", "").strip()
             final_pos = s_pos_sel if s_pos_sel else s_pos_txt
-            
-            # Severity
             s_sev = st.session_state.get("inp_muc_do", "Nhẹ")
             
-            # Add to buffer
             st.session_state.buffer_errors.append({
                 "ten_loi": final_name,
                 "vi_tri": final_pos,
@@ -253,8 +267,6 @@ def run_inspection_page(profile: DeptProfile):
             
             st.session_state["success_msg"] = f"Đã thêm: {final_name}"
             st.session_state["add_err_msg"] = ""
-            
-            # RESET INPUTS
             st.session_state["inp_ten_loi"] = "-- Chọn --"
             st.session_state["inp_ten_loi_moi"] = ""
             st.session_state["inp_sl_loi"] = 1.0
@@ -264,7 +276,6 @@ def run_inspection_page(profile: DeptProfile):
     
         st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True, on_click=add_defect_callback)
     
-        # Show messages from callback
         if st.session_state.get("add_err_msg"):
             st.error(st.session_state["add_err_msg"])
             st.session_state["add_err_msg"] = "" 
@@ -273,7 +284,6 @@ def run_inspection_page(profile: DeptProfile):
             st.toast(st.session_state["success_msg"])
             st.session_state["success_msg"] = "" 
     
-        # List Errors
         if st.session_state.buffer_errors:
             st.markdown("##### Danh sách đã nhập:")
             st.session_state.buffer_errors = render_input_buffer_mobile(st.session_state.buffer_errors)
@@ -284,42 +294,40 @@ def run_inspection_page(profile: DeptProfile):
     st.markdown("---")
     st.subheader("3️⃣ Kết luận & Xử lý")
     
-    # Tính toán kết quả
-    total_major = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] in ['Nặng', 'Nghiêm trọng']])
-    total_minor = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] == 'Nhẹ'])
-    
-    inspection_result, aql_details = evaluate_lot_quality(sl_lo, total_major, total_minor)
-    
-    # Layout Conditional (Pass vs Fail)
     final_ncr_num = ""
     mo_ta_loi = ""
     uploaded_images = []
-    
-    if inspection_result == 'Pass':
-        # === TRƯỜNG HỢP PASS ===
-        st.success("✅ **KẾT QUẢ: ĐẠT (PASS)** - Đủ điều kiện nhập kho!")
+    inspection_result = ""
+
+    if profile.has_aql:
+        # Tính toán kết quả AQL
+        total_major = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] in ['Nặng', 'Nghiêm trọng']])
+        total_minor = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] == 'Nhẹ'])
+        inspection_result, aql_details = evaluate_lot_quality(sl_lo, total_major, total_minor)
         
-        if not st.session_state.buffer_errors:
-            st.caption("ℹ️ Không phát hiện lỗi nào.")
-            
-        save_label = "💾 LƯU BIÊN BẢN KIỂM TRA (PASS)"
-        save_btn_type = "primary"
-        
+        if inspection_result == 'Pass':
+            st.success("✅ **KẾT QUẢ: ĐẠT (PASS)** - Đủ điều kiện nhập kho!")
+            if not st.session_state.buffer_errors: st.caption("ℹ️ Không phát hiện lỗi nào.")
+            save_label = "💾 LƯU BIÊN BẢN KIỂM TRA (PASS)"
+            save_btn_type = "primary"
+        else:
+            st.error("❌ **KẾT QUẢ: KHÔNG ĐẠT (FAIL)** - Cần lập phiếu NCR!")
+            limit_major = aql_details.get('standard', {}).get('ac_major', 0)
+            limit_minor = aql_details.get('standard', {}).get('ac_minor', 0)
+            c_stat1, c_stat2 = st.columns(2)
+            c_stat1.metric("Lỗi Nặng (Major)", f"{total_major}", delta=f"Giới hạn: {limit_major}", delta_color="inverse")
+            c_stat2.metric("Lỗi Nhẹ (Minor)", f"{total_minor}", delta=f"Giới hạn: {limit_minor}", delta_color="inverse")
+            st.markdown("#### 📝 Thông tin NCR bổ sung")
+            save_label = "🚨 LƯU & TẠO PHIẾU NCR"
+            save_btn_type = "primary"
     else:
-        # === TRƯỜNG HỢP FAIL ===
-        st.error("❌ **KẾT QUẢ: KHÔNG ĐẠT (FAIL)** - Cần lập phiếu NCR!")
-        
-        # Hiển thị thống kê
-        limit_major = aql_details.get('standard', {}).get('ac_major', 0)
-        limit_minor = aql_details.get('standard', {}).get('ac_minor', 0)
-        
-        c_stat1, c_stat2 = st.columns(2)
-        c_stat1.metric("Lỗi Nặng (Major)", f"{total_major}", delta=f"Giới hạn: {limit_major}", delta_color="inverse")
-        c_stat2.metric("Lỗi Nhẹ (Minor)", f"{total_minor}", delta=f"Giới hạn: {limit_minor}", delta_color="inverse")
-        
-        st.markdown("#### 📝 Thông tin NCR bổ sung")
-        
-        # NCR Number Input (Only for Fail)
+        # Bộ phận không dùng AQL (như DV NPL) - Luôn yêu cầu nhập mã phiếu
+        st.info("ℹ️ Nhập thông tin phiếu NCR để lưu danh sách lỗi.")
+        save_label = "💾 LƯU PHIẾU NCR"
+        save_btn_type = "primary"
+
+    # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
+    if (profile.has_aql and inspection_result == 'Fail') or (not profile.has_aql):
         dept_prefix = profile.prefix
         curr_month = get_now_vn().strftime("%m")
         c_ncr1, c_ncr2 = st.columns([1, 2])
@@ -331,45 +339,38 @@ def run_inspection_page(profile: DeptProfile):
             c_ncr2.warning("⬅️ Vui lòng nhập số đuôi phiếu NCR")
             
         mo_ta_loi = st.text_area("Mô tả lỗi chi tiết / Nguyên nhân", height=80)
-        uploaded_images = st.file_uploader("Hình ảnh bằng chứng", type=['jpg', 'png'], accept_multiple_files=True)
-        
-        save_label = "🚨 LƯU & TẠO PHIẾU NCR"
-        save_btn_type = "primary"
-    
+        uploaded_images = st.file_uploader("Hình ảnh bằng chứng", type=['jpg', 'png', 'jpeg'], accept_multiple_files=True)
+
     # --- NÚT LƯU CUỐI CÙNG ---
     if st.button(save_label, type=save_btn_type, use_container_width=True):
-        # Validation
-        if inspection_result == 'Fail' and not final_ncr_num:
+        if (not profile.has_aql or inspection_result == 'Fail') and not final_ncr_num:
             st.error("⚠️ Vui lòng nhập SỐ ĐUÔI NCR trước khi lưu!")
             st.stop()
         
+        if not st.session_state.buffer_errors and not profile.has_aql:
+            st.error("⚠️ Danh sách lỗi trống!")
+            st.stop()
+
         try:
             with st.spinner("Đang lưu dữ liệu hệ thống..."):
-                # Upload ảnh nếu có
                 if uploaded_images:
                     img_links = upload_images_to_cloud(uploaded_images, final_ncr_num if final_ncr_num else "PASS_REC")
                 else:
                     img_links = ""
                     
-                # Get Client & Sheet
                 gc = get_client()
                 if not gc:
-                     st.error("Lỗi kết nối Google Sheets")
-                     st.stop()
+                    st.error("Lỗi kết nối Google Sheets")
+                    st.stop()
                 
                 ws = open_worksheet(profile.sheet_spreadsheet_id, profile.sheet_worksheet_name)
                 if not ws: st.stop()
     
                 now = get_now_vn_str()
-                
-                # Prepare Data List
                 records_to_save = st.session_state.buffer_errors
-                if inspection_result == 'Pass' and not records_to_save:
-                    records_to_save = [{
-                        "ten_loi": "Không có lỗi", "vi_tri": "", "muc_do": "", "sl_loi": 0
-                    }]
+                if profile.has_aql and inspection_result == 'Pass' and not records_to_save:
+                    records_to_save = [{"ten_loi": "Không có lỗi", "vi_tri": "", "muc_do": "", "sl_loi": 0}]
                     
-                # Define Status
                 current_status = "Hoàn thành" if inspection_result == 'Pass' else get_initial_status(profile.code)
                 
                 batch_data = []
@@ -381,7 +382,7 @@ def run_inspection_page(profile: DeptProfile):
                         'hop_dong': hop_dong,
                         'ma_vat_tu': ma_vt,
                         'ten_sp': ten_sp,
-                        'phan_loai': "",
+                        'phan_loai': phan_loai,
                         'nguon_goc': nguon_goc,
                         'ten_loi': err['ten_loi'],
                         'vi_tri_loi': err['vi_tri'],
@@ -397,29 +398,21 @@ def run_inspection_page(profile: DeptProfile):
                         'hinh_anh': img_links,
                         'don_vi_tinh': don_vi_tinh,
                         'ket_qua_kiem_tra': inspection_result,
-                        # Measurement & Checklist fields
                         'spec_size': spec_size, 'tol_size': tol_size, 'meas_size': meas_size,
                         'spec_weight': spec_weight, 'tol_weight': tol_weight, 'meas_weight': meas_weight,
                         'check_barcode': check_barcode, 'check_weight_box': check_weight_box,
                         'check_print': check_print, 'check_color': check_color, 'check_other': check_other,
-                        # New header fields
-                        'so_po': so_po,
-                        'khach_hang': khach_hang,
-                        'don_vi_kiem': don_vi_kiem
+                        'so_po': so_po, 'khach_hang': khach_hang, 'don_vi_kiem': don_vi_kiem
                     }
                     batch_data.append(row_data)
                     
                 success_count = smart_append_batch(ws, batch_data)
-                
                 if success_count > 0:
                     st.balloons()
                     st.success(f"✅ Đã lưu thành công {success_count} dòng! ({inspection_result})")
-                    
-                    # Clear state
                     st.session_state.buffer_errors = []
                     st.session_state.header_locked = False
                 else:
                     st.error("Lỗi khi lưu dữ liệu vào Sheet.")
-                    
         except Exception as e:
             st.error(f"System Error: {e}")

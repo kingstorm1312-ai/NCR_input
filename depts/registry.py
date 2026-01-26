@@ -1,13 +1,15 @@
 from depts.fi import PROFILE as FI_PROFILE
 from depts.may_i import PROFILE as MAYI_PROFILE
 from depts.may_p2 import PROFILE as MAYP2_PROFILE
+from depts.dv_npl import PROFILE as DVNPL_PROFILE
 from core.profile import DeptProfile
 
 # Registry chứa tất cả các profiles bộ phận
 DEPTS = {
     "fi": FI_PROFILE,
     "may_i": MAYI_PROFILE,
-    "may_p2": MAYP2_PROFILE
+    "may_p2": MAYP2_PROFILE,
+    "dv_npl": DVNPL_PROFILE
 }
 
 def get_dept(code: str) -> DeptProfile:
