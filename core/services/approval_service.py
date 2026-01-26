@@ -1,4 +1,5 @@
 import streamlit as st
+import gspread
 from utils.ncr_helpers import (
     load_ncr_data_with_grouping,
     update_ncr_status,
@@ -7,6 +8,8 @@ from utils.ncr_helpers import (
 )
 
 # --- CONFIGURATION ---
+DRAFT_STATUS = 'draft'
+
 ROLE_ACTION_STATUSES = {
     'truong_ca': 'cho_truong_ca',
     'truong_bp': 'cho_truong_bp',
@@ -15,18 +18,39 @@ ROLE_ACTION_STATUSES = {
     'bgd_tan_phu': 'cho_bgd_tan_phu'
 }
 
+def _get_current_status_from_sheet(so_phieu):
+    """
+    Đọc trực tiếp trạng thái hiện tại từ Google Sheet để đảm bảo tính nhất quán (Idempotency).
+    """
+    try:
+        gc = init_gspread()
+        if not gc: return None
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("NCR_DATA")
+        data = ws.get_all_values()
+        if len(data) < 2: return None
+        
+        headers = [str(h).strip().lower() for h in data[0]]
+        idx_so_phieu = headers.index("so_phieu_ncr")
+        idx_status = headers.index("trang_thai")
+        
+        for row in data[1:]:
+            if str(row[idx_so_phieu]).strip() == str(so_phieu).strip():
+                return str(row[idx_status]).strip()
+        return None
+    except Exception:
+        return None
+
 def get_pending_approvals(user_role, user_dept, admin_selected_role=None):
     """
     Tải danh sách các phiếu NCR đang chờ phê duyệt dựa trên role và bộ phận.
     """
-    # Xác định role thực tế để lọc (Admin có thể giả lập role khác)
     effective_role = admin_selected_role if user_role == 'admin' and admin_selected_role else user_role
     filter_status = ROLE_ACTION_STATUSES.get(effective_role)
     
     if not filter_status:
-        return None, None, None # Invalid role
+        return None, None, None
         
-    # Xác định có cần lọc theo bộ phận không
     needs_dept_filter = effective_role in ['truong_ca', 'truong_bp']
     
     if user_dept == 'all' or user_role == 'admin':
@@ -48,9 +72,21 @@ def get_pending_approvals(user_role, user_dept, admin_selected_role=None):
 
 def approve_ncr(so_phieu, role, user_name, next_status, solutions=None):
     """
-    Thực hiện phê duyệt phiếu NCR.
-    solutions: dict chứa các biện pháp/hướng giải quyết tùy theo role.
+    Thực hiện phê duyệt phiếu NCR với cơ chế kiểm tra trạng thái (Status Guard).
     """
+    # Idempotency Check
+    current_status = _get_current_status_from_sheet(so_phieu)
+    if not current_status:
+        return False, "Không tìm thấy phiếu NCR trên hệ thống."
+        
+    allowed_statuses = ROLE_ACTION_STATUSES.get(role)
+    if isinstance(allowed_statuses, list):
+        if current_status not in allowed_statuses:
+            return False, f"Phiếu đã được xử lý hoặc đang ở trạng thái khác ({current_status})."
+    else:
+        if current_status != allowed_statuses:
+            return False, f"Phiếu đã được xử lý hoặc đang ở trạng thái khác ({current_status})."
+
     gc = init_gspread()
     if not gc:
         return False, "Không thể kết nối Google Sheets"
@@ -69,15 +105,29 @@ def approve_ncr(so_phieu, role, user_name, next_status, solutions=None):
     )
     return success, msg
 
-def reject_ncr(so_phieu, role, user_name, current_status, reason):
+def reject_ncr(so_phieu, role, user_name, current_status_ui, reason):
     """
-    Từ chối hoặc trả về phiếu NCR.
+    Từ chối hoặc trả về phiếu NCR với cơ chế kiểm tra trạng thái tương tự Approve.
     """
+    # Idempotency Check
+    current_status_real = _get_current_status_from_sheet(so_phieu)
+    if not current_status_real:
+        return False, "Không tìm thấy phiếu NCR."
+        
+    allowed_statuses = ROLE_ACTION_STATUSES.get(role)
+    if isinstance(allowed_statuses, list):
+        if current_status_real not in allowed_statuses:
+            return False, f"Phiếu đã được xử lý hoặc thay đổi trạng thái ({current_status_real})."
+    else:
+        if current_status_real != allowed_statuses:
+            return False, f"Phiếu đã được xử lý hoặc thay đổi trạng thái ({current_status_real})."
+
     gc = init_gspread()
     if not gc:
         return False, "Không thể kết nối Google Sheets"
         
-    prev_status = REJECT_ESCALATION.get(current_status, 'draft')
+    # Lấy đích đến từ REJECT_ESCALATION, dùng hằng số DRAFT_STATUS nếu không có cấu hình
+    prev_status = REJECT_ESCALATION.get(current_status_real, DRAFT_STATUS)
     
     success, msg = update_ncr_status(
         gc,
