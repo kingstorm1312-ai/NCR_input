@@ -144,9 +144,35 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         # Map code keys back to sheet keys for template compatibility
                         # e.g. 'sl_lo_hang' (in logic) -> 'so_luong_lo_hang' (in template)
                         from utils.ncr_helpers import COLUMN_MAPPING
+                        from utils.aql_manager import get_aql_standard
+                        
+                        # 1. Map Keys
                         for code_key, sheet_key in COLUMN_MAPPING.items():
                             if code_key in ticket_info:
                                 ticket_info[sheet_key] = ticket_info[code_key]
+                        
+                        # 2. Inject AQL Variables
+                        try:
+                            # 'sl_lo_hang' is the internal key
+                            sl_lo = int(float(str(ticket_info.get('sl_lo_hang', 0) or 0)))
+                            aql_info = get_aql_standard(sl_lo)
+                            
+                            if aql_info:
+                                ticket_info['ac_major'] = aql_info['ac_major']
+                                ticket_info['ac_minor'] = aql_info['ac_minor']
+                                ticket_info['sample_size'] = aql_info['sample_size']
+                                ticket_info['aql_code'] = aql_info['code']
+                            else:
+                                ticket_info['ac_major'] = ""
+                                ticket_info['ac_minor'] = ""
+                        except:
+                            ticket_info['ac_major'] = ""
+                            ticket_info['ac_minor'] = ""
+                            
+                        # 3. Ensure New Fields Exist (Empty if missing)
+                        for f in ['so_po', 'khach_hang', 'don_vi_kiem']:
+                            if f not in ticket_info:
+                                ticket_info[f] = ""
                         
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
                         
@@ -203,9 +229,34 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         
                         # --- ENRICH CONTEXT ---
                         from utils.ncr_helpers import COLUMN_MAPPING
+                        from utils.aql_manager import get_aql_standard
+                        
+                        # 1. Map Keys
                         for code_key, sheet_key in COLUMN_MAPPING.items():
                             if code_key in ticket_info:
                                 ticket_info[sheet_key] = ticket_info[code_key]
+                        
+                        # 2. Inject AQL Variables
+                        try:
+                            sl_lo = int(float(str(ticket_info.get('sl_lo_hang', 0) or 0)))
+                            aql_info = get_aql_standard(sl_lo)
+                            
+                            if aql_info:
+                                ticket_info['ac_major'] = aql_info['ac_major']
+                                ticket_info['ac_minor'] = aql_info['ac_minor']
+                                ticket_info['sample_size'] = aql_info['sample_size']
+                                ticket_info['aql_code'] = aql_info['code']
+                            else:
+                                ticket_info['ac_major'] = ""
+                                ticket_info['ac_minor'] = ""
+                        except:
+                            ticket_info['ac_major'] = ""
+                            ticket_info['ac_minor'] = ""
+
+                        # 3. Ensure New Fields Exist
+                        for f in ['so_po', 'khach_hang', 'don_vi_kiem']:
+                            if f not in ticket_info:
+                                ticket_info[f] = ""
                         
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
                         
