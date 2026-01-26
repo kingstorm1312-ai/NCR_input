@@ -8,6 +8,7 @@ from depts.may_n4 import PROFILE as MAYN4_PROFILE
 from depts.may_a2 import PROFILE as MAYA2_PROFILE
 from depts.trang_cat import PROFILE as TRANGCAT_PROFILE
 from depts.in_xuong_d import PROFILE as INXUONGD_PROFILE
+from depts.cat_ban import PROFILE as CATBAN_PROFILE
 from core.profile import DeptProfile
 
 # Registry chứa tất cả các profiles bộ phận
@@ -21,7 +22,8 @@ DEPTS = {
     "may_n4": MAYN4_PROFILE,
     "may_a2": MAYA2_PROFILE,
     "trang_cat": TRANGCAT_PROFILE,
-    "in_xuong_d": INXUONGD_PROFILE
+    "in_xuong_d": INXUONGD_PROFILE,
+    "cat_ban": CATBAN_PROFILE
 }
 
 def get_dept(code: str) -> DeptProfile:
