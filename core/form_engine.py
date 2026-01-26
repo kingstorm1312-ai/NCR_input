@@ -157,13 +157,23 @@ def run_inspection_page(profile: DeptProfile):
         # Phan loai (nếu profile yêu cầu)
         phan_loai = ""
         if profile.phan_loai_options:
-            phan_loai = st.selectbox("Phân loại", profile.phan_loai_options, disabled=disable_hd)
+            if profile.code == "trang_cat":
+                phan_loai = st.radio("Phân loại:", profile.phan_loai_options, horizontal=True, key="phan_loai_radio", disabled=disable_hd)
+            else:
+                phan_loai = st.selectbox("Phân loại", profile.phan_loai_options, disabled=disable_hd)
     
         # Lock Toggle
         lock = st.checkbox("🔒 Khóa thông tin chung", value=st.session_state.header_locked)
         if lock != st.session_state.header_locked:
             st.session_state.header_locked = lock
             st.rerun()
+    
+    # Prefix calculation for trang_cat
+    if profile.code == "trang_cat":
+        from utils.config import NCR_DEPARTMENT_PREFIXES
+        dept_prefix = NCR_DEPARTMENT_PREFIXES["TRANG"] if phan_loai == "Tráng" else NCR_DEPARTMENT_PREFIXES["CAT"]
+    else:
+        dept_prefix = profile.prefix
     
     # ==========================================
     # PHẦN 2: NHẬP KẾT QUẢ (BODY SECTION)
@@ -328,7 +338,6 @@ def run_inspection_page(profile: DeptProfile):
 
     # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
     if (profile.has_aql and inspection_result == 'Fail') or (not profile.has_aql):
-        dept_prefix = profile.prefix
         curr_month = get_now_vn().strftime("%m")
         c_ncr1, c_ncr2 = st.columns([1, 2])
         ncr_suffix = c_ncr1.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối của phiếu", max_chars=3)
