@@ -99,40 +99,73 @@ if "buffer_errors" not in st.session_state:
     st.session_state.buffer_errors = []
 if "header_locked" not in st.session_state:
     st.session_state.header_locked = False
+if "custom_sample_size" not in st.session_state:
+    st.session_state.custom_sample_size = False
 
 # --- GIAO DIỆN CHÍNH ---
 st.title(f"🧵 {PAGE_TITLE}")
 
-# === PHẦN 1: THÔNG TIN PHIẾU (HEADER) ===
-with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header_locked):
+# === PHẦN 1: THIẾT LẬP KIỂM TRA (TOP SECTION)
+# ==========================================
+st.subheader("1️⃣ Thiết lập kiểm tra")
+
+# Row 1: SL Lô & SL Mẫu (Quan trọng nhất)
+c_sl1, c_sl2 = st.columns([1, 1])
+with c_sl1:
+    sl_lo = st.number_input("📦 SL Lô Hàng", min_value=0, disabled=st.session_state.header_locked)
+
+# Tính toán AQL tự động
+aql_info = get_aql_standard(sl_lo)
+calc_sample_size = 0
+ac_major, ac_minor, sample_size, aql_code = "", "", "", ""
+
+if aql_info:
+    calc_sample_size = aql_info['sample_size']
+    ac_major = aql_info['ac_major']
+    ac_minor = aql_info['ac_minor']
+    sample_size = aql_info['sample_size']
+    aql_code = aql_info['code']
+
+with c_sl2:
+    # Logic Toggle sửa SL Mẫu
+    col_inp, col_tog = st.columns([0.8, 0.2])
+    with col_tog:
+        st.write("") # Spacer align
+        st.write("") 
+        is_custom = st.checkbox("🔓", value=st.session_state.custom_sample_size, help="Mở khóa để sửa SL Mẫu", key="chk_custom_sample")
+        st.session_state.custom_sample_size = is_custom
+    
+    with col_inp:
+        if st.session_state.custom_sample_size:
+             sl_kiem = st.number_input("SL Mẫu (Tùy chỉnh)", min_value=0, value=calc_sample_size, disabled=st.session_state.header_locked)
+        else:
+             sl_kiem = st.number_input("SL Mẫu (AQL)", value=calc_sample_size, disabled=True, help="Tự động tính theo AQL Level II")
+
+# Hiển thị thông tin AQL
+if aql_info:
+    st.info(f"📊 **AQL Level II**: Mã **{aql_info['code']}** | Giới hạn: Nặng **{aql_info['ac_major']}/{aql_info['ac_major']+1}** - Nhẹ **{aql_info['ac_minor']}/{aql_info['ac_minor']+1}**", icon="ℹ️")
+
+# === PHẦN 2: THÔNG TIN CHI TIẾT ===
+with st.expander("📝 Thông tin chi tiết (SP, HĐ, Nguồn gốc...)", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
-    # Hàng 1: User | Suffix
-    c1, c2 = st.columns(2)
-    with c1:
-        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
-    with c2:
-        dept_prefix = "XA"
-        current_month = get_now_vn().strftime("%m")
-        ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
-        so_phieu = ""
-        if ncr_suffix:
-            so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
-            st.caption(f"👉 Mã phiếu: **{so_phieu}**")
+    # 3 CỘT INPUT MỚI (NEW FIELDS)
+    col_new1, col_new2, col_new3 = st.columns(3)
+    with col_new1:
+        so_po = st.text_input("Số PO", placeholder="VD: 4500123456", disabled=disable_hd)
+    with col_new2:
+        don_vi_kiem = st.text_input("Đơn vị kiểm", value="", placeholder="Nhập đơn vị kiểm...", disabled=disable_hd)
+    with col_new3:
+        st.empty() 
+        pass 
 
-    # Hàng 2: Số lần | Tên SP
+    st.divider()
+    
+    # Hàng 2: Tên SP | Hợp đồng
     r2_c1, r2_c2 = st.columns(2)
     with r2_c1:
-        so_lan = st.number_input("Số lần", min_value=1, step=1, disabled=disable_hd)
-    with r2_c2:
         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
-
-    # Hàng 3: Mã VT | Hợp đồng
-    r3_c1, r3_c2 = st.columns(2)
-    with r3_c1:
-        raw_ma_vt = st.text_input("Mã VT", disabled=disable_hd)
-        ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else ""
-    with r3_c2:
+    with r2_c2:
         raw_hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
         hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
         
@@ -143,36 +176,32 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
             potential_cust = parts[-1] if not parts[-1].isdigit() else (parts[-2] if len(parts) > 1 else "")
             khach_hang = ''.join(filter(str.isalpha, potential_cust))
             if not khach_hang and len(parts) >= 2:
-                 khach_hang = ''.join(filter(str.isalpha, parts[-2]))
+                    khach_hang = ''.join(filter(str.isalpha, parts[-2]))
             if not khach_hang:
                 khach_hang = hop_dong[-3:]
             st.caption(f"👉 KH: **{khach_hang}**")
 
-    # Hàng 3.5: PO | Đơn vị kiểm
-    r35_c1, r35_c2 = st.columns(2)
-    with r35_c1:
-        so_po = st.text_input("Số PO", placeholder="VD: 4500...", disabled=disable_hd)
-    with r35_c2:
-        don_vi_kiem = st.text_input("Đơn vị kiểm", value="", placeholder="Nhập ĐV kiểm...", disabled=disable_hd)
+    # Hàng 3: Mã VT | Số lần
+    r3_c1, r3_c2 = st.columns(2)
+    with r3_c1:
+        raw_ma_vt = st.text_input("Mã VT", disabled=disable_hd)
+        ma_vt = raw_ma_vt.upper().strip() if raw_ma_vt else "" 
+    with r3_c2:
+        so_lan = st.number_input("Số lần", min_value=1, step=1, disabled=disable_hd)
 
-    # Hàng 4: SL Kiểm | SL Lô
+    # Hàng 4: User | Suffix
     r4_c1, r4_c2 = st.columns(2)
     with r4_c1:
-         sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
+        nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
     with r4_c2:
-         sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
-         
-         # AQL Calculation
-         ac_major, ac_minor, sample_size, aql_code = "", "", "", ""
-         if sl_lo > 0:
-            aql_info = get_aql_standard(sl_lo)
-            if aql_info:
-                st.info(f"📊 AQL **{aql_info['code']}** | Mẫu: **{aql_info['sample_size']}** | Major: **{aql_info['ac_major']}** | Minor: **{aql_info['ac_minor']}**", icon="ℹ️")
-                ac_major = aql_info['ac_major']
-                ac_minor = aql_info['ac_minor']
-                sample_size = aql_info['sample_size']
-                aql_code = aql_info['code']
-    
+        dept_prefix = "XA"
+        current_month = get_now_vn().strftime("%m")
+        ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
+        so_phieu = ""
+        if ncr_suffix:
+            so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
+            st.caption(f"👉 Mã phiếu: **{so_phieu}**")
+            
     # Hàng 5: ĐVT | Nguồn gốc
     r5_c1, r5_c2 = st.columns(2)
     with r5_c1:
