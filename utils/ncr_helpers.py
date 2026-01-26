@@ -145,7 +145,11 @@ COLUMN_MAPPING = {
     'check_weight_box': 'check_weight_box',
     'check_print': 'check_print',
     'check_color': 'check_color',
-    'check_other': 'check_other'
+    'check_other': 'check_other',
+    # --- NEW FIELDS (PO, Customer, Inspection Unit) ---
+    'so_po': 'so_po',
+    'khach_hang': 'khach_hang',
+    'don_vi_kiem': 'don_vi_kiem'
 }
 
 ROLE_TO_APPROVER_COLUMN = {

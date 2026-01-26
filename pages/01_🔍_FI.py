@@ -105,8 +105,7 @@ if "custom_sample_size" not in st.session_state:
 # --- GIAO DIỆN CHÍNH ---
 st.title(f"🔍 {PAGE_TITLE}")
 
-# ==========================================
-# PHẦN 1: THIẾT LẬP KIỂM TRA (TOP SECTION)
+# === PHẦN 1: THIẾT LẬP KIỂM TRA (TOP SECTION)
 # ==========================================
 st.subheader("1️⃣ Thiết lập kiểm tra")
 
@@ -144,16 +143,47 @@ if aql_info:
 with st.expander("📝 Thông tin chi tiết (SP, HĐ, Nguồn gốc...)", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
-    # Người lập (Hidden or Readonly)
-    # st.text_input("Người lập", value=user_info["name"], disabled=True)
+    # 3 CỘT INPUT MỚI (NEW FIELDS)
+    col_new1, col_new2, col_new3 = st.columns(3)
+    with col_new1:
+        so_po = st.text_input("Số PO", placeholder="VD: 4500123456", disabled=disable_hd)
+    with col_new2:
+        don_vi_kiem = st.text_input("Đơn vị kiểm", value=user_info.get("name"), disabled=disable_hd, help="Mặc định: Tên user đang đăng nhập")
+    with col_new3:
+        # Khách hàng auto từ Hợp đồng (3 ký tự cuối)
+        # Sẽ xử lý logic hiển thị
+        khach_hang_preview = ""
+    
+    st.divider()
     
     # Tên SP & Hợp đồng
     r2_c1, r2_c2 = st.columns(2)
     with r2_c1:
         ten_sp = st.text_input("Tên SP", disabled=disable_hd)
     with r2_c2:
-        raw_hop_dong = st.text_input("Hợp đồng/PO", disabled=disable_hd)
+        raw_hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
         hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
+        
+        # Logic tách khách hàng
+        khach_hang = ""
+        if hop_dong and len(hop_dong) >= 3:
+            # Lấy 3 ký tự cuối, loại bỏ số sau cùng nếu format là ABC-123-XYZ-01
+            # Tuy nhiên rule đơn giản nhất là lấy 3 ký tự chữ cái cuối cùng của chuỗi contract code chuẩn
+            parts = hop_dong.split('-')
+            # Thường format: 50A-24-SH-01 -> SH ?
+            # User request: "Khách hàng sẽ là 3 ký tự chữ cuối của số hợp đồng"
+            # Ta sẽ lấy cụm chữ cái cuối cùng.
+            potential_cust = parts[-1] if not parts[-1].isdigit() else (parts[-2] if len(parts) > 1 else "")
+            # Lọc chỉ lấy chữ
+            khach_hang = ''.join(filter(str.isalpha, potential_cust))
+            if not khach_hang and len(parts) >= 2:
+                 khach_hang = ''.join(filter(str.isalpha, parts[-2]))
+            
+            # Simple fallback if complex parsing fails: Last 3 chars
+            if not khach_hang:
+                khach_hang = hop_dong[-3:]
+            
+            st.caption(f"👉 Khách hàng (Tự động): **{khach_hang}**")
 
     # Mã VT & Số lần
     r3_c1, r3_c2 = st.columns(2)
@@ -368,7 +398,11 @@ if st.button(save_label, type=save_btn_type, use_container_width=True):
                     'spec_size': spec_size, 'tol_size': tol_size, 'meas_size': meas_size,
                     'spec_weight': spec_weight, 'tol_weight': tol_weight, 'meas_weight': meas_weight,
                     'check_barcode': check_barcode, 'check_weight_box': check_weight_box,
-                    'check_print': check_print, 'check_color': check_color, 'check_other': check_other
+                    'check_print': check_print, 'check_color': check_color, 'check_other': check_other,
+                    # NEW FIELDS
+                    'so_po': so_po,
+                    'khach_hang': khach_hang,
+                    'don_vi_kiem': don_vi_kiem
                 }
                 if smart_append_ncr(ws, row_data):
                     success_count += 1

@@ -238,8 +238,55 @@ with col4:
     else:
         st.info("Không có dữ liệu mức độ.")
 
+# --- DOC GENERATOR ---
+from docxtpl import DocxTemplate
+from io import BytesIO
+from utils.aql_manager import get_aql_standard # Import AQL Logic
+
+def generate_docx(template_path, data_row):
+    doc = DocxTemplate(template_path)
+    
+    # Calculate AQL Limits on-the-fly
+    try:
+        sl_lo = int(float(str(data_row.get('so_luong_lo_hang', 0) or 0)))
+        aql_info = get_aql_standard(sl_lo)
+        
+        if aql_info:
+            data_row['ac_major'] = aql_info['ac_major']
+            data_row['ac_minor'] = aql_info['ac_minor']
+            data_row['sample_size'] = aql_info['sample_size']
+            data_row['aql_code'] = aql_info['code']
+        else:
+            data_row['ac_major'] = ""
+            data_row['ac_minor'] = ""
+            data_row['sample_size'] = ""
+            data_row['aql_code'] = ""
+    except:
+        data_row['ac_major'] = ""
+        data_row['ac_minor'] = ""
+
+    # Ensure context has new fields empty string if missing
+    for f in ['so_po', 'khach_hang', 'don_vi_kiem']:
+        if f not in data_row:
+            data_row[f] = ""
+
+    doc.render(data_row)
+    bio = BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio
+
+if st.button("📥 Xuất Báo Cáo (Word)"):
+    # Demo: Export first selected row or just show functionality
+    # In real app, might want to export specific NCR
+    st.info("Chức năng xuất báo cáo mẫu đang được cập nhật để hỗ trợ in hàng loạt.")
+    
+    # Example logic for single export if user selects a ticket
+    # ...
+    pass
+
 # --- DATA TABLE ---
-with st.expander("📄 Xem dữ liệu chi tiết"):
+with st.expander("📄 Xem dữ liệu chi tiết", expanded=True):
     # Rename columns for display
     display_cols_map = {
         'so_phieu': 'Số phiếu',
@@ -248,9 +295,12 @@ with st.expander("📄 Xem dữ liệu chi tiết"):
         'sl_loi': 'SL Lỗi',
         'trang_thai': 'Trạng thái',
         'bo_phan': 'Bộ phận',
-        'bo_phan_full': 'Bộ phận (Chi tiết)',
         'nguoi_lap_phieu': 'Người lập',
         'hop_dong': 'Hợp đồng',
+        # New cols
+        'so_po': 'Số PO',
+        'khach_hang': 'Khách hàng',
+        'don_vi_kiem': 'ĐV Kiểm',
         'ma_vat_tu': 'Mã VT',
         'ten_sp': 'Tên SP',
         'phan_loai': 'Phân loại',
@@ -261,5 +311,10 @@ with st.expander("📄 Xem dữ liệu chi tiết"):
         'thoi_gian_cap_nhat': 'Cập nhật lần cuối'
     }
     
+    # Ensure new cols exist
+    for c in ['so_po', 'khach_hang', 'don_vi_kiem']:
+        if c not in df_final.columns:
+            df_final[c] = ""
+
     df_display = df_final.rename(columns=display_cols_map)
     st.dataframe(df_display, use_container_width=True)
