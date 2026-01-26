@@ -43,8 +43,18 @@ cd NCR_input
 # Cài đặt dependencies
 pip install streamlit pandas
 
+# Cấu hình Secrets
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+# Sau đó mở .streamlit/secrets.toml và điền thông tin:
+# - spreadsheet_id
+# - service_account (JSON)
+# - cloudinary config
+
 # Chạy app
-streamlit run Nhap_ncr_FI.py
+streamlit run Dashboard.py
+
+# Kiểm tra hệ thống (Smoke Test)
+python scripts/smoke_test.py
 ```
 
 ## 📱 Workflow
