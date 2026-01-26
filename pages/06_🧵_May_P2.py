@@ -19,6 +19,7 @@ from utils.ncr_helpers import (
     LIST_DON_VI_TINH,
     get_initial_status
 )
+from utils.aql_manager import get_aql_standard
 
 # --- CẤU HÌNH TRANG ---
 REQUIRED_DEPT = 'may_p2'
@@ -134,6 +135,25 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     with r3_c2:
         raw_hop_dong = st.text_input("Hợp đồng", disabled=disable_hd)
         hop_dong = format_contract_code(raw_hop_dong) if raw_hop_dong else ""
+        
+        # Logic tách khách hàng
+        khach_hang = ""
+        if hop_dong and len(hop_dong) >= 3:
+            parts = hop_dong.split('-')
+            potential_cust = parts[-1] if not parts[-1].isdigit() else (parts[-2] if len(parts) > 1 else "")
+            khach_hang = ''.join(filter(str.isalpha, potential_cust))
+            if not khach_hang and len(parts) >= 2:
+                 khach_hang = ''.join(filter(str.isalpha, parts[-2]))
+            if not khach_hang:
+                khach_hang = hop_dong[-3:]
+            st.caption(f"👉 KH: **{khach_hang}**")
+
+    # Hàng 3.5: PO | Đơn vị kiểm
+    r35_c1, r35_c2 = st.columns(2)
+    with r35_c1:
+        so_po = st.text_input("Số PO", placeholder="VD: 4500...", disabled=disable_hd)
+    with r35_c2:
+        don_vi_kiem = st.text_input("Đơn vị kiểm", value="", placeholder="Nhập ĐV kiểm...", disabled=disable_hd)
 
     # Hàng 4: SL Kiểm | SL Lô
     r4_c1, r4_c2 = st.columns(2)
@@ -141,6 +161,17 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
          sl_kiem = st.number_input("SL Kiểm", min_value=0, disabled=disable_hd)
     with r4_c2:
          sl_lo = st.number_input("SL Lô", min_value=0, disabled=disable_hd)
+         
+         # AQL Calculation
+         ac_major, ac_minor, sample_size, aql_code = "", "", "", ""
+         if sl_lo > 0:
+            aql_info = get_aql_standard(sl_lo)
+            if aql_info:
+                st.info(f"📊 AQL **{aql_info['code']}** | Mẫu: **{aql_info['sample_size']}** | Major: **{aql_info['ac_major']}** | Minor: **{aql_info['ac_minor']}**", icon="ℹ️")
+                ac_major = aql_info['ac_major']
+                ac_minor = aql_info['ac_minor']
+                sample_size = aql_info['sample_size']
+                aql_code = aql_info['code']
     
     # Hàng 5: ĐVT | Nguồn gốc
     r5_c1, r5_c2 = st.columns(2)
@@ -172,61 +203,86 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
 st.divider()
 st.subheader("Chi tiết lỗi")
 
-tab_chon, tab_moi = st.tabs(["Chọn từ danh sách", "Nhập lỗi mới"])
-
-final_ten_loi = ""
-final_so_luong = 1
-default_muc_do = "Nhẹ"
-
-with tab_chon:
-    c_sel1, c_sel2, c_sel3 = st.columns([2, 1, 1])
-    with c_sel1:
-        selected_loi = st.selectbox("Tên lỗi", ["-- Chọn --"] + LIST_LOI)
-    with c_sel2:
-        sl_chon = st.number_input("SL", min_value=1.0, step=0.1, format="%.1f", key="sl_existing")
-    with c_sel3:
-        dvt_chon = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="dvt_existing")
+# Lock Toggle Check
+    if "inp_ten_loi" not in st.session_state: st.session_state["inp_ten_loi"] = "-- Chọn --"
+    if "inp_ten_loi_moi" not in st.session_state: st.session_state["inp_ten_loi_moi"] = ""
     
-    if selected_loi != "-- Chọn --":
-        final_ten_loi = selected_loi
-        final_so_luong = sl_chon
-        final_dvt = dvt_chon
-        default_muc_do = DICT_MUC_DO.get(final_ten_loi, "Nhẹ")
-
-with tab_moi:
-    new_loi = st.text_input("Tên lỗi mới")
-    c_new1, c_new2 = st.columns([1, 1])
-    with c_new1:
-        sl_new = st.number_input("SL", min_value=1.0, step=0.1, format="%.1f", key="sl_new")
-    with c_new2:
-        dvt_new = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="dvt_new")
-        
-    if new_loi:
-        final_ten_loi = new_loi
-        final_so_luong = sl_new
-        final_dvt = dvt_new
-
-vi_tri = st.selectbox("Vị trí lỗi", LIST_VI_TRI if LIST_VI_TRI else [""])
-if st.checkbox("Vị trí khác?"):
-    vi_tri = st.text_input("Nhập vị trí cụ thể")
-
-final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
-if default_muc_do not in final_md_options:
-    default_muc_do = "Nhẹ"
-final_md = st.pills("Mức độ", final_md_options, default=default_muc_do) or default_muc_do
-
-if st.button("THÊM LỖI ⬇️", type="secondary", use_container_width=True):
-    if not final_ten_loi or final_ten_loi == "-- Chọn --":
-        st.error("Vui lòng chọn tên lỗi!")
+    # Toggle Input Mode
+    mode_input = st.radio("Chế độ nhập:", ["Chọn từ danh sách", "Nhập mới"], horizontal=True, key="radio_mode")
+    
+    c_def1, c_def2 = st.columns([2, 1])
+    
+    if mode_input == "Chọn từ danh sách":
+        c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
     else:
+        c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
+    
+    # SL & DVT
+    with c_def2:
+        sl_loi_input = st.number_input("SL Lỗi", min_value=1.0, step=0.1, format="%.1f", key="inp_sl_loi")
+    
+    c_def3, c_def4 = st.columns(2)
+    with c_def3:
+        dvt_input = st.selectbox("ĐVT", LIST_DON_VI_TINH, key="inp_dvt")
+    
+    # Position & Severity
+    vi_tri_sel = c_def4.selectbox("Vị trí", [""] + LIST_VI_TRI, key="inp_vi_tri_sel")
+
+    vi_tri_txt = ""
+    if not vi_tri_sel:
+        vi_tri_txt = st.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
+
+    md_opts = ["Nhẹ", "Nặng", "Nghiêm trọng"]
+    st.pills("Mức độ", md_opts, default="Nhẹ", key="inp_muc_do")
+
+    def add_defect_callback():
+        mode = st.session_state.get("radio_mode", "Chọn từ danh sách")
+        final_name = ""
+        if mode == "Chọn từ danh sách":
+            s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
+            if s_loi == "-- Chọn --":
+                st.session_state["add_err_msg"] = "⚠️ Chưa chọn tên lỗi!"
+                return
+            final_name = s_loi
+        else:
+            s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
+            if not s_loi_moi:
+                st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
+                return
+            final_name = s_loi_moi
+            
+        s_qty = st.session_state.get("inp_sl_loi", 1.0)
+        s_dvt = st.session_state.get("inp_dvt", "Chiếc")
+        s_pos = st.session_state.get("inp_vi_tri_sel", "") or st.session_state.get("inp_vi_tri_txt", "").strip()
+        s_sev = st.session_state.get("inp_muc_do", "Nhẹ")
+        
         st.session_state.buffer_errors.append({
-            "ten_loi": final_ten_loi,
-            "vi_tri": vi_tri,
-            "muc_do": final_md,
-            "sl_loi": final_so_luong,
-            "don_vi_tinh": final_dvt
+            "ten_loi": final_name,
+            "vi_tri": s_pos,
+            "muc_do": s_sev,
+            "sl_loi": s_qty,
+            "don_vi_tinh": s_dvt
         })
-        st.toast(f"Đã thêm: {final_ten_loi}")
+        st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+        st.session_state["add_err_msg"] = ""
+        
+        # Reset
+        st.session_state["inp_ten_loi"] = "-- Chọn --"
+        st.session_state["inp_ten_loi_moi"] = ""
+        st.session_state["inp_sl_loi"] = 1.0
+        st.session_state["inp_vi_tri_sel"] = ""
+        st.session_state["inp_vi_tri_txt"] = ""
+        st.session_state["inp_muc_do"] = "Nhẹ"
+
+    st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True, on_click=add_defect_callback)
+
+    if st.session_state.get("add_err_msg"):
+        st.error(st.session_state["add_err_msg"])
+        st.session_state["add_err_msg"] = "" 
+        
+    if st.session_state.get("success_msg"):
+        st.toast(st.session_state["success_msg"])
+        st.session_state["success_msg"] = ""
 
 # === PHẦN 3: DANH SÁCH CHỜ & LƯU ===
 st.markdown("### 📋 Danh sách lỗi chờ lưu")
@@ -273,7 +329,16 @@ if st.session_state.buffer_errors:
                         'trang_thai': get_initial_status(REQUIRED_DEPT),
                         'thoi_gian_cap_nhat': now,
                         'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': don_vi_tinh
+                        'hinh_anh': hinh_anh_links,
+                        'don_vi_tinh': don_vi_tinh,
+                        # New Fields
+                        'so_po': so_po,
+                        'khach_hang': khach_hang,
+                        'don_vi_kiem': don_vi_kiem,
+                        'sample_size': sample_size,
+                        'aql_code': aql_code,
+                        'ac_major': ac_major,
+                        'ac_minor': ac_minor
                     }
                     if smart_append_ncr(ws, data_to_save):
                         success_count += 1
