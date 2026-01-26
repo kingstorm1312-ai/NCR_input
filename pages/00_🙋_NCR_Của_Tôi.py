@@ -169,10 +169,24 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                             ticket_info['ac_major'] = ""
                             ticket_info['ac_minor'] = ""
                             
-                        # 3. Ensure New Fields Exist (Empty if missing)
+                        # 3. Ensure New Fields Exist (Empty if missing) & Fallback Logic
+                        # Khach Hang: Derive from Hop Dong if missing (Old tickets support)
+                        if not ticket_info.get('khach_hang') and ticket_info.get('hop_dong'):
+                            hd = str(ticket_info.get('hop_dong', '')).strip()
+                            if hd and len(hd) >= 3:
+                                parts = hd.split('-')
+                                potential_cust = parts[-1] if not parts[-1].isdigit() else (parts[-2] if len(parts) > 1 else "")
+                                derived_kh = ''.join(filter(str.isalpha, potential_cust))
+                                if not derived_kh and len(parts) >= 2:
+                                     derived_kh = ''.join(filter(str.isalpha, parts[-2]))
+                                if not derived_kh: derived_kh = hd[-3:]
+                                ticket_info['khach_hang'] = derived_kh
+                        
+                        # Defauts for others
                         for f in ['so_po', 'khach_hang', 'don_vi_kiem']:
-                            if f not in ticket_info:
+                            if f not in ticket_info or not ticket_info[f]:
                                 ticket_info[f] = ""
+                        # Fallback don_vi_kiem? user request said 'user input', so blank is safer if old.
                         
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
                         
@@ -253,9 +267,22 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                             ticket_info['ac_major'] = ""
                             ticket_info['ac_minor'] = ""
 
-                        # 3. Ensure New Fields Exist
+                        # 3. Ensure New Fields Exist (Empty if missing) & Fallback Logic
+                        # Khach Hang: Derive from Hop Dong if missing (Old tickets support)
+                        if not ticket_info.get('khach_hang') and ticket_info.get('hop_dong'):
+                            hd = str(ticket_info.get('hop_dong', '')).strip()
+                            if hd and len(hd) >= 3:
+                                parts = hd.split('-')
+                                potential_cust = parts[-1] if not parts[-1].isdigit() else (parts[-2] if len(parts) > 1 else "")
+                                derived_kh = ''.join(filter(str.isalpha, potential_cust))
+                                if not derived_kh and len(parts) >= 2:
+                                     derived_kh = ''.join(filter(str.isalpha, parts[-2]))
+                                if not derived_kh: derived_kh = hd[-3:]
+                                ticket_info['khach_hang'] = derived_kh
+
+                        # Defaults
                         for f in ['so_po', 'khach_hang', 'don_vi_kiem']:
-                            if f not in ticket_info:
+                            if f not in ticket_info or not ticket_info[f]:
                                 ticket_info[f] = ""
                         
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
