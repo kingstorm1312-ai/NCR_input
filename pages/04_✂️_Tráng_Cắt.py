@@ -106,14 +106,22 @@ st.title(f"✂️ {PAGE_TITLE}")
 with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header_locked):
     disable_hd = st.session_state.header_locked
     
-    # R1
+    # R1: Phân loại & Suffix (Logic quan trọng đưa lên đầu)
     c1, c2 = st.columns(2)
     with c1:
+        # Toggle Tráng / Cắt
+        phan_loai = st.radio("Phân loại:", ["Tráng", "Cắt"], horizontal=True, key="phan_loai_radio", disabled=disable_hd)
+        
         nguoi_lap = st.text_input("Người lập", value=user_info["name"], disabled=True)
     with c2:
-        # Placeholder for visual calc, actual calc at bottom
+        dept_prefix = "X2-TR" if phan_loai == "Tráng" else "X2-CA"
+        current_month = get_now_vn().strftime("%m")
         ncr_suffix = st.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối", disabled=disable_hd)
-        
+        so_phieu = ""
+        if ncr_suffix:
+            so_phieu = f"{dept_prefix}-{current_month}-{ncr_suffix}"
+            st.caption(f"👉 Mã phiếu: **{so_phieu}**")
+
     # R2
     r2_c1, r2_c2 = st.columns(2)
     with r2_c1:
@@ -147,18 +155,7 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
     # Mo ta loi
     mo_ta_loi = st.text_area("Mô tả lỗi / Ghi chú", disabled=disable_hd, height=60)
     
-    # Phan loai & Prefix Calculation
-    phan_loai = st.selectbox("Phân loại", ["", "Tráng", "Cắt"], disabled=disable_hd)
-    
-    current_month = get_now_vn().strftime("%m")
-    if ncr_suffix:
-        prefix = "X2-TR" if phan_loai == "Tráng" else "X2-CA"
-        so_phieu = f"{prefix}-{current_month}-{ncr_suffix}"
-        # Show caption above or here? showing here at end of form is okay but might be overlooked.
-        # But since phan_loai is late, this is the only place it is fully defined.
-        st.caption(f"👉 Mã phiếu: **{so_phieu}**")
-    else:
-        so_phieu = ""
+    # (Removed old selectbox phan_loai)
 
     st.markdown("**📷 Hình ảnh:**")
     uploaded_images = st.file_uploader(
