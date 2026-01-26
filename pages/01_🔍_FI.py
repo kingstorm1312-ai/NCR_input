@@ -273,28 +273,62 @@ with tab_defects:
         vi_tri_txt = c_extra2.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
         vi_tri = vi_tri_txt
 
-    if st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True):
-        if not final_ten_loi or final_ten_loi == "-- Chọn --":
-            st.error("Chưa chọn tên lỗi!")
-        else:
-            st.session_state.buffer_errors.append({
-                "ten_loi": final_ten_loi,
-                "vi_tri": vi_tri,
-                "muc_do": final_md,
-                "sl_loi": sl_loi_input
-            })
-            st.toast(f"Đã thêm: {final_ten_loi}")
-            
-            # --- RESET INPUTS ---
-            # Reset values in session state
-            st.session_state["inp_ten_loi"] = "-- Chọn --" # Reset Selectbox
-            if "inp_ten_loi_moi" in st.session_state: st.session_state["inp_ten_loi_moi"] = ""
-            st.session_state["inp_sl_loi"] = 1.0 # Reset Qty
-            st.session_state["inp_vi_tri_sel"] = "" # Reset Position Select
-            if "inp_vi_tri_txt" in st.session_state: st.session_state["inp_vi_tri_txt"] = ""
-            st.session_state["inp_muc_do"] = "Nhẹ" # Reset Severity
-            
-            st.rerun()
+    # Function to handle adding error
+    def add_defect_callback():
+        # Get values from state
+        s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
+        s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
+        
+        final_name = s_loi
+        if s_loi == "-- Chọn --":
+            if s_loi_moi:
+                final_name = s_loi_moi
+            else:
+                st.session_state["add_err_msg"] = "⚠️ Chưa chọn hoặc nhập tên lỗi!"
+                return
+
+        # Qty
+        s_qty = st.session_state.get("inp_sl_loi", 1.0)
+        
+        # Position
+        s_pos_sel = st.session_state.get("inp_vi_tri_sel", "")
+        s_pos_txt = st.session_state.get("inp_vi_tri_txt", "").strip()
+        final_pos = s_pos_sel if s_pos_sel else s_pos_txt
+        
+        # Severity
+        s_sev = st.session_state.get("inp_muc_do", "Nhẹ")
+        
+        # Add to buffer
+        st.session_state.buffer_errors.append({
+            "ten_loi": final_name,
+            "vi_tri": final_pos,
+            "muc_do": s_sev,
+            "sl_loi": s_qty
+        })
+        
+        # Toast (Need to queue toast separately or just rely on rerun UI text)
+        # st.toast inside callback might be lost on rerun? usually ok.
+        st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+        st.session_state["add_err_msg"] = "" # Clear error
+        
+        # RESET INPUTS
+        st.session_state["inp_ten_loi"] = "-- Chọn --"
+        st.session_state["inp_ten_loi_moi"] = ""
+        st.session_state["inp_sl_loi"] = 1.0
+        st.session_state["inp_vi_tri_sel"] = ""
+        st.session_state["inp_vi_tri_txt"] = ""
+        st.session_state["inp_muc_do"] = "Nhẹ"
+
+    st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True, on_click=add_defect_callback)
+
+    # Show messages from callback
+    if st.session_state.get("add_err_msg"):
+        st.error(st.session_state["add_err_msg"])
+        st.session_state["add_err_msg"] = "" # Clear after showing
+        
+    if st.session_state.get("success_msg"):
+        st.toast(st.session_state["success_msg"])
+        st.session_state["success_msg"] = "" # Clear
 
     # List Errors
     if st.session_state.buffer_errors:
