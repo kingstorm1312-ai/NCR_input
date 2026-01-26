@@ -239,19 +239,15 @@ with tab_measure:
 
 with tab_defects:
     # Add Defect Form
-    c_def1, c_def2 = st.columns([2, 1])
-    # Add key to selectbox
-    selected_loi = c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
+    # Toggle Input Mode
+    mode_input = st.radio("Chế độ nhập:", ["Chọn từ danh sách", "Nhập mới"], horizontal=True, key="radio_mode")
     
-    # Input mới nếu không có trong list
-    final_ten_loi = selected_loi
-    new_loi = "" # initialize variable
-    if selected_loi == "-- Chọn --":
-        new_loi = st.text_input("...hoặc Nhập tên lỗi mới", key="inp_ten_loi_moi")
-        if new_loi: final_ten_loi = new_loi
+    c_def1, c_def2 = st.columns([2, 1])
+    
+    if mode_input == "Chọn từ danh sách":
+        c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
     else:
-        # Auto fill muc do
-        default_md = DICT_MUC_DO.get(selected_loi, "Nhẹ")
+        c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
     
     # Add key to number_input
     sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=1.0, key="inp_sl_loi")
@@ -276,16 +272,21 @@ with tab_defects:
     # Function to handle adding error
     def add_defect_callback():
         # Get values from state
-        s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
-        s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
+        mode = st.session_state.get("radio_mode", "Chọn từ danh sách")
         
-        final_name = s_loi
-        if s_loi == "-- Chọn --":
-            if s_loi_moi:
-                final_name = s_loi_moi
-            else:
-                st.session_state["add_err_msg"] = "⚠️ Chưa chọn hoặc nhập tên lỗi!"
+        final_name = ""
+        if mode == "Chọn từ danh sách":
+            s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
+            if s_loi == "-- Chọn --":
+                st.session_state["add_err_msg"] = "⚠️ Chưa chọn tên lỗi!"
                 return
+            final_name = s_loi
+        else:
+            s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
+            if not s_loi_moi:
+                st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
+                return
+            final_name = s_loi_moi
 
         # Qty
         s_qty = st.session_state.get("inp_sl_loi", 1.0)
