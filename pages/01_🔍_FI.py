@@ -240,26 +240,38 @@ with tab_measure:
 with tab_defects:
     # Add Defect Form
     c_def1, c_def2 = st.columns([2, 1])
-    selected_loi = c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI)
+    # Add key to selectbox
+    selected_loi = c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
     
     # Input mới nếu không có trong list
     final_ten_loi = selected_loi
+    new_loi = "" # initialize variable
     if selected_loi == "-- Chọn --":
-        new_loi = st.text_input("...hoặc Nhập tên lỗi mới")
+        new_loi = st.text_input("...hoặc Nhập tên lỗi mới", key="inp_ten_loi_moi")
         if new_loi: final_ten_loi = new_loi
     else:
         # Auto fill muc do
         default_md = DICT_MUC_DO.get(selected_loi, "Nhẹ")
     
-    sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=1.0)
+    # Add key to number_input
+    sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=1.0, key="inp_sl_loi")
     
     # M?c ?? & V? trí
     c_extra1, c_extra2 = st.columns(2)
     
     final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
-    final_md = c_extra1.pills("Mức độ", final_md_options, default="Nhẹ")
-    vi_tri = c_extra2.selectbox("Vị trí", [""] + LIST_VI_TRI)
-    if not vi_tri: vi_tri = c_extra2.text_input("Vị trí khác", placeholder="Nhập vị trí...")
+    # pills likely manages its own state well enough or defaults, but let's keep it simple
+    final_md = c_extra1.pills("Mức độ", final_md_options, default="Nhẹ", key="inp_muc_do")
+    
+    # Add key to selectbox
+    vi_tri_sel = c_extra2.selectbox("Vị trí", [""] + LIST_VI_TRI, key="inp_vi_tri_sel")
+    vi_tri = vi_tri_sel
+    
+    # Optional text input
+    vi_tri_txt = "" 
+    if not vi_tri_sel: 
+        vi_tri_txt = c_extra2.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
+        vi_tri = vi_tri_txt
 
     if st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True):
         if not final_ten_loi or final_ten_loi == "-- Chọn --":
@@ -272,6 +284,17 @@ with tab_defects:
                 "sl_loi": sl_loi_input
             })
             st.toast(f"Đã thêm: {final_ten_loi}")
+            
+            # --- RESET INPUTS ---
+            # Reset values in session state
+            st.session_state["inp_ten_loi"] = "-- Chọn --" # Reset Selectbox
+            if "inp_ten_loi_moi" in st.session_state: st.session_state["inp_ten_loi_moi"] = ""
+            st.session_state["inp_sl_loi"] = 1.0 # Reset Qty
+            st.session_state["inp_vi_tri_sel"] = "" # Reset Position Select
+            if "inp_vi_tri_txt" in st.session_state: st.session_state["inp_vi_tri_txt"] = ""
+            st.session_state["inp_muc_do"] = "Nhẹ" # Reset Severity
+            
+            st.rerun()
 
     # List Errors
     if st.session_state.buffer_errors:
