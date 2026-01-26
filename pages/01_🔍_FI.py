@@ -175,6 +175,39 @@ with st.expander("📝 Thông tin Phiếu", expanded=not st.session_state.header
         st.session_state.header_locked = lock
         st.rerun()
 
+# === PHẦN 1.5: KIỂM TRA ĐẶC BIỆT (SPECIAL INSPECTION) ===
+with st.expander("📊 Bảng II: Kiểm tra Cấp độ đặc biệt", expanded=False):
+    st.markdown("#### 1. Kích thước (Size)")
+    c_sz1, c_sz2, c_sz3 = st.columns(3)
+    with c_sz1:
+        spec_size = st.text_input("Tiêu chuẩn (Size)", placeholder="VD: 20x30", disabled=st.session_state.header_locked)
+    with c_sz2:
+        tol_size = st.text_input("Dung sai (Size)", placeholder="VD: +/- 1cm", disabled=st.session_state.header_locked)
+    with c_sz3:
+        meas_size = st.text_area("Thực tế (Size)", placeholder="Nhập các giá trị đo...", height=68, disabled=st.session_state.header_locked)
+
+    st.divider()
+    st.markdown("#### 2. Trọng lượng (Weight)")
+    c_w1, c_w2, c_w3 = st.columns(3)
+    with c_w1:
+        spec_weight = st.text_input("Tiêu chuẩn (Weight)", placeholder="VD: 500g", disabled=st.session_state.header_locked)
+    with c_w2:
+        tol_weight = st.text_input("Dung sai (Weight)", placeholder="VD: +/- 5g", disabled=st.session_state.header_locked)
+    with c_w3:
+        meas_weight = st.text_area("Thực tế (Weight)", placeholder="Nhập các giá trị cân...", height=68, disabled=st.session_state.header_locked)
+
+    st.divider()
+    st.markdown("#### 3. Checklist & Khác")
+    c_ch1, c_ch2 = st.columns(2)
+    with c_ch1:
+        check_barcode = st.selectbox("Kiểm tra mã vạch", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+        check_weight_box = st.selectbox("Kiểm tra trọng lượng thùng", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+    with c_ch2:
+        check_print = st.selectbox("Nội dung in ấn", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+        check_color = st.selectbox("Màu sắc", ["N/A", "Đạt", "Không đạt"], disabled=st.session_state.header_locked)
+    
+    check_other = st.text_area("Kiểm tra khác / Ghi chú đặc biệt", height=68, disabled=st.session_state.header_locked)
+
 # === PHẦN 2: CHI TIẾT LỖI ===
 st.divider()
 st.subheader("Chi tiết lỗi")
@@ -277,7 +310,19 @@ if st.session_state.buffer_errors:
                         'trang_thai': get_initial_status(REQUIRED_DEPT),
                         'thoi_gian_cap_nhat': now,
                         'hinh_anh': hinh_anh_links,
-                        'don_vi_tinh': don_vi_tinh # From Header
+                        'don_vi_tinh': don_vi_tinh, # From Header
+                        # --- SPECIAL INSPECTION FIELDS ---
+                        'spec_size': spec_size,
+                        'tol_size': tol_size,
+                        'meas_size': meas_size,
+                        'spec_weight': spec_weight,
+                        'tol_weight': tol_weight,
+                        'meas_weight': meas_weight,
+                        'check_barcode': check_barcode,
+                        'check_weight_box': check_weight_box,
+                        'check_print': check_print,
+                        'check_color': check_color,
+                        'check_other': check_other
                     }
                     if smart_append_ncr(ws, data_to_save):
                         success_count += 1
