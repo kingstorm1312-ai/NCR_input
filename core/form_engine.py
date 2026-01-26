@@ -157,8 +157,9 @@ def run_inspection_page(profile: DeptProfile):
         # Phan loai (nếu profile yêu cầu)
         phan_loai = ""
         if profile.phan_loai_options:
-            if profile.code == "trang_cat":
-                phan_loai = st.radio("Phân loại:", profile.phan_loai_options, horizontal=True, key="phan_loai_radio", disabled=disable_hd)
+            if profile.code in ["trang_cat", "in_xuong_d"]:
+                label = "Khâu:" if profile.code == "in_xuong_d" else "Phân loại:"
+                phan_loai = st.radio(label, profile.phan_loai_options, horizontal=True, key="phan_loai_radio", disabled=disable_hd)
             else:
                 phan_loai = st.selectbox("Phân loại", profile.phan_loai_options, disabled=disable_hd)
     
@@ -168,10 +169,13 @@ def run_inspection_page(profile: DeptProfile):
             st.session_state.header_locked = lock
             st.rerun()
     
-    # Prefix calculation for trang_cat
+    # Prefix calculation for trang_cat / in_xuong_d
     if profile.code == "trang_cat":
         from utils.config import NCR_DEPARTMENT_PREFIXES
         dept_prefix = NCR_DEPARTMENT_PREFIXES["TRANG"] if phan_loai == "Tráng" else NCR_DEPARTMENT_PREFIXES["CAT"]
+    elif profile.code == "in_xuong_d":
+        from utils.config import NCR_DEPARTMENT_PREFIXES
+        dept_prefix = NCR_DEPARTMENT_PREFIXES["IN"] if phan_loai == "In" else NCR_DEPARTMENT_PREFIXES["SIEU_AM"]
     else:
         dept_prefix = profile.prefix
     
