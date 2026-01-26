@@ -13,6 +13,29 @@ from utils.ncr_helpers import (
     get_initial_status
 )
 from utils.aql_manager import get_aql_standard, evaluate_lot_quality
+from utils.config import NCR_DEPARTMENT_PREFIXES
+
+# --- PHÂN LOẠI ĐẶC THÙ (Dynamic Prefixes) ---
+DYNAMIC_PREFIX_BY_CODE = {
+    "trang_cat": {
+        "Tráng": NCR_DEPARTMENT_PREFIXES.get("TRANG", "X2-TR"),
+        "Cắt": NCR_DEPARTMENT_PREFIXES.get("CAT", "X2-CA")
+    },
+    "in_xuong_d": {
+        "In": NCR_DEPARTMENT_PREFIXES.get("IN", "XG-IN"),
+        "Siêu Âm": NCR_DEPARTMENT_PREFIXES.get("SIEU_AM", "XG-SA")
+    }
+}
+
+def resolve_prefix(profile: DeptProfile, phan_loai_value: str) -> str:
+    """
+    Xác định prefix dựa trên profile và giá trị phân loại (nếu có).
+    """
+    if profile.code in DYNAMIC_PREFIX_BY_CODE:
+        mapping = DYNAMIC_PREFIX_BY_CODE[profile.code]
+        if phan_loai_value in mapping:
+            return mapping[phan_loai_value]
+    return profile.prefix
 
 def run_inspection_page(profile: DeptProfile):
     """
@@ -169,15 +192,8 @@ def run_inspection_page(profile: DeptProfile):
             st.session_state.header_locked = lock
             st.rerun()
     
-    # Prefix calculation for trang_cat / in_xuong_d
-    if profile.code == "trang_cat":
-        from utils.config import NCR_DEPARTMENT_PREFIXES
-        dept_prefix = NCR_DEPARTMENT_PREFIXES["TRANG"] if phan_loai == "Tráng" else NCR_DEPARTMENT_PREFIXES["CAT"]
-    elif profile.code == "in_xuong_d":
-        from utils.config import NCR_DEPARTMENT_PREFIXES
-        dept_prefix = NCR_DEPARTMENT_PREFIXES["IN"] if phan_loai == "In" else NCR_DEPARTMENT_PREFIXES["SIEU_AM"]
-    else:
-        dept_prefix = profile.prefix
+    # Prefix calculation
+    dept_prefix = resolve_prefix(profile, phan_loai)
     
     # ==========================================
     # PHẦN 2: NHẬP KẾT QUẢ (BODY SECTION)
@@ -193,7 +209,7 @@ def run_inspection_page(profile: DeptProfile):
     spec_weight = tol_weight = meas_weight = ""
     check_barcode = check_weight_box = check_print = check_color = "N/A"
     check_other = ""
-
+    
     if show_tabs:
         tab_measure, tab_defects = st.tabs(["📏 Đo đạc & Checklist", "🐞 Chi tiết Lỗi"])
         
@@ -222,7 +238,7 @@ def run_inspection_page(profile: DeptProfile):
     else:
         # Nếu không có tabs, chỉ có error list
         tab_defects = st.container()
-
+    
     # --- Đóng gói logic nhập lỗi ---
     with tab_defects:
         if not show_tabs: st.markdown("##### 🐞 Chi tiết Lỗi")
@@ -265,7 +281,7 @@ def run_inspection_page(profile: DeptProfile):
                     st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
                     return
                 final_name = s_loi_moi
-
+    
             s_qty = st.session_state.get("inp_sl_loi", 1.0)
             s_pos_sel = st.session_state.get("inp_vi_tri_sel", "")
             s_pos_txt = st.session_state.get("inp_vi_tri_txt", "").strip()
@@ -312,7 +328,7 @@ def run_inspection_page(profile: DeptProfile):
     mo_ta_loi = ""
     uploaded_images = []
     inspection_result = ""
-
+    
     if profile.has_aql:
         # Tính toán kết quả AQL
         total_major = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] in ['Nặng', 'Nghiêm trọng']])
@@ -339,9 +355,9 @@ def run_inspection_page(profile: DeptProfile):
         st.info("ℹ️ Nhập thông tin phiếu NCR để lưu danh sách lỗi.")
         save_label = "💾 LƯU PHIẾU NCR"
         save_btn_type = "primary"
-
+    
     # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
-    if (profile.has_aql and inspection_result == 'Fail') or (not profile.has_aql):
+    if (not profile.has_aql) or (profile.has_aql and inspection_result == 'Fail'):
         curr_month = get_now_vn().strftime("%m")
         c_ncr1, c_ncr2 = st.columns([1, 2])
         ncr_suffix = c_ncr1.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối của phiếu", max_chars=3)
@@ -353,7 +369,7 @@ def run_inspection_page(profile: DeptProfile):
             
         mo_ta_loi = st.text_area("Mô tả lỗi chi tiết / Nguyên nhân", height=80)
         uploaded_images = st.file_uploader("Hình ảnh bằng chứng", type=['jpg', 'png', 'jpeg'], accept_multiple_files=True)
-
+    
     # --- NÚT LƯU CUỐI CÙNG ---
     if st.button(save_label, type=save_btn_type, use_container_width=True):
         if (not profile.has_aql or inspection_result == 'Fail') and not final_ncr_num:
@@ -363,7 +379,7 @@ def run_inspection_page(profile: DeptProfile):
         if not st.session_state.buffer_errors and not profile.has_aql:
             st.error("⚠️ Danh sách lỗi trống!")
             st.stop()
-
+    
         try:
             with st.spinner("Đang lưu dữ liệu hệ thống..."):
                 if uploaded_images:
