@@ -93,10 +93,10 @@ def get_base64_image(image_path):
         return base64.b64encode(f.read()).decode()
 
 def login_user(username, password):
-    """Kiểm tra user từ sheet USERS"""
+    """Kiểm tra user từ sheet USERS. Trả về (user_info, error_msg)"""
     try:
         gc = init_gspread()
-        if not gc: return None
+        if not gc: return None, "Không thể kết nối cơ sở dữ liệu."
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         ws = sh.worksheet("USERS")
         users_data = ws.get_all_records()
@@ -124,20 +124,28 @@ def login_user(username, password):
                 # Check Status if exists
                 if 'status' in df_users.columns:
                     status = str(user['status']).strip().lower()
+                    if status == 'pending' or status == 'cho_duyet':
+                        return None, "⏳ Tài khoản của bạn đang chờ Admin phê duyệt. Vui lòng quay lại sau."
+                    if status == 'rejected' or status == 'bi_tu_choi':
+                        return None, "❌ Đăng ký của bạn đã bị từ chối. Vui lòng liên hệ bộ phận IT/Admin."
                     if status != 'active' and status != '':
-                        st.error(f"Tài khoản đang ở trạng thái: {status.upper()}. Vui lòng liên hệ Admin.")
-                        return None
+                        return None, f"Tài khoản đang ở trạng thái: {status.upper()}. Vui lòng liên hệ Admin."
                         
                 return {
                     "name": user['full_name'],
                     "username": user['username'],
                     "role": user['role'],
                     "department": user['department']
-                }
+                }, None
+            else:
+                return None, "❌ Mật khẩu không chính xác. Vui lòng thử lại."
+        else:
+            return None, "❌ Tên đăng nhập không tồn tại."
+            
     except Exception as e:
-        st.error(f"Lỗi đăng nhập: {e}")
+        return None, f"Lỗi hệ thống: {e}"
     
-    return None
+    return None, "Lỗi không xác định."
 
 # --- UI RENDERER ---
 
@@ -240,18 +248,14 @@ if st.session_state.user_info is None:
                             st.warning("Vui lòng nhập đầy đủ thông tin.")
                         else:
                             with st.spinner("Đang kiểm tra..."):
-                                user = login_user(username, password)
+                                user, error = login_user(username, password)
                                 if user:
                                     st.session_state.user_info = user
                                     st.toast(f"Chào mừng {user['name']}!", icon="👋")
                                     time.sleep(0.5)
-                                    
-                                    # Auto Routing
-                                    user_dept = user['department']
-                                    if user['role'] != 'admin' and user_dept in DEPARTMENT_PAGES:
-                                         st.switch_page(DEPARTMENT_PAGES[user_dept])
-                                    else:
-                                         st.rerun()
+                                    st.rerun()
+                                else:
+                                    st.error(error)
                 
                 if st.button("📝 Đăng ký tài khoản mới", use_container_width=True):
                     st.session_state.show_register = True
