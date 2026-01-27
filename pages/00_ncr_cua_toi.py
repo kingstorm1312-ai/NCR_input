@@ -42,7 +42,13 @@ user_dept = user_info.get("department")
 
 
 # --- HEADER ---
-st.title("🙋 NCR Của Tôi")
+col_nav, col_title = st.columns([1, 3])
+with col_nav:
+    if st.button("🏠 Home", help="Về Dashboard", use_container_width=True):
+        st.switch_page("Dashboard.py")
+
+with col_title:
+    st.title("🙋 NCR Của Tôi")
 st.caption(f"Xin chào **{user_name}** - Quản lý các phiếu NCR bạn đã tạo")
 
 # Clear cache button
