@@ -218,15 +218,6 @@ def render_sidebar(user_info):
     if not user_info:
         return
 
-    # --- IDEMPOTENCY GUARD (CONTEXT-BASED) ---
-    # Use the script run context to store a flag. 
-    # This is safer than session_state for per-run idempotency.
-    ctx = get_script_run_ctx()
-    if ctx:
-        if hasattr(ctx, "_sidebar_rendered") and ctx._sidebar_rendered:
-            return
-        ctx._sidebar_rendered = True
-    
     # --- CSS Styles ---
 
     # 1. Hide default nav
