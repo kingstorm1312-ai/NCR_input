@@ -7,6 +7,10 @@ def require_login():
     if "user_info" not in st.session_state or not st.session_state.user_info:
         st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
         st.stop()
+        
+    # Inject Mobile Sidebar
+    from utils.ui_nav import render_sidebar
+    render_sidebar(st.session_state.user_info)
 
 def require_dept_access(required_dept):
     """

@@ -29,21 +29,10 @@ from core.services.approval_service import (
 st.set_page_config(page_title="Phê Duyệt NCR", page_icon="✍️", layout="centered", initial_sidebar_state="auto")
 
 # --- MOBILE NAVIGATION HELPER ---
-st.markdown("""
-<style>
-    /* Đảm bảo header và nút sidebar rõ ràng trên di động */
-    header[data-testid="stHeader"] {
-        background-color: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-    }
-</style>
-""", unsafe_allow_html=True)
-
-with st.sidebar:
-    st.markdown("### 🧭 Điều hướng")
-    if st.button("🏠 Về Trang Chủ", use_container_width=True):
-        st.switch_page("Dashboard.py")
-    st.divider()
+# --- MOBILE NAVIGATION HELPER ---
+# Styles handled by ui_nav
+pass
+# --- REMOVED OLD SIDEBAR CODE ---
 
 # --- AUTHENTICATION CHECK ---
 if "user_info" not in st.session_state or not st.session_state.user_info:
@@ -51,6 +40,10 @@ if "user_info" not in st.session_state or not st.session_state.user_info:
     st.stop()
 
 user_info = st.session_state.user_info
+
+# Inject Sidebar
+from utils.ui_nav import render_sidebar
+render_sidebar(user_info)
 user_role = user_info.get("role")
 user_name = user_info.get("name")
 user_dept = user_info.get("department")

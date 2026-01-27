@@ -8,19 +8,8 @@ from datetime import datetime
 from utils.ncr_helpers import get_now_vn, init_gspread, get_all_users, register_user
 
 # --- CONFIG: DEPARTMENT ROUTING ---
-DEPARTMENT_PAGES = {
-    "fi": "pages/01_fi.py",
-    "dv_cuon": "pages/02_dv_cuon.py",
-    "dv_npl": "pages/03_dv_npl.py",
-    "trang_cat": "pages/04_trang_cat.py",
-    "may_i": "pages/05_may_i.py",
-    "may_p2": "pages/06_may_p2.py",
-    "may_n4": "pages/07_may_n4.py",
-    "may_a2": "pages/08_may_a2.py",
-    "tp_dau_vao": "pages/09_tp_dau_vao.py",
-    "in_d": "pages/10_in_xuong_d.py",
-    "cat_ban": "pages/11_cat_ban.py"
-}
+# --- CONFIG: DEPARTMENT ROUTING ---
+from utils.ui_nav import DEPARTMENT_PAGES, render_sidebar
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Đại Lục CPC - QC System", page_icon="🏭", layout="centered", initial_sidebar_state="auto")
@@ -275,25 +264,8 @@ else:
     user = st.session_state.user_info
     
     # --- SIDEBAR ---
-    with st.sidebar:
-        try:
-            st.image("assets/Logo.png", width=120)
-        except:
-            st.title("ĐẠI LỤC CPC")
-            
-        st.divider()
-        st.markdown(f"**Xin chào, {user['name']}**")
-        st.caption(f"Bộ phận: *{user['department']}*")
-        
-        # Badge style role
-        role_color = "red" if user['role'] == 'admin' else "blue"
-        st.markdown(f":{role_color}[Vai trò: {user['role'].upper()}]")
-        
-        st.write("")
-        st.write("")
-        if st.button("Đăng xuất", use_container_width=True):
-            st.session_state.user_info = None
-            st.rerun()
+    # --- SIDEBAR (Mobile-Friendly) ---
+    render_sidebar(user)
 
     # --- MAIN CONTENT ---
     # Header
