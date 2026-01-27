@@ -7,6 +7,8 @@ def require_login():
     """
     if "user_info" not in st.session_state or not st.session_state.user_info:
         st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
+        if st.button("🏠 Quay về trang Đăng nhập"):
+            st.switch_page("Dashboard.py")
         st.stop()
         
     # Inject Mobile Sidebar (Centralized)
