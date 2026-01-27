@@ -10,14 +10,7 @@ def require_login():
         st.stop()
         
     # Inject Mobile Sidebar (Centralized)
-    # Use a flag to avoid double render in same script run (Streamlit executes top-down)
-    if "_sidebar_rendered" not in st.session_state:
-        st.session_state._sidebar_rendered = False
-        
-    # Note: st.session_state persists across runs. 
-    # To truly avoid double-render in SAME run but allow it in NEXT run,
-    # we can use a temporary attribute on the module or just rely on IDs and avoid logic duplication.
-    # However, simply providing a unique key to the logout button solves the crash.
+    # utils.ui_nav.render_sidebar is idempotent per script run (via get_script_run_ctx)
     from utils.ui_nav import render_sidebar
     render_sidebar(st.session_state.user_info)
     

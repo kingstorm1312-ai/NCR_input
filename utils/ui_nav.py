@@ -199,13 +199,36 @@ def fetch_badge_counts(username, role, department):
 # ==========================================
 # 3. RENDER FUNCTION
 # ==========================================
+try:
+    from streamlit.runtime.scriptrunner import get_script_run_ctx
+except ImportError:
+    # Fallback for older Streamlit versions (though we expect >= 1.x)
+    from streamlit.scriptrunner import get_script_run_ctx
+
+def get_run_id():
+    ctx = get_script_run_ctx()
+    return ctx.script_run_id if ctx else None
+
 def render_sidebar(user_info):
     """
     Renders the custom mobile-friendly sidebar.
     Must be called at the top of every page.
+    Idempotent within a single script run.
     """
+    if not user_info:
+        return
+
+    # --- IDEMPOTENCY GUARD ---
+    # Ensure we only render ONCE per script execution to avoid DuplicateElementId errors
+    current_run_id = get_run_id()
+    if st.session_state.get("_last_sidebar_run_id") == current_run_id:
+        return
+    
+    # Mark this run as rendered
+    st.session_state._last_sidebar_run_id = current_run_id
     
     # --- CSS Styles ---
+
     # 1. Hide default nav
     # 2. Style buttons for mobile touch
     st.markdown("""
