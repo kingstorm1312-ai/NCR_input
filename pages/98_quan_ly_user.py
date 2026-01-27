@@ -24,6 +24,12 @@ if not is_admin:
         st.error(f"⛔ {msg}")
     st.stop()
 
+user_info = st.session_state.user_info
+
+# Inject Mobile Sidebar
+from utils.ui_nav import render_sidebar
+render_sidebar(user_info)
+
 # --- CONSTANTS ---
 ROLE_OPTIONS = {
     'staff': 'Nhân viên (Staff)',

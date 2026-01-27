@@ -32,6 +32,10 @@ if "user_info" not in st.session_state or not st.session_state.user_info:
     st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
     st.stop()
 
+# Inject Sidebar
+from utils.ui_nav import render_sidebar
+render_sidebar(st.session_state.user_info)
+
 # --- ROLE CHECK ---
 user_role = st.session_state.user_info.get("role", "")
 ALLOWED_ROLES = ['director', 'admin', 'qc_manager', 'bgd_tan_phu']
