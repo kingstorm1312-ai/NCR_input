@@ -83,9 +83,11 @@ else:
 
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
+    # We pass 'all' as user_dept to fetch all departments for in-memory filtering.
+    # This allows roles like 'truong_ca' to "chọn thêm" other departments if needed.
     df_original, df_grouped, filter_status = get_pending_approvals(
         user_role, 
-        user_dept, 
+        'all', 
         admin_selected_role=selected_role if user_role == 'admin' else None
     )
 
@@ -93,12 +95,56 @@ if filter_status is None:
     st.error("Lỗi: Không tìm thấy trạng thái phê duyệt cho Role này.")
     st.stop()
 
+# --- DEPARTMENT FILTER (Mobile-first) ---
+if not df_grouped.empty:
+    if 'bo_phan' in df_grouped.columns:
+        # Get unique departments from data
+        available_depts = sorted(df_grouped['bo_phan'].dropna().unique().tolist())
+        
+        # Initialize filter selection in session state
+        filter_key = f"filter_depts_{selected_role}"
+        if filter_key not in st.session_state:
+            # Default for truong_ca is their own department, others see all
+            if user_role == 'truong_ca' and user_dept:
+                st.session_state[filter_key] = [user_dept] if user_dept in available_depts else []
+            else:
+                st.session_state[filter_key] = []
+        
+        # Ensure session state values are still valid
+        st.session_state[filter_key] = [d for d in st.session_state[filter_key] if d in available_depts]
+
+        # Render Filter UI
+        f_col1, f_col2 = st.columns([3, 1])
+        with f_col1:
+            selected_depts = st.multiselect(
+                "🏢 Lọc theo khâu:",
+                options=available_depts,
+                key=filter_key,
+                help="Để trống để xem tất cả"
+            )
+        with f_col2:
+            st.write("") # Spacer for alignment
+            st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+            if st.button("🗑️ Xóa lọc", use_container_width=True, help="Reset về mặc định"):
+                if user_role == 'truong_ca' and user_dept:
+                    st.session_state[filter_key] = [user_dept] if user_dept in available_depts else []
+                else:
+                    st.session_state[filter_key] = []
+                st.rerun()
+
+        # Apply in-memory filtering
+        if selected_depts:
+            df_grouped = df_grouped[df_grouped['bo_phan'].isin(selected_depts)]
+            df_original = df_original[df_original['bo_phan'].isin(selected_depts)]
+    else:
+        st.warning("⚠️ Thiếu cột 'bo_phan' để lọc.")
+
 # --- DISPLAY STATUS INFO ---
 display_status = get_status_display_name(filter_status)
 st.info(f"Đang hiển thị phiếu trạng thái: **{display_status}**")
 
 if df_grouped.empty:
-    st.success("🎉 Không có phiếu nào cần phê duyệt!")
+    st.success("🎉 Không có phiếu nào khớp với bộ lọc!")
 else:
     count = len(df_grouped)
     st.markdown(f"**Tìm thấy {count} phiếu cần xử lý**")
