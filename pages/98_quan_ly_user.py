@@ -115,16 +115,22 @@ with tab1:
 with tab2:
     st.subheader("Danh sách nhân sự đang hoạt động")
     
-    col_search, col_dept, col_ref = st.columns([2, 2, 1])
+    col_search, col_dept, col_role, col_ref = st.columns([2, 2, 2, 1])
     with col_search:
         search_term = st.text_input("🔍 Tìm kiếm user:", placeholder="Nhập tên hoặc username...")
     with col_dept:
-        # Lấy danh sách bộ phận từ DEPT_OPTIONS
         all_depts = list(DEPT_OPTIONS.keys())
         selected_depts = st.multiselect(
             "Lọc theo bộ phận:", 
             options=all_depts,
             format_func=lambda x: DEPT_OPTIONS.get(x, x)
+        )
+    with col_role:
+        all_roles = list(ROLE_OPTIONS.keys())
+        selected_roles = st.multiselect(
+            "Lọc theo chức vụ:",
+            options=all_roles,
+            format_func=lambda x: ROLE_OPTIONS.get(x, x)
         )
     with col_ref:
         if st.button("🔄 Refresh Data", key="ref_tab2"):
@@ -143,7 +149,11 @@ with tab2:
         if selected_depts:
             active_users = active_users[active_users['department'].isin(selected_depts)]
 
-        # 2. Search Filter
+        # 2. Role Filter
+        if selected_roles:
+            active_users = active_users[active_users['role'].isin(selected_roles)]
+
+        # 3. Search Filter
         if search_term:
             s = search_term.lower()
             active_users = active_users[
