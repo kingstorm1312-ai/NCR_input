@@ -218,14 +218,14 @@ def render_sidebar(user_info):
     if not user_info:
         return
 
-    # --- IDEMPOTENCY GUARD ---
-    # Ensure we only render ONCE per script execution to avoid DuplicateElementId errors
-    current_run_id = get_run_id()
-    if st.session_state.get("_last_sidebar_run_id") == current_run_id:
-        return
-    
-    # Mark this run as rendered
-    st.session_state._last_sidebar_run_id = current_run_id
+    # --- IDEMPOTENCY GUARD (CONTEXT-BASED) ---
+    # Use the script run context to store a flag. 
+    # This is safer than session_state for per-run idempotency.
+    ctx = get_script_run_ctx()
+    if ctx:
+        if hasattr(ctx, "_sidebar_rendered") and ctx._sidebar_rendered:
+            return
+        ctx._sidebar_rendered = True
     
     # --- CSS Styles ---
 
