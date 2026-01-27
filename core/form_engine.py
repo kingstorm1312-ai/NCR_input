@@ -254,7 +254,12 @@ def run_inspection_page(profile: DeptProfile):
         else:
             c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
     
-        sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=0.1, format="%.1f", key="inp_sl_loi")
+        # Logic số lượng lỗi theo đơn vị tính
+        is_continuous = don_vi_tinh and str(don_vi_tinh).lower() in ['kg', 'mét', 'm', 'met']
+        qty_step = 0.1 if is_continuous else 1.0
+        qty_fmt = "%.1f" if is_continuous else "%d"
+        
+        sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=qty_step, format=qty_fmt, key="inp_sl_loi")
     
         c_extra1, c_extra2 = st.columns(2)
         final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
