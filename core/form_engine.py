@@ -244,82 +244,79 @@ def run_inspection_page(profile: DeptProfile):
     with tab_defects:
         if not show_tabs: st.markdown("##### 🐞 Chi tiết Lỗi")
         
-        # Toggle Input Mode
-        mode_input = st.radio("Chế độ nhập:", ["Chọn từ danh sách", "Nhập mới"], horizontal=True, key="radio_mode")
-    
-        c_def1, c_def2 = st.columns([2, 1])
-    
-        if mode_input == "Chọn từ danh sách":
-            c_def1.selectbox("Chọn Tên lỗi", ["-- Chọn --"] + LIST_LOI, key="inp_ten_loi")
-        else:
-            c_def1.text_input("Nhập tên lỗi mới", key="inp_ten_loi_moi")
-    
-        # Logic số lượng lỗi theo đơn vị tính
-        is_continuous = don_vi_tinh and str(don_vi_tinh).lower() in ['kg', 'mét', 'm', 'met']
-        qty_step = 0.1 if is_continuous else 1.0
-        qty_fmt = "%.1f" if is_continuous else "%d"
-        
-        sl_loi_input = c_def2.number_input("SL Lỗi", min_value=1.0, step=qty_step, format=qty_fmt, key="inp_sl_loi")
-    
-        c_extra1, c_extra2 = st.columns(2)
-        final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
-        final_md = c_extra1.pills("Mức độ", final_md_options, default="Nhẹ", key="inp_muc_do")
-    
-        vi_tri_sel = c_extra2.selectbox("Vị trí", [""] + LIST_VI_TRI, key="inp_vi_tri_sel")
-        vi_tri = vi_tri_sel if vi_tri_sel else st.session_state.get("inp_vi_tri_txt", "")
-    
-        if not vi_tri_sel: 
-            vi_tri_txt = c_extra2.text_input("Vị trí khác", placeholder="Nhập vị trí...", key="inp_vi_tri_txt")
-            vi_tri = vi_tri_txt
-    
-        def add_defect_callback():
-            mode = st.session_state.get("radio_mode", "Chọn từ danh sách")
-            final_name = ""
-            if mode == "Chọn từ danh sách":
-                s_loi = st.session_state.get("inp_ten_loi", "-- Chọn --")
-                if s_loi == "-- Chọn --":
-                    st.session_state["add_err_msg"] = "⚠️ Chưa chọn tên lỗi!"
-                    return
+        # --- DIALOG DEFINITION (Mobile Optimized) ---
+        @st.dialog("📝 Thêm lỗi mới")
+        def open_add_defect_dialog():
+            # 1. Tên lỗi
+            mode_input = st.radio("Nguồn tên lỗi:", ["Chọn danh sách", "Nhập tay"], horizontal=True, label_visibility="collapsed")
+            col_name = st.container()
+            if mode_input == "Chọn danh sách":
+                s_loi = col_name.selectbox("Tên lỗi", [""] + LIST_LOI, key="dlg_ten_loi", help="Chọn tên lỗi từ danh sách")
                 final_name = s_loi
             else:
-                s_loi_moi = st.session_state.get("inp_ten_loi_moi", "").strip()
-                if not s_loi_moi:
-                    st.session_state["add_err_msg"] = "⚠️ Chưa nhập tên lỗi mới!"
+                s_loi_new = col_name.text_input("Nhập tên lỗi", key="dlg_ten_loi_new", placeholder="Nhập tên lỗi mới...")
+                final_name = s_loi_new
+
+            # 2. Vị trí
+            col_pos = st.container()
+            c_p1, c_p2 = col_pos.columns([1, 1])
+            vi_tri_sel = c_p1.selectbox("Vị trí", [""] + LIST_VI_TRI, key="dlg_vi_tri_sel")
+            if not vi_tri_sel:
+                vi_tri_txt = c_p2.text_input("Vị trí khác", placeholder="Ghi cụ thể...", key="dlg_vi_tri_txt")
+                final_pos = vi_tri_txt
+            else:
+                c_p2.write("") # Spacer
+                final_pos = vi_tri_sel
+
+            # 3. Số lượng (Strict Type Handling)
+            is_continuous = don_vi_tinh and str(don_vi_tinh).lower() in ['kg', 'mét', 'm', 'met']
+            
+            c_qty, c_sev = st.columns([1, 1])
+            with c_qty:
+                if is_continuous:
+                    # Float path
+                    s_qty = st.number_input("SL Lỗi", min_value=0.1, step=0.1, value=1.0, format="%.1f", key="dlg_qty_float")
+                else:
+                    # Integer path (Fix warning)
+                    s_qty = st.number_input("SL Lỗi", min_value=1, step=1, value=1, format="%d", key="dlg_qty_int")
+            
+            with c_sev:
+                final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
+                # Use selectbox or radio for compactness in dialog
+                s_sev = st.selectbox("Mức độ", final_md_options, index=0, key="dlg_sev")
+
+            st.write("")
+            st.markdown("---")
+            
+            # SUBMIT BUTTON
+            if st.button("✅ THÊM VÀO DANH SÁCH", type="primary", use_container_width=True):
+                # Basic Validation
+                if not final_name:
+                    st.error("⚠️ Vui lòng nhập/chọn Tên lỗi!")
                     return
-                final_name = s_loi_moi
-    
-            s_qty = st.session_state.get("inp_sl_loi", 1.0)
-            s_pos_sel = st.session_state.get("inp_vi_tri_sel", "")
-            s_pos_txt = st.session_state.get("inp_vi_tri_txt", "").strip()
-            final_pos = s_pos_sel if s_pos_sel else s_pos_txt
-            s_sev = st.session_state.get("inp_muc_do", "Nhẹ")
-            
-            st.session_state.buffer_errors.append({
-                "ten_loi": final_name,
-                "vi_tri": final_pos,
-                "muc_do": s_sev,
-                "sl_loi": s_qty
-            })
-            
-            st.session_state["success_msg"] = f"Đã thêm: {final_name}"
-            st.session_state["add_err_msg"] = ""
-            st.session_state["inp_ten_loi"] = "-- Chọn --"
-            st.session_state["inp_ten_loi_moi"] = ""
-            st.session_state["inp_sl_loi"] = 1.0
-            st.session_state["inp_vi_tri_sel"] = ""
-            st.session_state["inp_vi_tri_txt"] = ""
-            st.session_state["inp_muc_do"] = "Nhẹ"
-    
-        st.button("➕ THÊM LỖI VÀO DANH SÁCH", use_container_width=True, on_click=add_defect_callback)
-    
-        if st.session_state.get("add_err_msg"):
-            st.error(st.session_state["add_err_msg"])
-            st.session_state["add_err_msg"] = "" 
-            
+                
+                # Add to buffer
+                st.session_state.buffer_errors.append({
+                    "ten_loi": final_name,
+                    "vi_tri": final_pos if final_pos else "",
+                    "muc_do": s_sev,
+                    "sl_loi": s_qty # Will be float or int based on input
+                })
+                
+                # Feedback & Close
+                st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+                st.rerun()
+
+        # --- MAIN UI: ADD BUTTON ---
+        if st.button("➕ THÊM LỖI (Mở Form)", type="primary", use_container_width=True):
+            open_add_defect_dialog()
+
+        # --- FEEDBACK DISPLAY ---
         if st.session_state.get("success_msg"):
-            st.toast(st.session_state["success_msg"])
+            st.toast(st.session_state["success_msg"], icon="✅")
             st.session_state["success_msg"] = "" 
-    
+
+        # --- BUFFER LIST RENDER ---
         if st.session_state.buffer_errors:
             st.markdown("##### Danh sách đã nhập:")
             st.session_state.buffer_errors = render_input_buffer_mobile(st.session_state.buffer_errors)
