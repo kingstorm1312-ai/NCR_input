@@ -360,6 +360,7 @@ def run_inspection_page(profile: DeptProfile):
         save_btn_type = "primary"
     
     # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
+    # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
     if (not profile.has_aql) or (profile.has_aql and inspection_result == 'Fail'):
         curr_month = get_now_vn().strftime("%m")
         c_ncr1, c_ncr2 = st.columns([1, 2])
@@ -371,7 +372,10 @@ def run_inspection_page(profile: DeptProfile):
             c_ncr2.warning("⬅️ Vui lòng nhập số đuôi phiếu NCR")
             
         mo_ta_loi = st.text_area("Mô tả lỗi chi tiết / Nguyên nhân", height=80)
-        uploaded_images = st.file_uploader("Hình ảnh bằng chứng", type=['jpg', 'png', 'jpeg'], accept_multiple_files=True)
+    
+    # --- IMAGE UPLOAD (ALWAYS VISIBLE) ---
+    st.markdown("##### 📷 Hình ảnh bằng chứng")
+    uploaded_images = st.file_uploader("Tải lên hình ảnh", type=['jpg', 'png', 'jpeg'], accept_multiple_files=True, label_visibility="collapsed")
     
     # --- NÚT LƯU CUỐI CÙNG ---
     if st.button(save_label, type=save_btn_type, use_container_width=True):
