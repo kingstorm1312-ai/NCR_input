@@ -860,7 +860,6 @@ def migrate_user_passwords():
     Idempotent: Chỉ hash những user chưa có hash.
     Sử dụng batch update để tối ưu tốc độ.
     """
-    """
     try:
         gc = init_gspread()
         if not gc: return False, "Lỗi kết nối database"
