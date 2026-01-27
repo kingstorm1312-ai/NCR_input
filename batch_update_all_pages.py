@@ -40,17 +40,17 @@ COLUMN_TEMPLATE = """                    rows.append([
                     ])"""
 
 PAGES = [
-    ('01_🔍_FI.py', "''"),  # phan_loai empty for FI
+    ('01_fi.py', "''"),  # phan_loai empty for FI
     ('02_🌀_ĐV_Cuộn.py', "''"),
-    ('03_📦_ĐV_NPL.py', "''"),
-    ('04_✂️_Tráng_Cắt.py', 'phan_loai'),  # dynamic for Trang Cat
-    ('05_🧵_May_I.py', "''"),
-    ('06_🧵_May_P2.py', "''"),
-    ('07_🧵_May_N4.py', "''"),
-    ('08_🧵_May_A2.py', "''"),
-    ('09_📦_TP_Đầu_Vào.py', "''"),
-    ('10_🖨️_In_Xưởng_D.py', "''"),
-    ('11_🔪_Cắt_Bàn.py', "''"),
+    ('03_dv_npl.py', "''"),
+    ('04_trang_cat.py', 'phan_loai'),  # dynamic for Trang Cat
+    ('05_may_i.py', "''"),
+    ('06_may_p2.py', "''"),
+    ('07_may_n4.py', "''"),
+    ('08_may_a2.py', "''"),
+    ('09_tp_dau_vao.py', "''"),
+    ('10_in_xuong_d.py', "''"),
+    ('11_cat_ban.py', "''"),
 ]
 
 pages_dir = 'pages'

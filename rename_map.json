@@ -1,0 +1,20 @@
+{
+    "pages/01_🔍_FI.py": "pages/01_fi.py",
+    "pages/02_💿_ĐV_Cuộn.py": "pages/02_dv_cuon.py",
+    "pages/03_📦_ĐV_NPL.py": "pages/03_dv_npl.py",
+    "pages/04_✂️_Tráng_Cắt.py": "pages/04_trang_cat.py",
+    "pages/05_🧵_May_I.py": "pages/05_may_i.py",
+    "pages/06_🧵_May_P2.py": "pages/06_may_p2.py",
+    "pages/07_🧵_May_N4.py": "pages/07_may_n4.py",
+    "pages/08_🧵_May_A2.py": "pages/08_may_a2.py",
+    "pages/09_📦_TP_Đầu_Vào.py": "pages/09_tp_dau_vao.py",
+    "pages/10_🖨️_In_Xưởng_D.py": "pages/10_in_xuong_d.py",
+    "pages/11_🔪_Cắt_Bàn.py": "pages/11_cat_ban.py",
+    "pages/50_✍️_Phê_Duyệt.py": "pages/50_phe_duyet.py",
+    "pages/51_🔧_QC_Giám_Sát.py": "pages/51_qc_giam_sat.py",
+    "pages/90_📊_Báo_Cáo.py": "pages/90_bao_cao.py",
+    "pages/98_⚙️_Quản_Lý_User.py": "pages/98_quan_ly_user.py",
+    "pages/99_👑_Ban_Giám_Đốc.py": "pages/99_ban_giam_doc.py",
+    "pages/99_🔍_Kiểm_Tra_Hệ_Thống.py": "pages/99_kiem_tra_he_thong.py",
+    "pages/00_🙋_NCR_Của_Tôi.py": "pages/00_ncr_cua_toi.py"
+}

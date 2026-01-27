@@ -9,17 +9,17 @@ from utils.ncr_helpers import get_now_vn, init_gspread, get_all_users, register_
 
 # --- CONFIG: DEPARTMENT ROUTING ---
 DEPARTMENT_PAGES = {
-    "fi": "pages/01_🔍_FI.py",
-    "dv_cuon": "pages/02_💿_ĐV_Cuộn.py",
-    "dv_npl": "pages/03_📦_ĐV_NPL.py",
-    "trang_cat": "pages/04_✂️_Tráng_Cắt.py",
-    "may_i": "pages/05_🧵_May_I.py",
-    "may_p2": "pages/06_🧵_May_P2.py",
-    "may_n4": "pages/07_🧵_May_N4.py",
-    "may_a2": "pages/08_🧵_May_A2.py",
-    "tp_dau_vao": "pages/09_📦_TP_Đầu_Vào.py",
-    "in_d": "pages/10_🖨️_In_Xưởng_D.py",
-    "cat_ban": "pages/11_🔪_Cắt_Bàn.py"
+    "fi": "pages/01_fi.py",
+    "dv_cuon": "pages/02_dv_cuon.py",
+    "dv_npl": "pages/03_dv_npl.py",
+    "trang_cat": "pages/04_trang_cat.py",
+    "may_i": "pages/05_may_i.py",
+    "may_p2": "pages/06_may_p2.py",
+    "may_n4": "pages/07_may_n4.py",
+    "may_a2": "pages/08_may_a2.py",
+    "tp_dau_vao": "pages/09_tp_dau_vao.py",
+    "in_d": "pages/10_in_xuong_d.py",
+    "cat_ban": "pages/11_cat_ban.py"
 }
 
 # --- PAGE SETUP ---
@@ -324,28 +324,28 @@ else:
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
-                st.switch_page("pages/50_✍️_Phê_Duyệt.py")
+                st.switch_page("pages/50_phe_duyet.py")
         with c2:
             if st.button("👑 Ban Giám Đốc", use_container_width=True):
-                st.switch_page("pages/99_👑_Ban_Giám_Đốc.py")
+                st.switch_page("pages/99_ban_giam_doc.py")
         with c3:
             if st.button("📊 Báo Cáo", use_container_width=True):
-                st.switch_page("pages/90_📊_Báo_Cáo.py")
+                st.switch_page("pages/90_bao_cao.py")
 
     # --- VIEW 2: QC MANAGER & ADMIN ---
     elif role in ['qc_manager', 'admin']:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
-                st.switch_page("pages/50_✍️_Phê_Duyệt.py")
+                st.switch_page("pages/50_phe_duyet.py")
         with c2:
             if st.button("🔧 QC Giám Sát", use_container_width=True):
-                st.switch_page("pages/51_🔧_QC_Giám_Sát.py")
+                st.switch_page("pages/51_qc_giam_sat.py")
                 
         c3, c4 = st.columns(2)
         with c3:
             if st.button("🙋 NCR Của Tôi", use_container_width=True):
-                 st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
+                 st.switch_page("pages/00_ncr_cua_toi.py")
         with c4:
              if has_dept_page:
                  if st.button(f"📥 Nhập Liệu ({dept_code})", use_container_width=True):
@@ -354,17 +354,17 @@ else:
         # Admin Special Button
         if role == 'admin':
             if st.button("⚙️ Quản lý User (Admin)", use_container_width=True):
-                st.switch_page("pages/98_⚙️_Quản_Lý_User.py")
+                st.switch_page("pages/98_quan_ly_user.py")
 
     # --- VIEW 2: TRƯỞNG CA & TRƯỞNG BP ---
     elif role in ['truong_ca', 'truong_bp']:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("✍️ Phê Duyệt", use_container_width=True, type="primary"):
-                st.switch_page("pages/50_✍️_Phê_Duyệt.py")
+                st.switch_page("pages/50_phe_duyet.py")
         with c2:
             if st.button("🙋 NCR Của Tôi", use_container_width=True):
-                 st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
+                 st.switch_page("pages/00_ncr_cua_toi.py")
         
         # Row 2 for input
         if has_dept_page:
@@ -382,7 +382,7 @@ else:
                  st.info("Chưa phân quyền nhập liệu.")
         with c2:
              if st.button("🙋 NCR Của Tôi", use_container_width=True):
-                 st.switch_page("pages/00_🙋_NCR_Của_Tôi.py")
+                 st.switch_page("pages/00_ncr_cua_toi.py")
     
     # Check Admin Panel visibility
     if role == 'admin':

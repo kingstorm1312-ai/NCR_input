@@ -47,7 +47,7 @@ user_role = user_info.get("role")
 
 # --- GOOGLE SHEETS CONNECTION ---
 
-gc = init_gspread()
+
 
 # --- HEADER ---
 st.title("🙋 NCR Của Tôi")
