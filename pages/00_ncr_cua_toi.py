@@ -346,7 +346,8 @@ if user_role == 'admin':
     all_creators = sorted(df_all['nguoi_lap_phieu'].unique()) if not df_all.empty else []
     view_option = st.selectbox(
         "Chọn người lập phiếu để xem:",
-        ["Tất cả người dùng", f"Của tôi ({user_name})"] + [u for u in all_creators if u != user_name]
+        ["Tất cả người dùng", f"Của tôi ({user_name})"] + [u for u in all_creators if u != user_name],
+        key="view_selection_admin"
     )
     
     if view_option == "Tất cả người dùng":
@@ -388,7 +389,8 @@ elif user_role == 'truong_ca':
         
         selected_label = st.selectbox(
             "Chọn người lập phiếu để in/xem:",
-            options
+            options,
+            key="view_selection_truong_ca"
         )
         current_view_user = view_label_map[selected_label]
     else:
