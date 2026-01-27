@@ -336,8 +336,10 @@ with st.spinner("Đang tải dữ liệu..."):
             st.write("DataFrame rỗng")
         st.info("Hãy chụp màn hình danh sách này gửi cho em nếu cần hỗ trợ mapping!")
 
-# --- ADMIN VIEW OPTIONS ---
+# --- VIEW OPTIONS (ADMIN & TRUONG_CA) ---
 current_view_user = user_name
+
+# 1. ADMIN: View All
 if user_role == 'admin':
     st.info("🔑 **Admin Mode**: Bạn có thể xem phiếu của chính mình hoặc người khác.")
     all_creators = sorted(df_all['nguoi_lap_phieu'].unique()) if not df_all.empty else []
@@ -352,6 +354,44 @@ if user_role == 'admin':
         current_view_user = user_name
     else:
         current_view_user = view_option
+
+# 2. TRUONG_CA: View Staff in Department
+elif user_role == 'truong_ca':
+    from utils.config import NCR_DEPARTMENT_PREFIXES
+    my_dept_prefix = NCR_DEPARTMENT_PREFIXES.get(user_dept, "")
+    
+    if my_dept_prefix:
+        st.info(f"👨‍✈️ **Trưởng Ca Mode**: Xem và in phiếu của nhân viên ({user_dept}).")
+        
+        # Filter users who have tickets with this prefix
+        # (Assuming data is already loaded in df_all)
+        if not df_all.empty:
+            # Filter tickets belonging to this dept
+            # We use 'Startswith' on so_phieu matches prefix
+            # Note: Prefix might be 'FI', 'MAY-I', etc.
+            dept_tickets = df_all[df_all['so_phieu'].astype(str).str.startswith(my_dept_prefix)]
+            dept_creators = sorted(dept_tickets['nguoi_lap_phieu'].unique())
+        else:
+            dept_creators = []
+            
+        # UI Selection
+        # Default to "My NCRs" but allow picking others
+        view_label_map = {f"Của tôi ({user_name})": user_name}
+        for creator in dept_creators:
+            if creator != user_name:
+                view_label_map[f"Nhân viên: {creator}"] = creator
+        
+        options = list(view_label_map.keys())
+        # Ensure "Của tôi" is first
+        
+        selected_label = st.selectbox(
+            "Chọn người lập phiếu để in/xem:",
+            options
+        )
+        current_view_user = view_label_map[selected_label]
+    else:
+        # Fallback if prefix not found
+        current_view_user = user_name
 
 # Filter by creator or assigned role
 if not df_all.empty:
