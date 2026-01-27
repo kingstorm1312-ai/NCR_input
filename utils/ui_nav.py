@@ -304,3 +304,14 @@ def render_sidebar(user_info):
             st.session_state.user_info = None
             st.rerun()
 
+
+def hide_default_sidebar_nav():
+    """
+    Injects CSS to hide the default Streamlit sidebar navigation.
+    Used for pages where render_sidebar is not called or as a global fallback.
+    """
+    st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"] {display: none;}
+    </style>
+    """, unsafe_allow_html=True)

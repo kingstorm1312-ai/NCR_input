@@ -9,10 +9,13 @@ from utils.ncr_helpers import get_now_vn, init_gspread, get_all_users, register_
 
 # --- CONFIG: DEPARTMENT ROUTING ---
 # --- CONFIG: DEPARTMENT ROUTING ---
-from utils.ui_nav import DEPARTMENT_PAGES, render_sidebar
+from utils.ui_nav import DEPARTMENT_PAGES, render_sidebar, hide_default_sidebar_nav
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Đại Lục CPC - QC System", page_icon="🏭", layout="centered", initial_sidebar_state="auto")
+
+# --- HIDE DEFAULT NAV (GLOBAL FIX) ---
+hide_default_sidebar_nav()
 
 # --- MOBILE NAVIGATION HELPER ---
 st.markdown("""
