@@ -853,9 +853,6 @@ def get_all_users():
     except Exception as e:
         return []
 
-    ws.append_row(row_data)
-    return True, "Đăng ký thành công! Vui lòng chờ Admin duyệt."
-
 def migrate_user_passwords():
     """
     Chuyển đổi mật khẩu plain-text sang bcrypt hash.
@@ -1000,9 +997,6 @@ def register_user(username, password, full_name, department, role="staff"):
             
         ws.append_row(row_data)
         return True, "Đăng ký thành công! Vui lòng chờ Admin duyệt."
-    except Exception as e:
-        return False, f"Lỗi đăng ký: {str(e)}"
-        
     except Exception as e:
         return False, f"Lỗi đăng ký: {str(e)}"
 
