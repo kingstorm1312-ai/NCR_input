@@ -31,6 +31,13 @@ def update_user_details(username, role, department):
     """
     return update_user_info(username, new_role=role, new_dept=department)
 
+def reset_user_password_service(username, new_password):
+    """
+    Service reset mật khẩu cho user.
+    """
+    from utils.ncr_helpers import reset_user_password
+    return reset_user_password(username, new_password)
+
 def check_admin_access():
     """
     Kiểm tra quyền Admin của user hiện tại.

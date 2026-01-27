@@ -853,55 +853,155 @@ def get_all_users():
     except Exception as e:
         return []
 
-def register_user(username, password, full_name, department, role="staff"):
+    ws.append_row(row_data)
+    return True, "Đăng ký thành công! Vui lòng chờ Admin duyệt."
+
+def migrate_user_passwords():
     """
-    Đăng ký user mới và lưu vào Google Sheets với status='pending'.
-    Tự động thêm cột 'status' nếu chưa có.
+    Chuyển đổi mật khẩu plain-text sang bcrypt hash.
+    Idempotent: Chỉ hash những user chưa có hash.
+    Sử dụng batch update để tối ưu tốc độ.
     """
     try:
+        from utils.security import hash_password
+        gc = init_gspread()
+        if not gc: return False, "Lỗi kết nối database"
+        
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        data = ws.get_all_values()
+        if not data: return True, "Sheet rỗng"
+        
+        headers = [str(h).strip().lower() for h in data[0]]
+        
+        # 1. Đảm bảo có cột password_hash
+        if 'password_hash' not in headers:
+            ws.update_cell(1, len(headers) + 1, "password_hash")
+            headers.append("password_hash")
+            # Refresh data to include new column structure for consistency
+            data = ws.get_all_values()
+            
+        idx_pass = headers.index('password')
+        idx_hash = headers.index('password_hash')
+        
+        range_updates = []
+        count = 0
+        
+        for i, row in enumerate(data[1:], start=2):
+            # Pad row if it's shorter than headers (happens if last cols are empty)
+            row_len = len(row)
+            pw_val = row[idx_pass].strip() if idx_pass < row_len else ""
+            hash_val = row[idx_hash].strip() if idx_hash < row_len else ""
+            
+            # Nếu chưa có hash và có pass plain-text -> Migrate
+            if not hash_val and pw_val:
+                new_hash = hash_password(pw_val)
+                # Cột hash
+                range_updates.append({
+                    'range': gspread.utils.rowcol_to_a1(i, idx_hash + 1),
+                    'values': [[new_hash]]
+                })
+                # Xóa cột plain-text
+                range_updates.append({
+                    'range': gspread.utils.rowcol_to_a1(i, idx_pass + 1),
+                    'values': [[""]]
+                })
+                count += 1
+                
+        if range_updates:
+            ws.batch_update(range_updates)
+            return True, f"Đã migrate thành công {count} tài khoản."
+        
+        return True, "Không có dữ liệu cần migrate."
+        
+    except Exception as e:
+        return False, f"Lỗi migration: {str(e)}"
+
+def reset_user_password(username, new_password):
+    """
+    Admin reset mật khẩu cho user.
+    Lưu hash và xóa plain-text (nếu còn).
+    """
+    try:
+        from utils.security import hash_password
+        gc = init_gspread()
+        sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+        ws = sh.worksheet("USERS")
+        
+        cell = ws.find(username)
+        if not cell: return False, "Không tìm thấy user."
+        
+        headers = [str(h).strip().lower() for h in ws.row_values(1)]
+        hashed = hash_password(new_password)
+        
+        updates = []
+        if 'password_hash' in headers:
+            col_hash = headers.index('password_hash') + 1
+            updates.append({'range': gspread.utils.rowcol_to_a1(cell.row, col_hash), 'values': [[hashed]]})
+        else:
+            # Nếu chưa có cột hash, tạo mới
+            ws.update_cell(1, len(headers) + 1, "password_hash")
+            updates.append({'range': gspread.utils.rowcol_to_a1(cell.row, len(headers) + 1), 'values': [[hashed]]})
+            
+        if 'password' in headers:
+            col_pass = headers.index('password') + 1
+            updates.append({'range': gspread.utils.rowcol_to_a1(cell.row, col_pass), 'values': [[""]]})
+            
+        if updates:
+            ws.batch_update(updates)
+            return True, f"Đã reset mật khẩu cho {username} thành công."
+        
+        return False, "Không thể cập nhật mật khẩu."
+    except Exception as e:
+        return False, f"Lỗi reset password: {str(e)}"
+
+def register_user(username, password, full_name, department, role="staff"):
+    """
+    Đăng ký user mới. Hash password ngay khi tạo.
+    """
+    try:
+        from utils.security import hash_password
         gc = init_gspread()
         if not gc: return False, "Lỗi kết nối Database"
         
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         ws = sh.worksheet("USERS")
         
-        # 1. Get Headers & Data
-        headers = ws.row_values(1)
-        headers_norm = [str(h).strip().lower() for h in headers]
+        headers = [str(h).strip().lower() for h in ws.row_values(1)]
         
-        # 2. Check duplicate username
-        # Find column index for username
-        if 'username' not in headers_norm:
-             return False, "Cấu trúc Sheet không hợp lệ (Thiếu cột username)"
+        # Check duplicate
+        if 'username' in headers:
+            idx_user = headers.index('username') + 1
+            col_vals = ws.col_values(idx_user)[1:]
+            if str(username).strip() in [str(u).strip() for u in col_vals]:
+                return False, f"Tên đăng nhập '{username}' đã tồn tại!"
         
-        idx_username = headers_norm.index('username')
-        existing_usernames = ws.col_values(idx_username + 1)[1:] # Skip header
+        # Hash pass
+        hashed_pass = hash_password(password)
         
-        if str(username).strip() in [str(u).strip() for u in existing_usernames]:
-            return False, f"Tên đăng nhập '{username}' đã tồn tại!"
-            
-        # 3. Handle 'status' column
-        if 'status' not in headers_norm:
-            # Add status column header
+        # Ensure 'status' and 'password_hash' exist
+        if 'status' not in headers:
             ws.update_cell(1, len(headers) + 1, "status")
             headers.append("status")
-            headers_norm.append("status")
+        if 'password_hash' not in headers:
+            ws.update_cell(1, len(headers) + 1, "password_hash")
+            headers.append("password_hash")
             
-        # 4. Prepare Row Data
-        # Map values to headers
         row_data = []
-        for h in headers_norm:
+        for h in headers:
             if h == 'username': row_data.append(username)
-            elif h == 'password': row_data.append(password) # Should hash in real prod, but plain for now as per system
+            elif h == 'password': row_data.append("") # Để trống plain-text
+            elif h == 'password_hash': row_data.append(hashed_pass)
             elif h == 'full_name': row_data.append(full_name)
             elif h == 'department': row_data.append(department)
             elif h == 'role': row_data.append(role)
             elif h == 'status': row_data.append('pending')
-            else: row_data.append('') # Empty for unknown cols
+            else: row_data.append('')
             
-        # 5. Append
         ws.append_row(row_data)
         return True, "Đăng ký thành công! Vui lòng chờ Admin duyệt."
+    except Exception as e:
+        return False, f"Lỗi đăng ký: {str(e)}"
         
     except Exception as e:
         return False, f"Lỗi đăng ký: {str(e)}"

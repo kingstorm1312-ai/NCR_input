@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
+import random
+import string
 
 # Add utils to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,7 +11,8 @@ from core.services.user_service import (
     load_users, 
     approve_user, 
     reject_user, 
-    update_user_details
+    update_user_details,
+    reset_user_password_service
 )
 from core.auth import require_admin
 

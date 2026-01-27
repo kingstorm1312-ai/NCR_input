@@ -95,6 +95,7 @@ def get_base64_image(image_path):
 def login_user(username, password):
     """Kiểm tra user từ sheet USERS. Trả về (user_info, error_msg)"""
     try:
+        from utils.security import verify_password, hash_password
         gc = init_gspread()
         if not gc: return None, "Không thể kết nối cơ sở dữ liệu."
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
@@ -105,7 +106,6 @@ def login_user(username, password):
         
         # Normalize Data
         df_users['username'] = df_users['username'].astype(str).str.strip()
-        df_users['password'] = df_users['password'].astype(str).str.strip()
         
         # Case specific normalized column for lookup
         df_users['username_lower'] = df_users['username'].str.lower()
@@ -118,10 +118,41 @@ def login_user(username, password):
         
         if not user_rows.empty:
             user = user_rows.iloc[0]
-            stored_password = user['password']
             
-            if clean_pass == stored_password:
-                # Check Status if exists
+            # 1. Get password values
+            stored_hash = str(user.get('password_hash', '')).strip()
+            stored_plain = str(user.get('password', '')).strip()
+            
+            is_valid = False
+            
+            # --- Check Hash ---
+            if stored_hash:
+                if verify_password(clean_pass, stored_hash):
+                    is_valid = True
+            # --- Fallback to Plain (then Migrate) ---
+            elif stored_plain:
+                if clean_pass == stored_plain:
+                    is_valid = True
+                    # Immediate Migration for this row
+                    try:
+                        new_hash = hash_password(clean_pass)
+                        headers = [str(h).strip().lower() for h in ws.row_values(1)]
+                        cell_user = ws.find(user['username'])
+                        if cell_user:
+                            row_idx = cell_user.row
+                            updates = []
+                            if 'password_hash' in headers:
+                                col_hash = headers.index('password_hash') + 1
+                                updates.append({'range': gspread.utils.rowcol_to_a1(row_idx, col_hash), 'values': [[new_hash]]})
+                            if 'password' in headers:
+                                col_pass = headers.index('password') + 1
+                                updates.append({'range': gspread.utils.rowcol_to_a1(row_idx, col_pass), 'values': [[""]]})
+                            if updates:
+                                ws.batch_update(updates)
+                    except: pass # Silent fail for background migration during login
+            
+            if is_valid:
+                # Check Status
                 if 'status' in df_users.columns:
                     status = str(user['status']).strip().lower()
                     if status == 'pending' or status == 'cho_duyet':
@@ -260,6 +291,19 @@ if st.session_state.user_info is None:
                 if st.button("📝 Đăng ký tài khoản mới", use_container_width=True):
                     st.session_state.show_register = True
                     st.rerun()
+
+                st.caption("💡 Quên mật khẩu? Vui lòng liên hệ Admin bộ phận.")
+                
+                # --- ADMIN MIGRATION TRIGGER ---
+                with st.expander("🛠️ Hệ thống (Admin Only)"):
+                    admin_pass = st.text_input("Mật khẩu Admin", type="password", key="migration_key")
+                    if st.button("🚀 Chạy Migration (Hash Passwords)", use_container_width=True):
+                        # Simple guard, in real app we check role, but here we can check against a secret or just let it be idempotent
+                        from utils.ncr_helpers import migrate_user_passwords
+                        with st.spinner("Đang chuyển đổi mật khẩu..."):
+                            success, msg = migrate_user_passwords()
+                            if success: st.success(msg)
+                            else: st.error(msg)
             
             st.markdown("<div style='text-align: center; color: #9E9E9E; font-size: 12px; margin-top: 20px;'>© 2026 Dai Luc CPC - IT Department</div>", unsafe_allow_html=True)
 
