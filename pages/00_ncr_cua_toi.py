@@ -493,7 +493,7 @@ with tab1:
                          st.warning("⚠️ **Lưu ý:** Phiếu bị từ chối bởi BGĐ Tân Phú!")
                 
                 # Error details
-                with st.expander("🔍 Chi tiết lỗi"):
+                with st.expander("🔍 Chi tiết lỗi", expanded=(f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)):
                     ticket_rows = df_draft[df_draft['so_phieu'] == so_phieu]
                     if not ticket_rows.empty:
                         display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
@@ -787,7 +787,7 @@ with tab2:
                         st.write(f"🕐 **Cập nhật:** {last_update}")
                 
                 # Error details
-                with st.expander("🔍 Chi tiết lỗi"):
+                with st.expander("🔍 Chi tiết lỗi", expanded=(f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)):
                     ticket_rows = df_pending[df_pending['so_phieu'] == so_phieu]
                     if not ticket_rows.empty:
                         display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
@@ -947,7 +947,7 @@ with tab3:
                 st.markdown(f"📅 **Hạn chót:** :red[**{deadline}**]")
                 
                 # --- CHI TIẾT PHIẾU (Full Info like Approval Page) ---
-                with st.expander("🔍 Xem chi tiết phiếu & Hình ảnh", expanded=False):
+                with st.expander("🔍 Xem chi tiết phiếu & Hình ảnh", expanded=(f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)):
                     # --- HÌNH ẢNH ---
                     st.markdown("#### 📷 Hình ảnh minh họa")
                     hinh_anh_val = task.get('hinh_anh', "")
@@ -1081,7 +1081,7 @@ with tab4:
             ngay_lap = ticket['ngay_lap']
             tong_loi = ticket['sl_loi']
             
-            with st.expander(f"📋 {so_phieu} - {int(tong_loi)} lỗi"):
+            with st.expander(f"📋 {so_phieu} - {int(tong_loi)} lỗi", expanded=(f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)):
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write(f"📅 **Ngày tạo:** {ngay_lap}")
