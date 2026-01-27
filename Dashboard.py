@@ -383,14 +383,4 @@ else:
                         display_df = dept_users[['full_name', 'username', 'role']]
                         st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-    # Row 3: Visuals (Placeholder)
-    st.write("")
-    st.subheader("📈 Thống kê sơ bộ")
-    
-    # Mockup Chart Data
-    chart_data = pd.DataFrame({
-        "errors": ["Lỗi May", "Lỗi Cắt", "Lỗi In", "Lỗi Vải", "Khác"],
-        "count": [12, 8, 5, 3, 2]
-    }).set_index("errors")
-    
-    st.bar_chart(chart_data, color="#C62828")
+
