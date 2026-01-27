@@ -358,7 +358,8 @@ if user_role == 'admin':
 # 2. TRUONG_CA: View Staff in Department
 elif user_role == 'truong_ca':
     from utils.config import NCR_DEPARTMENT_PREFIXES
-    my_dept_prefix = NCR_DEPARTMENT_PREFIXES.get(user_dept, "")
+    # Fix: Uppercase key lookup because config keys are UPPERCASE
+    my_dept_prefix = NCR_DEPARTMENT_PREFIXES.get(str(user_dept).upper(), "")
     
     if my_dept_prefix:
         st.info(f"👨‍✈️ **Trưởng Ca Mode**: Xem và in phiếu của nhân viên ({user_dept}).")
