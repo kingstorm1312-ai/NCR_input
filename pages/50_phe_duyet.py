@@ -84,7 +84,6 @@ else:
 # --- LOAD DATA ---
 with st.spinner("Đang tải dữ liệu..."):
     # We pass 'all' as user_dept to fetch all departments for in-memory filtering.
-    # This allows roles like 'truong_ca' to "chọn thêm" other departments if needed.
     df_original, df_grouped, filter_status = get_pending_approvals(
         user_role, 
         'all', 
@@ -95,49 +94,123 @@ if filter_status is None:
     st.error("Lỗi: Không tìm thấy trạng thái phê duyệt cho Role này.")
     st.stop()
 
-# --- DEPARTMENT FILTER (Mobile-first) ---
+# --- DERIVE DEPARTMENT LOGIC (Minimal Patch) ---
+def derive_dept_from_ticket(ticket):
+    """
+    Derive department code from ticket number prefix.
+    Rule: Match longer prefixes first.
+    """
+    if not isinstance(ticket, str) or not ticket:
+        return 'unknown'
+    
+    t = ticket.strip().upper()
+    # Normalize: remove extra spaces, unify dashes
+    t = re.sub(r'\s*-\s*', '-', t)
+    
+    # Mapping Rules (Longest Match First)
+    MAPPING = [
+        ('X2-TR', 'trang_cat'), # Map 'Tráng' to shared dept
+        ('X2-CA', 'trang_cat'), # Map 'Cắt' to shared dept
+        ('DVTP', 'tp_dau_vao'),
+        ('NPLDV', 'dv_cuon'),   # Spec says NPLDV -> dv_cuon
+        ('DVNPL', 'dv_npl'),
+        ('XG', 'in_xuong_d'),   # Spec say XG -> xuong_in (file code is in_xuong_d)
+        ('CXA', 'cat_ban'),
+        ('X4', 'may_n4'),
+        ('X3', 'may_a2'),
+        ('XA', 'may_p2'),
+        ("I'", 'may_i'), 
+        ('I’', 'may_i'), # Handle curly quote
+        ('FI', 'fi')
+    ]
+    
+    for prefix, dept in MAPPING:
+        if t.startswith(prefix):
+            return dept
+            
+    return 'unknown'
+
+# Apply Derivation if data exists
 if not df_grouped.empty:
-    if 'bo_phan' in df_grouped.columns:
-        # Get unique departments from data
-        available_depts = sorted(df_grouped['bo_phan'].dropna().unique().tolist())
+    # Ensure so_phieu column exists
+    ticket_col = 'so_phieu' if 'so_phieu' in df_grouped.columns else ('so_phieu_ncr' if 'so_phieu_ncr' in df_grouped.columns else None)
+    
+    if ticket_col:
+        # Debug info
+        # st.caption("Dept source = derived from ticket prefix") 
         
-        # Initialize filter selection in session state
-        filter_key = f"filter_depts_{selected_role}"
-        if filter_key not in st.session_state:
-            # Default for truong_ca is their own department, others see all
-            if user_role == 'truong_ca' and user_dept:
-                st.session_state[filter_key] = [user_dept] if user_dept in available_depts else []
-            else:
-                st.session_state[filter_key] = []
-        
-        # Ensure session state values are still valid
-        st.session_state[filter_key] = [d for d in st.session_state[filter_key] if d in available_depts]
-
-        # Render Filter UI
-        f_col1, f_col2 = st.columns([3, 1])
-        with f_col1:
-            selected_depts = st.multiselect(
-                "🏢 Lọc theo khâu:",
-                options=available_depts,
-                key=filter_key,
-                help="Để trống để xem tất cả"
-            )
-        with f_col2:
-            st.write("") # Spacer for alignment
-            st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-            if st.button("🗑️ Xóa lọc", use_container_width=True, help="Reset về mặc định"):
-                if user_role == 'truong_ca' and user_dept:
-                    st.session_state[filter_key] = [user_dept] if user_dept in available_depts else []
-                else:
-                    st.session_state[filter_key] = []
-                st.rerun()
-
-        # Apply in-memory filtering
-        if selected_depts:
-            df_grouped = df_grouped[df_grouped['bo_phan'].isin(selected_depts)]
-            df_original = df_original[df_original['bo_phan'].isin(selected_depts)]
+        # Apply to grouped
+        df_grouped['bo_phan_derived'] = df_grouped[ticket_col].apply(derive_dept_from_ticket)
+        # Apply to original (for detail view filtering if needed, though details usually filtered by so_phieu)
+        if not df_original.empty and ticket_col in df_original.columns:
+             df_original['bo_phan_derived'] = df_original[ticket_col].apply(derive_dept_from_ticket)
+             
+        # Use derived column as main 'bo_phan' for filtering logic below
+        # We don't overwrite original 'bo_phan' if it exists to preserve raw data integrity, 
+        # but for filtering UI we use derived.
+        filter_col = 'bo_phan_derived'
     else:
-        st.warning("⚠️ Thiếu cột 'bo_phan' để lọc.")
+        filter_col = None
+else:
+    filter_col = None
+
+# --- DEPARTMENT FILTER (Mobile-first) ---
+if not df_grouped.empty and filter_col:
+    # Get unique departments from data
+    available_depts = sorted(df_grouped[filter_col].unique().tolist())
+    
+    # Move 'unknown' to end
+    if 'unknown' in available_depts:
+        available_depts.remove('unknown')
+        available_depts.append('unknown')
+    
+    # Initialize filter selection in session state
+    filter_key = f"filter_depts_{selected_role}"
+    if filter_key not in st.session_state:
+        # Default logic
+        default_selection = []
+        if user_role == 'admin':
+            default_selection = available_depts # Admin sees all by default
+        elif user_role == 'truong_ca' and user_dept:
+             # Truong Ca sees their dept by default if available
+             if user_dept in available_depts:
+                 default_selection = [user_dept]
+        
+        st.session_state[filter_key] = default_selection
+    
+    # Ensure session state values are still valid
+    st.session_state[filter_key] = [d for d in st.session_state[filter_key] if d in available_depts]
+
+    # Render Filter UI
+    f_col1, f_col2 = st.columns([3, 1])
+    with f_col1:
+        selected_depts = st.multiselect(
+            "🏢 Lọc theo khâu:",
+            options=available_depts,
+            key=filter_key,
+            help="Chọn khâu để lọc danh sách"
+        )
+    with f_col2:
+        st.write("") # Spacer for alignment
+        st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+        if st.button("🗑️ Xóa lọc", use_container_width=True, help="Reset về mặc định"):
+            # Reset logic matching initialization
+            default_selection = []
+            if user_role == 'admin':
+                default_selection = available_depts 
+            elif user_role == 'truong_ca' and user_dept:
+                 if user_dept in available_depts:
+                     default_selection = [user_dept]
+            
+            st.session_state[filter_key] = default_selection
+            st.rerun()
+
+    # Apply in-memory filtering
+    if selected_depts:
+        df_grouped = df_grouped[df_grouped[filter_col].isin(selected_depts)]
+        # Filter original rows as well to keep consistency if needed later
+        if not df_original.empty and filter_col in df_original.columns:
+            df_original = df_original[df_original[filter_col].isin(selected_depts)]
 
 # --- DISPLAY STATUS INFO ---
 display_status = get_status_display_name(filter_status)
