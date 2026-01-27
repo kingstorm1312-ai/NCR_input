@@ -35,24 +35,12 @@ pass
 # --- REMOVED OLD SIDEBAR CODE ---
 
 # --- AUTHENTICATION CHECK ---
-if "user_info" not in st.session_state or not st.session_state.user_info:
-    st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
-    st.stop()
-
-user_info = st.session_state.user_info
-
-# Inject Sidebar
-from utils.ui_nav import render_sidebar
-render_sidebar(user_info)
+from core.auth import require_roles, get_user_info
+require_roles(['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu'])
+user_info = get_user_info()
 user_role = user_info.get("role")
 user_name = user_info.get("name")
 user_dept = user_info.get("department")
-
-# --- ROLE CHECK ---
-allowed_roles = ['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu', 'admin']
-if user_role not in allowed_roles:
-    st.error(f"⛔ Role '{user_role}' không có quyền phê duyệt!")
-    st.stop()
 
 # --- GOOGLE SHEETS CONNECTION ---
 

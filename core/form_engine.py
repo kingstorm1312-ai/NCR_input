@@ -37,18 +37,20 @@ def resolve_prefix(profile: DeptProfile, phan_loai_value: str) -> str:
             return mapping[phan_loai_value]
     return profile.prefix
 
+from core.auth import require_dept_access, get_user_info
+
 def run_inspection_page(profile: DeptProfile):
     """
     Engine chạy trang inspection/kiểm tra NCR dựa trên DeptProfile.
     Hỗ trợ cả các bộ phận có AQL (FI, May) và không có AQL (DV NPL).
     """
-    # Require dept access
+    # Page config (MUST BE FIRST)
+    st.set_page_config(page_title=f"QC Input - {profile.name}", page_icon=profile.icon, layout="centered")
+
+    # Require dept access (already calls require_login via get_user_info inside)
     require_dept_access(profile.code)
     
-    user_info = st.session_state.user_info
-    
-    # Page config
-    st.set_page_config(page_title=f"QC Input - {profile.name}", page_icon=profile.icon, layout="centered")
+    user_info = get_user_info()
     
     # Mobile navigation helper
     st.markdown("""

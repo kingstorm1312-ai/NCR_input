@@ -28,23 +28,10 @@ from core.services.report_service import (
 st.set_page_config(page_title="Báo Cáo Tổng Hợp", page_icon="📊", layout="wide")
 
 # --- AUTHENTICATION CHECK ---
-if "user_info" not in st.session_state or not st.session_state.user_info:
-    st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
-    st.stop()
-
-# Inject Sidebar
-from utils.ui_nav import render_sidebar
-render_sidebar(st.session_state.user_info)
-
-# --- ROLE CHECK ---
-user_role = st.session_state.user_info.get("role", "")
-ALLOWED_ROLES = ['director', 'admin', 'qc_manager', 'bgd_tan_phu']
-
-if user_role not in ALLOWED_ROLES:
-    st.error(f"⛔ Bạn không có quyền truy cập báo cáo này! (Role: {user_role})")
-    if st.button("🔙 Quay lại trang chủ"):
-        st.switch_page("Dashboard.py")
-    st.stop()
+from core.auth import require_roles, get_user_info
+require_roles(['director', 'qc_manager', 'bgd_tan_phu'])
+user_info = get_user_info()
+user_role = user_info.get("role", "")
 
 # --- HEADER ---
 st.title("📊 Báo Cáo & Phân Tích NCR")

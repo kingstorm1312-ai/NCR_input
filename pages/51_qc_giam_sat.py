@@ -18,42 +18,16 @@ from core.services.monitor_service import (
     prepare_legacy_rejections,
     perform_restart_ncr
 )
+from core.auth import require_roles, get_user_info
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="QC Giám Sát", page_icon="🔧", layout="centered", initial_sidebar_state="auto")
 
-# --- MOBILE NAVIGATION HELPER ---
-st.markdown("""
-<style>
-    /* Đảm bảo header và nút sidebar rõ ràng trên di động */
-    header[data-testid="stHeader"] {
-        background-color: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        z-index: 999999;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-with st.sidebar:
-    st.markdown("### 🧭 Điều hướng")
-    if st.button("🏠 Về Trang Chủ", use_container_width=True):
-        st.switch_page("Dashboard.py")
-    st.divider()
-
 # --- AUTHENTICATION CHECK ---
-if "user_info" not in st.session_state or not st.session_state.user_info:
-    st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
-    st.stop()
-
-user_info = st.session_state.user_info
+require_roles(['qc_manager', 'director'])
+user_info = get_user_info()
 user_name = user_info.get("name")
 user_role = user_info.get("role")
-
-# Check if user is QC Manager or Director
-if user_role not in ['qc_manager', 'director']:
-    st.error("❌ Bạn không có quyền truy cập trang này!")
-    st.info("Chỉ QC Manager và Giám đốc mới có quyền giám sát")
-    st.stop()
 
 # --- GOOGLE SHEETS CONNECTION ---
 #  # Tập trung hóa vào ncr_helpers

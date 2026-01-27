@@ -9,26 +9,15 @@ from core.services.user_service import (
     load_users, 
     approve_user, 
     reject_user, 
-    update_user_details,
-    check_admin_access
+    update_user_details
 )
+from core.auth import require_admin, get_user_info
 
 st.set_page_config(page_title="Quản lý User", page_icon="⚙️", layout="wide")
 
 # --- AUTH CHECK ---
-is_admin, msg = check_admin_access()
-if not is_admin:
-    if "Vui lòng đăng nhập" in msg:
-        st.warning(f"⚠️ {msg}")
-    else:
-        st.error(f"⛔ {msg}")
-    st.stop()
-
-user_info = st.session_state.user_info
-
-# Inject Mobile Sidebar
-from utils.ui_nav import render_sidebar
-render_sidebar(user_info)
+require_admin()
+user_info = get_user_info()
 
 # --- CONSTANTS ---
 ROLE_OPTIONS = {

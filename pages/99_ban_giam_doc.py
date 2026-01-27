@@ -22,23 +22,10 @@ from utils.ncr_helpers import (
 st.set_page_config(page_title="Dashboard Giám Đốc", page_icon="👑", layout="wide")
 
 # --- AUTHENTICATION CHECK ---
-if "user_info" not in st.session_state or not st.session_state.user_info:
-    st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
-    st.stop()
-
-# Inject Sidebar
-from utils.ui_nav import render_sidebar
-render_sidebar(st.session_state.user_info)
-
-user_info = st.session_state.user_info
+from core.auth import require_roles, get_user_info
+require_roles(['director'])
+user_info = get_user_info()
 user_role = user_info.get("role")
-
-# --- ROLE CHECK (Director or Admin only) ---
-if user_role not in ['director', 'admin']:
-    st.error(f"⛔ Dashboard này chỉ dành cho Giám đốc! (Role của bạn: {user_role})")
-    if st.button("🔙 Quay lại trang chủ"):
-        st.switch_page("Dashboard.py")
-    st.stop()
 
 # --- INIT GSPREAD ---
 gc = init_gspread()

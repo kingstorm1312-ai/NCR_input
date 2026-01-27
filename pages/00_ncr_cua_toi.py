@@ -30,24 +30,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-with st.sidebar:
-    st.markdown("### 🧭 Điều hướng")
-    if st.button("🏠 Về Trang Chủ", use_container_width=True):
-        st.switch_page("Dashboard.py")
-    st.divider()
-
 # --- AUTHENTICATION CHECK ---
-if "user_info" not in st.session_state or not st.session_state.user_info:
-    st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
-    st.stop()
-
-# Inject Sidebar
-from utils.ui_nav import render_sidebar
-render_sidebar(st.session_state.user_info)
-
-user_info = st.session_state.user_info
+from core.auth import get_user_info
+user_info = get_user_info()
 user_name = user_info.get("name")
 user_role = user_info.get("role")
+user_dept = user_info.get("department")
 
 # --- GOOGLE SHEETS CONNECTION ---
 

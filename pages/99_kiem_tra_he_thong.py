@@ -16,22 +16,10 @@ st.title("🔍 Kiểm Tra External Dependencies")
 st.markdown("Script này kiểm tra Google Sheet structure và Cloudinary config")
 
 # --- AUTHENTICATION CHECK ---
-if "user_info" not in st.session_state or not st.session_state.user_info:
-    st.warning("⚠️ Vui lòng đăng nhập tại Dashboard trước!")
-    st.stop()
-
-# Inject Sidebar
-from utils.ui_nav import render_sidebar
-render_sidebar(st.session_state.user_info)
-
-user_info = st.session_state.user_info
+from core.auth import require_admin, get_user_info
+require_admin()
+user_info = get_user_info()
 user_role = user_info.get("role")
-
-if user_role != 'admin':
-    st.error(f"⛔ Bạn không có quyền truy cập trang này! (Role: {user_role})")
-    if st.button("🔙 Quay lại trang chủ"):
-        st.switch_page("Dashboard.py")
-    st.stop()
 
 # === 1. KIỂM TRA GOOGLE SHEET ===
 st.header("📊 1. Kiểm Tra Google Sheet")
