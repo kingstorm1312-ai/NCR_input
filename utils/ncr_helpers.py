@@ -6,6 +6,7 @@ import cloudinary
 import cloudinary.uploader
 import io
 import json
+from utils.security import hash_password, verify_password
 
 def get_now_vn():
     """Lấy thời gian hiện tại theo múi giờ Việt Nam (GMT+7)"""
@@ -859,8 +860,8 @@ def migrate_user_passwords():
     Idempotent: Chỉ hash những user chưa có hash.
     Sử dụng batch update để tối ưu tốc độ.
     """
+    """
     try:
-        from utils.security import hash_password
         gc = init_gspread()
         if not gc: return False, "Lỗi kết nối database"
         
@@ -920,7 +921,6 @@ def reset_user_password(username, new_password):
     Lưu hash và xóa plain-text (nếu còn).
     """
     try:
-        from utils.security import hash_password
         gc = init_gspread()
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
         ws = sh.worksheet("USERS")
@@ -957,7 +957,6 @@ def register_user(username, password, full_name, department, role="staff"):
     Đăng ký user mới. Hash password ngay khi tạo.
     """
     try:
-        from utils.security import hash_password
         gc = init_gspread()
         if not gc: return False, "Lỗi kết nối Database"
         
