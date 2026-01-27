@@ -11,13 +11,12 @@ from core.services.user_service import (
     reject_user, 
     update_user_details
 )
-from core.auth import require_admin, get_user_info
+from core.auth import require_admin
 
 st.set_page_config(page_title="Quản lý User", page_icon="⚙️", layout="wide")
 
 # --- AUTH CHECK ---
-require_admin()
-user_info = get_user_info()
+user_info = require_admin()
 
 # --- CONSTANTS ---
 ROLE_OPTIONS = {

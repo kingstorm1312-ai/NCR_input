@@ -300,7 +300,7 @@ def render_sidebar(user_info):
         
         # Logout
         st.divider()
-        if st.button("🚪 Đăng xuất", use_container_width=True):
+        if st.button("🚪 Đăng xuất", use_container_width=True, key="sidebar_logout"):
             st.session_state.user_info = None
             st.rerun()
 

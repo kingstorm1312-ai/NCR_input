@@ -35,9 +35,8 @@ pass
 # --- REMOVED OLD SIDEBAR CODE ---
 
 # --- AUTHENTICATION CHECK ---
-from core.auth import require_roles, get_user_info
-require_roles(['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu'])
-user_info = get_user_info()
+from core.auth import require_roles
+user_info = require_roles(['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu'])
 user_role = user_info.get("role")
 user_name = user_info.get("name")
 user_dept = user_info.get("department")

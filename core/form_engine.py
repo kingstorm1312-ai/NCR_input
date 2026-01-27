@@ -47,10 +47,9 @@ def run_inspection_page(profile: DeptProfile):
     # Page config (MUST BE FIRST)
     st.set_page_config(page_title=f"QC Input - {profile.name}", page_icon=profile.icon, layout="centered")
 
-    # Require dept access (already calls require_login via get_user_info inside)
-    require_dept_access(profile.code)
-    
-    user_info = get_user_info()
+    # Require dept access (already handles login and sidebar)
+    user_info = require_dept_access(profile.code)
+
     
     # Mobile navigation helper
     st.markdown("""

@@ -16,9 +16,8 @@ st.title("🔍 Kiểm Tra External Dependencies")
 st.markdown("Script này kiểm tra Google Sheet structure và Cloudinary config")
 
 # --- AUTHENTICATION CHECK ---
-from core.auth import require_admin, get_user_info
-require_admin()
-user_info = get_user_info()
+from core.auth import require_admin
+user_info = require_admin()
 user_role = user_info.get("role")
 
 # === 1. KIỂM TRA GOOGLE SHEET ===

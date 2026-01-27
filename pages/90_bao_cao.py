@@ -28,9 +28,8 @@ from core.services.report_service import (
 st.set_page_config(page_title="Báo Cáo Tổng Hợp", page_icon="📊", layout="wide")
 
 # --- AUTHENTICATION CHECK ---
-from core.auth import require_roles, get_user_info
-require_roles(['director', 'qc_manager', 'bgd_tan_phu'])
-user_info = get_user_info()
+from core.auth import require_roles
+user_info = require_roles(['director', 'qc_manager', 'bgd_tan_phu'])
 user_role = user_info.get("role", "")
 
 # --- HEADER ---
