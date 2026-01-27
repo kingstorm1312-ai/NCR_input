@@ -861,71 +861,68 @@ with tab2:
                                             'sl_loi': row[col_sl_loi_idx]
                                         })
                                 
-                                # ... (Rest of edit logic) ... 
-                                # Assuming snippet truncation, will just modify the block wrapper
-                            
-                            # Edit existing errors
-                            updated_errors = []
-                            deleted_rows = []
-                            
-                            for i, err in enumerate(error_rows):
-                                col1, col2, col3 = st.columns([3, 2, 1])
-                                with col1:
-                                    st.text(err['ten_loi'])
-                                with col2:
-                                    new_qty = st.number_input(
-                                        "SL",
-                                        min_value=0.0,
-                                        step=0.1,
-                                        format="%.1f",
-                                        value=float(err['sl_loi']) if err['sl_loi'] else 0.0,
-                                        key=f"edit_qty_pending_{so_phieu}_{i}",
-                                        label_visibility="collapsed"
-                                    )
-                                with col3:
-                                    if st.button("🗑️", key=f"del_pending_{so_phieu}_{i}", help="Xóa lỗi này"):
-                                        deleted_rows.append(err['sheet_row'])
+                                # Edit existing errors
+                                updated_errors = []
+                                deleted_rows = []
                                 
-                                if err['sheet_row'] not in deleted_rows:
-                                    updated_errors.append({
-                                        'sheet_row': err['sheet_row'],
-                                        'sl_loi': new_qty
-                                    })
-                            
-                            # Save changes button
-                            st.write("")
-                            if st.button(
-                                "💾 LƯU THAY ĐỔI",
-                                key=f"save_edit_pending_{so_phieu}",
-                                type="primary",
-                                use_container_width=True
-                            ):
-                                updates = []
-                                
-                                # Update quantities
-                                for upd in updated_errors:
-                                    updates.append({
-                                        'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
-                                        'values': [[str(upd['sl_loi'])]]
-                                    })
-                                
-                                # Delete rows (update sl to 0)
-                                for del_row in deleted_rows:
-                                    updates.append({
-                                        'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
-                                        'values': [['0']]
-                                    })
-                                
-                                if updates:
-                                    ws.batch_update(updates)
-                                    st.success("✅ Đã lưu thay đổi!")
-                                    st.session_state[edit_key] = False
-                                    st.rerun()
-                                else:
-                                    st.info("Không có thay đổi nào")
+                                for i, err in enumerate(error_rows):
+                                    col1, col2, col3 = st.columns([3, 2, 1])
+                                    with col1:
+                                        st.text(err['ten_loi'])
+                                    with col2:
+                                        new_qty = st.number_input(
+                                            "SL",
+                                            min_value=0.0,
+                                            step=0.1,
+                                            format="%.1f",
+                                            value=float(err['sl_loi']) if err['sl_loi'] else 0.0,
+                                            key=f"edit_qty_pending_{so_phieu}_{i}",
+                                            label_visibility="collapsed"
+                                        )
+                                    with col3:
+                                        if st.button("🗑️", key=f"del_pending_{so_phieu}_{i}", help="Xóa lỗi này"):
+                                            deleted_rows.append(err['sheet_row'])
                                     
-                        except Exception as e:
-                            st.error(f"Lỗi khi tải/lưu dữ liệu: {str(e)}")
+                                    if err['sheet_row'] not in deleted_rows:
+                                        updated_errors.append({
+                                            'sheet_row': err['sheet_row'],
+                                            'sl_loi': new_qty
+                                        })
+                                
+                                # Save changes button
+                                st.write("")
+                                if st.button(
+                                    "💾 LƯU THAY ĐỔI",
+                                    key=f"save_edit_pending_{so_phieu}",
+                                    type="primary",
+                                    use_container_width=True
+                                ):
+                                    updates = []
+                                    
+                                    # Update quantities
+                                    for upd in updated_errors:
+                                        updates.append({
+                                            'range': f'{chr(65 + col_sl_loi_idx)}{upd["sheet_row"]}',
+                                            'values': [[str(upd['sl_loi'])]]
+                                        })
+                                    
+                                    # Delete rows (update sl to 0)
+                                    for del_row in deleted_rows:
+                                        updates.append({
+                                            'range': f'{chr(65 + col_sl_loi_idx)}{del_row}',
+                                            'values': [['0']]
+                                        })
+                                    
+                                    if updates:
+                                        ws.batch_update(updates)
+                                        st.success("✅ Đã lưu thay đổi!")
+                                        st.session_state[edit_key] = False
+                                        st.rerun()
+                                    else:
+                                        st.info("Không có thay đổi nào")
+                                        
+                            except Exception as e:
+                                st.error(f"Lỗi khi tải/lưu dữ liệu: {str(e)}")
 
 # --- TAB 3: CORRECTIVE ACTIONS (TASKS) ---
 with tab3:
