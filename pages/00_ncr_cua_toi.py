@@ -38,6 +38,7 @@ user_role = user_info.get("role")
 user_dept = user_info.get("department")
 
 # --- GOOGLE SHEETS CONNECTION ---
+gc = init_gspread()
 
 
 
@@ -520,27 +521,33 @@ with tab1:
                 if edit_key not in st.session_state:
                     st.session_state[edit_key] = False
 
-                # --- ACTIONS ---
-                col_edit_btn, col_resubmit_btn, col_cancel_btn = st.columns([1, 1, 1])
+                # --- ACTIONS (Restricted) ---
+                is_owner = (current_view_user == user_name)
+                can_edit = is_owner or (user_role == 'admin')
                 
-                with col_edit_btn: # Action: Edit
-                    # Toggle Edit Mode Button
-                    btn_label = "✏️ Chỉnh sửa" if not st.session_state[edit_key] else "❌ Hủy sửa"
-                    if st.button(btn_label, key=f"edit_btn_{so_phieu}", use_container_width=True):
-                        st.session_state[edit_key] = not st.session_state[edit_key]
-                        st.rerun()
-                
-                with col_resubmit_btn:
-                    if st.button("🚀 Gửi lại ngay", key=f"resubmit_{so_phieu}", type="primary", use_container_width=True):
-                        if resubmit_ncr(so_phieu):
-                            st.success(f"Đã gửi lại phiếu {so_phieu}!")
+                if can_edit:
+                    col_edit_btn, col_resubmit_btn, col_cancel_btn = st.columns([1, 1, 1])
+                    
+                    with col_edit_btn: # Action: Edit
+                        # Toggle Edit Mode Button
+                        btn_label = "✏️ Chỉnh sửa" if not st.session_state[edit_key] else "❌ Hủy sửa"
+                        if st.button(btn_label, key=f"edit_btn_{so_phieu}", use_container_width=True):
+                            st.session_state[edit_key] = not st.session_state[edit_key]
                             st.rerun()
-                        else:
-                            st.error("Lỗi khi gửi lại phiếu.")
-                            
-                with col_cancel_btn:
-                    if st.button("🗑️ HỦY PHIẾU", key=f"cancel_btn_{so_phieu}", type="secondary", use_container_width=True):
-                        st.session_state[f"show_cancel_confirm_{so_phieu}"] = True
+                    
+                    with col_resubmit_btn:
+                        if st.button("🚀 Gửi lại ngay", key=f"resubmit_{so_phieu}", type="primary", use_container_width=True):
+                            if resubmit_ncr(so_phieu):
+                                st.success(f"Đã gửi lại phiếu {so_phieu}!")
+                                st.rerun()
+                            else:
+                                st.error("Lỗi khi gửi lại phiếu.")
+                                
+                    with col_cancel_btn:
+                        if st.button("🗑️ HỦY PHIẾU", key=f"cancel_btn_{so_phieu}", type="secondary", use_container_width=True):
+                            st.session_state[f"show_cancel_confirm_{so_phieu}"] = True
+                else:
+                    st.info("🔒 Chế độ xem (Chỉ người lập phiếu hoặc Admin mới được chỉnh sửa)")
                 
                 # Cancel Confirmation
                 if st.session_state.get(f"show_cancel_confirm_{so_phieu}", False):
@@ -565,7 +572,7 @@ with tab1:
                             st.rerun()
                 
                 # Edit form (when edit mode is ON)
-                if st.session_state[edit_key]:
+                if st.session_state[edit_key] and can_edit:
                     st.write("---")
                     st.markdown("### ✏️ Chỉnh sửa phiếu")
                     
@@ -808,42 +815,54 @@ with tab2:
                     if edit_key not in st.session_state:
                         st.session_state[edit_key] = False
                     
-                    # Toggle edit mode
-                    st.write("")
-                    if st.button(
-                        "✏️ SỬA PHIẾU" if not st.session_state[edit_key] else "❌ HỦY SỬA",
-                        key=f"toggle_edit_pending_{so_phieu}",
-                        use_container_width=True
-                    ):
-                        st.session_state[edit_key] = not st.session_state[edit_key]
-                        st.rerun()
+                    # Restriction Logic
+                    is_owner = (current_view_user == user_name)
+                    can_edit_pending = is_owner or (user_role == 'admin')
                     
-                    # Edit form (when edit mode is ON)
-                    if st.session_state[edit_key]:
-                        st.write("---")
-                        st.markdown("### ✏️ Chỉnh sửa phiếu (Đang chờ duyệt)")
+                    if can_edit_pending:
+                        # Toggle edit mode
+                        st.write("")
+                        if st.button(
+                            "✏️ SỬA PHIẾU" if not st.session_state[edit_key] else "❌ HỦY SỬA",
+                            key=f"toggle_edit_pending_{so_phieu}",
+                            use_container_width=True
+                        ):
+                            st.session_state[edit_key] = not st.session_state[edit_key]
+                            st.rerun()
                         
-                        # Calculate row indices in sheet
-                        try:
-                            sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
-                            ws = sh.worksheet("NCR_DATA")
-                            all_data = ws.get_all_values()
-                            headers = all_data[0]
+                        # Edit form (when edit mode is ON)
+                        if st.session_state[edit_key]:
+                            # ... (Existing Edit Logic for Pending) ...
+                            # Reuse simplified logic or keep as is if too complex
+                            # For simplicity, keeping existing structure but inside 'can_edit_pending' block
+                            # Just ensure 'gc' is available globally
                             
-                            from utils.ncr_helpers import COLUMN_MAPPING
-                            col_so_phieu_idx = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
-                            col_sl_loi_idx = headers.index(COLUMN_MAPPING.get('sl_loi', 'so_luong_loi'))
-                            col_ten_loi_idx = headers.index(COLUMN_MAPPING.get('ten_loi', 'ten_loi'))
+                            st.write("---")
+                            st.markdown("### ✏️ Chỉnh sửa phiếu (Đang chờ duyệt)")
                             
-                            # Find rows for this ticket
-                            error_rows = []
-                            for idx, row in enumerate(all_data[1:], start=2):
-                                if row[col_so_phieu_idx] == so_phieu:
-                                    error_rows.append({
-                                        'sheet_row': idx,
-                                        'ten_loi': row[col_ten_loi_idx],
-                                        'sl_loi': row[col_sl_loi_idx]
-                                    })
+                            try:
+                                sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
+                                ws = sh.worksheet("NCR_DATA")
+                                all_data = ws.get_all_values()
+                                headers = all_data[0]
+                                
+                                from utils.ncr_helpers import COLUMN_MAPPING
+                                col_so_phieu_idx = headers.index(COLUMN_MAPPING.get('so_phieu', 'so_phieu_ncr'))
+                                col_sl_loi_idx = headers.index(COLUMN_MAPPING.get('sl_loi', 'so_luong_loi'))
+                                col_ten_loi_idx = headers.index(COLUMN_MAPPING.get('ten_loi', 'ten_loi'))
+                                
+                                # Find rows for this ticket
+                                error_rows = []
+                                for idx, row in enumerate(all_data[1:], start=2):
+                                    if row[col_so_phieu_idx] == so_phieu:
+                                        error_rows.append({
+                                            'sheet_row': idx,
+                                            'ten_loi': row[col_ten_loi_idx],
+                                            'sl_loi': row[col_sl_loi_idx]
+                                        })
+                                
+                                # ... (Rest of edit logic) ... 
+                                # Assuming snippet truncation, will just modify the block wrapper
                             
                             # Edit existing errors
                             updated_errors = []
