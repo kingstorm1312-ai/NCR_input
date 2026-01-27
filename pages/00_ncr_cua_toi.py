@@ -328,14 +328,6 @@ with st.spinner("Đang tải dữ liệu..."):
     # Load all NCR data (no status filter)
     df_all, _ = load_ncr_data_with_grouping(filter_status=None, filter_department=None)
 
-    # --- DEBUG: Show Column Names ---
-    with st.expander("🛠️ DEBUG: Kiểm tra tên cột trong Sheet"):
-        st.write("Nếu bác thấy thiếu thông tin khi xuất file, hãy kiểm tra xem tên cột trong Sheet (ở đây) có khớp với tên bác dùng không:")
-        if not df_all.empty:
-            st.write(list(df_all.columns))
-        else:
-            st.write("DataFrame rỗng")
-        st.info("Hãy chụp màn hình danh sách này gửi cho em nếu cần hỗ trợ mapping!")
 
 # --- VIEW OPTIONS (ADMIN & TRUONG_CA) ---
 current_view_user = user_name
