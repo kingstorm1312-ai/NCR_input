@@ -15,6 +15,7 @@ from utils.ncr_helpers import (
     init_gspread,
     cancel_ncr
 )
+from utils.ui_nav import render_sidebar, hide_default_sidebar_nav
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="NCR Của Tôi", page_icon="🙋", layout="centered", initial_sidebar_state="auto")
@@ -33,6 +34,9 @@ st.markdown("""
 # --- AUTHENTICATION CHECK ---
 from core.auth import get_user_info
 user_info = get_user_info()
+render_sidebar(user_info)
+hide_default_sidebar_nav()
+
 user_name = user_info.get("name")
 user_role = user_info.get("role")
 user_dept = user_info.get("department")
