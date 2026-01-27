@@ -35,7 +35,7 @@ def require_dept_access(required_dept):
     user_dept = user_info.get("department")
     user_role = user_info.get("role")
 
-    if user_role != 'admin' and user_dept != required_dept:
+    if user_role != 'admin' and user_dept != required_dept and user_dept != 'all':
         st.error(f"⛔ Bạn thuộc bộ phận '{user_dept}', không có quyền truy cập vào '{required_dept}'!")
         if st.button("🔙 Quay lại trang chủ"):
             st.switch_page("Dashboard.py")

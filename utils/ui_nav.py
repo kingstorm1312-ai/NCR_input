@@ -288,7 +288,7 @@ def render_sidebar(user_info):
                 
                 # Department Check
                 allowed_depts = item.get("departments", ["all"])
-                if "all" not in allowed_depts and user_dept not in allowed_depts and user_role != "admin":
+                if "all" not in allowed_depts and user_dept not in allowed_depts and user_role != "admin" and user_dept != "all":
                     continue
                     
                 visible_items.append(item)

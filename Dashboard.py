@@ -191,8 +191,8 @@ if st.session_state.user_info is None:
                     full_name = st.text_input("Tên hiển thị (Họ tên)*", placeholder="Ví dụ: Nguyễn Văn A")
                     
                     # Department Selection
-                    dept_keys = list(DEPARTMENT_PAGES.keys())
-                    dept_labels = [d.upper().replace('_', ' ') for d in dept_keys]
+                    dept_keys = ["all"] + list(DEPARTMENT_PAGES.keys())
+                    dept_labels = ["VĂN PHÒNG (ALL)"] + [d.upper().replace('_', ' ') for d in DEPARTMENT_PAGES.keys()]
                     sel_dept_idx = st.selectbox("Bộ phận làm việc*", range(len(dept_labels)), format_func=lambda x: dept_labels[x])
                     selected_dept = dept_keys[sel_dept_idx]
                     

@@ -30,6 +30,7 @@ ROLE_OPTIONS = {
 }
 
 DEPT_OPTIONS = {
+    "all": "Văn phòng (All)",
     "fi": "FI",
     "dv_cuon": "ĐV Cuộn",
     "dv_npl": "ĐV NPL",
