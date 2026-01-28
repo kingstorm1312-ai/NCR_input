@@ -236,28 +236,14 @@ else:
         Render the DNXL creation form as a fragment to isolate reruns.
         """
         # --- MASTER INPUTS ---
-        c_m1, c_m2 = st.columns(2)
-        with c_m1:
-            target_scope = st.text_input("Số lượng yêu cầu (Total Qty)*", placeholder="VD: 5000, 100 cuộn...", key=f"target_scope_{so_phieu}")
-        with c_m2:
-            deadline_date = st.date_input("Hạn xử lý (Deadline)", key=f"deadline_{so_phieu}")
-        
+        target_scope = st.text_input("Số lượng yêu cầu (Total Qty)*", placeholder="VD: 5000, 100 cuộn...", key=f"target_scope_{so_phieu}")
         handling_instruction = st.text_area("Hướng dẫn xử lý chung (Instruction)*", placeholder="Hướng dẫn quy cách xử lý...", height=80, key=f"instruction_{so_phieu}")
         
         # --- DNXL BUFFER INIT ---
         buffer_key = f"dnxl_buffer_{so_phieu}"
         if buffer_key not in st.session_state:
-            default_defect = row.get('ten_loi', '') or row.get('mo_ta_loi', '')
-            # Default Quantity Logic: If user says "don't need input", we default to 0 or 1.
-            default_qty = row.get('sl_loi', 0)
-            
-            if default_defect:
-                st.session_state[buffer_key] = [{
-                    "Tên Lỗi": str(default_defect),
-                    "SL Cần Xử Lý": int(default_qty) if pd.notna(default_qty) else 0
-                }]
-            else:
-                st.session_state[buffer_key] = []
+            # Always start EMPTY - User must manually add all defects
+            st.session_state[buffer_key] = []
 
         # --- DIALOG DEFINITION ---
         @st.dialog("➕ Thêm lỗi xử lý")
@@ -337,7 +323,7 @@ else:
                 
             form_header = {
                 "target_scope": target_scope,
-                "deadline": deadline_date,
+                "deadline": "",  # Empty - will be filled manually by other department
                 "handling_instruction": handling_instruction
             }
             
