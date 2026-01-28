@@ -6,12 +6,14 @@ from datetime import datetime
 import uuid
 import gspread
 from core.gsheets import open_worksheet, smart_append_batch
+from utils.sheets_error_handler import handle_sheets_errors
 
 # Tên sheet trong Google Sheets
 SHEET_MASTER = "DNXL"
 SHEET_DETAIL = "DNXL_DETAILS"
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300, show_spinner=False)
+@handle_sheets_errors
 def get_dnxl_by_ncr(ncr_id):
     """
     Lấy danh sách DNXL Master thuộc về một NCR cụ thể.
@@ -35,10 +37,11 @@ def get_dnxl_by_ncr(ncr_id):
             
         return pd.DataFrame()
     except Exception as e:
-        st.error(f"Lỗi khi tải dữ liệu DNXL: {e}")
+        # Error already handled by decorator
         return pd.DataFrame()
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300, show_spinner=False)
+@handle_sheets_errors
 def get_dnxl_details(dnxl_id):
     """Lấy chi tiết các lỗi của một phiếu DNXL"""
     try:
@@ -63,7 +66,8 @@ def get_dnxl_details(dnxl_id):
         # st.error(f"Lỗi tải chi tiết: {e}") # Silent error to avoid spam
         return pd.DataFrame()
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300, show_spinner=False)
+@handle_sheets_errors
 def get_all_dnxl_details_map():
     """
     Lấy toàn bộ details và gom nhóm theo dnxl_id.

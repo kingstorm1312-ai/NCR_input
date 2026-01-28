@@ -172,7 +172,7 @@ ROLE_TO_STATUS = {
 }
 
 # --- CACHED DATA FETCH ---
-@st.cache_data(ttl=30, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def _get_ncr_data_cached():
     try:
         gc = init_gspread()

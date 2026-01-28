@@ -1,11 +1,16 @@
 import streamlit as st
 import gspread
 from utils.ncr_helpers import (
-    load_ncr_data_with_grouping,
-    update_ncr_status,
+    init_gspread,
+    COLUMN_MAPPING,
+    ROLE_TO_STATUS,
+    get_next_status,
+    DEPARTMENTS_SKIP_BP,
     REJECT_ESCALATION,
-    init_gspread
+    load_ncr_data_with_grouping,
+    update_ncr_status
 )
+from utils.sheets_error_handler import handle_sheets_errors
 
 # --- CONFIGURATION ---
 DRAFT_STATUS = 'draft'
@@ -41,7 +46,8 @@ def _get_current_status_from_sheet(so_phieu):
     except Exception:
         return None
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300, show_spinner=False)
+@handle_sheets_errors
 def get_pending_approvals(user_role, user_dept, admin_selected_role=None):
     """
     Tải danh sách các phiếu NCR đang chờ phê duyệt dựa trên role và bộ phận.
