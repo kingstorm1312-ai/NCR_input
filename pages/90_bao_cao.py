@@ -25,7 +25,11 @@ from core.services.report_service import (
     prepare_dept_breakdown,
     prepare_severity_breakdown
 )
+    prepare_dept_breakdown,
+    prepare_severity_breakdown
+)
 from core.services.ai_service import get_agent_response
+import re # For parsing chart tags
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Báo Cáo Tổng Hợp", page_icon="📊", layout="wide")
@@ -178,9 +182,49 @@ else:
                             response_text = get_agent_response(prompt, st.session_state.chat_history[:-1], api_key)
                             
                             status.update(label="✅ Đã trả lời!", state="complete", expanded=False)
-                            st.markdown(response_text)
                             
-                            # 3. Add AI Response to History
+                            # 3. Parse & Render (Text + Chart)
+                            # Regex to find [[CHART: ... ]]
+                            chart_pattern = r"\[\[CHART:(.*)\]\]"
+                            match = re.search(chart_pattern, response_text, re.DOTALL)
+                            
+                            final_text = response_text
+                            chart_data = None
+                            
+                            if match:
+                                try:
+                                    json_str = match.group(1).strip()
+                                    chart_data = json.loads(json_str)
+                                    # Remove chart block from text display
+                                    final_text = response_text.replace(match.group(0), "").strip()
+                                except:
+                                    pass
+                            
+                            st.markdown(final_text)
+                            
+                            if chart_data:
+                                try:
+                                    chart_type = chart_data.get("type")
+                                    labels = chart_data.get("labels", [])
+                                    values = chart_data.get("values", [])
+                                    title = chart_data.get("title", "")
+                                    
+                                    if chart_type == "bar":
+                                        fig = px.bar(x=labels, y=values, title=title, labels={'x': 'Loại', 'y': 'Giá trị'})
+                                    elif chart_type == "line":
+                                        fig = px.line(x=labels, y=values, title=title, markers=True)
+                                    elif chart_type == "pie":
+                                        fig = px.pie(names=labels, values=values, title=title)
+                                    else:
+                                        fig = None
+                                        
+                                    if fig:
+                                        st.plotly_chart(fig, use_container_width=True)
+                                except Exception as e:
+                                    st.error(f"Lỗi vẽ biểu đồ: {e}")
+                            
+                            # 4. Add AI Response to History (Keep full text for context? No, keep clean text)
+                            # Actually, keeping full text including [[CHART]] in history is better so AI knows it sent a chart.
                             st.session_state.chat_history.append({"role": "model", "parts": [response_text]})
                         except Exception as e:
                             status.update(label="❌ Lỗi", state="error")

@@ -66,7 +66,20 @@ def get_agent_response(user_input, chat_history, api_key):
             2. **Luôn dùng Tool**: Luôn ưu tiên dùng Tool `filter_data` hoăc `get_department_ranking` để lấy số liệu thực tế. KHÔNG được bịa số liệu.
             3. **Xử lý mơ hồ**: Nếu câu hỏi mơ hồ (VD: "Tình hình sao rồi?"), hãy mặc định lấy dữ liệu THÁNG HIỆN TẠI và báo cáo 3 chỉ số: Tổng lỗi, Bộ phận nhiều lỗi nhất, Top lỗi.
             4. **Drill-down**: Nếu User hỏi về một Phiếu cụ thể (VD: "phiếu lỗi nặng nhất", "phiếu FI-01"), hãy dùng Tool `get_ncr_details`.
-            5. **Văn phong**: Trả lời ngắn gọn, súc tích, chuyên nghiệp bằng Tiếng Việt.
+            5. **Biểu đồ (Chart)**: Nếu User yêu cầu vẽ biểu đồ hoặc dữ liệu thích hợp để vẽ (VD: so sánh, xu hướng, ranking), hãy thêm block JSON sau vào cuối câu trả lời:
+               
+               [[CHART:
+               {
+                 "type": "bar" | "line" | "pie",
+                 "title": "Tên biểu đồ",
+                 "labels": ["Nhãn 1", "Nhãn 2", ...],
+                 "values": [10, 20, ...]
+               }
+               ]]
+               
+               LƯU Ý: Chỉ output block này khi cần thiết. Dữ liệu trong block phải khớp với text.
+
+            6. **Văn phong**: Trả lời ngắn gọn, súc tích, chuyên nghiệp bằng Tiếng Việt.
             """
         )
         
