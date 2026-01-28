@@ -77,7 +77,7 @@ def get_pending_approvals(user_role, user_dept, admin_selected_role=None):
     
     return df_original, df_grouped, filter_status
 
-def approve_ncr(so_phieu, role, user_name, next_status, solutions=None):
+def approve_ncr(so_phieu, role, user_name, next_status, solutions=None, assignee=None):
     """
     Thực hiện phê duyệt phiếu NCR với cơ chế kiểm tra trạng thái (Status Guard).
     """
@@ -108,7 +108,8 @@ def approve_ncr(so_phieu, role, user_name, next_status, solutions=None):
         approver_role=role,
         bp_solution=solutions.get('bp_solution'),
         solution=solutions.get('qc_solution'),
-        director_solution=solutions.get('director_solution')
+        director_solution=solutions.get('director_solution'),
+        assignee=assignee
     )
     if success:
         st.cache_data.clear()  # Clear cache to refresh data after approval

@@ -17,7 +17,8 @@ from utils.ncr_helpers import (
     REJECT_ESCALATION,
     init_gspread,
     get_now_vn,
-    get_next_status
+    get_next_status,
+    get_all_users
 )
 from core.services.approval_service import (
     get_pending_approvals,
@@ -562,14 +563,23 @@ else:
                    next_status = 'hoan_thanh'
                 
                 # Dynamic Director Assignment (Only if sending to Director)
+                # Dynamic Director Assignment (Only if sending to Director)
                 if next_status == 'cho_giam_doc':
-                    directors = {
-                        "director": "Giám Đốc (Mặc định)",
-                        "giam_doc_1": "Giám Đốc 1", # Add real users if needed
-                        "giam_doc_2": "Giám Đốc 2"
-                    }
-                    # For now just informational
-                    # st.info(f"Phiếu sẽ được chuyển đến: {target_label}")
+                    # Fetch real directors
+                    all_users = get_all_users()
+                    directors_list = [u for u in all_users if str(u.get('role')).lower() == 'director']
+                    
+                    if not directors_list:
+                        st.warning("⚠️ Hệ thống chưa có tài khoản Giám đốc (Role: director).")
+                    else:
+                        dir_options = {u['username']: f"{u.get('full_name')} ({u['username']})" for u in directors_list}
+                        selected_dir_user = st.selectbox(
+                            "👤 Chỉ định Giám đốc duyệt:",
+                            options=list(dir_options.keys()),
+                            format_func=lambda x: dir_options[x],
+                            key=f"sel_dir_{so_phieu}"
+                        )
+                        director_assignee = selected_dir_user
             # --- END QC MANAGER FLEXIBLE ROUTING ---
 
             # --- ACTION BUTTONS ---
@@ -611,7 +621,8 @@ else:
                                     'bp_solution': bp_solution,
                                     'qc_solution': qc_solution,
                                     'director_solution': director_solution
-                                }
+                                },
+                                assignee=director_assignee
                             )
                             if success:
                                 st.session_state.flash_msg = {'type': 'success', 'content': f"Đã phê duyệt phiếu {so_phieu} thành công!"}
