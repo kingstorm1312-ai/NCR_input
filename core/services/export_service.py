@@ -172,7 +172,7 @@ def generate_dnxl_docx(ncr_data, dnxl_data, details_df):
                 
                 c_idx += 1
 
-                c_idx += 1
+
 
         # --- 4. PAGE SETUP & PRINT OPTIONS ---
         try:
