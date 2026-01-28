@@ -580,6 +580,24 @@ else:
                             key=f"sel_dir_{so_phieu}"
                         )
                         director_assignee = selected_dir_user
+                
+                # Dynamic Assignment for BGD Tan Phu
+                elif next_status == 'cho_bgd_tan_phu':
+                    # Fetch real BGD users
+                    all_users = get_all_users()
+                    bgd_list = [u for u in all_users if str(u.get('role')).lower() == 'bgd_tan_phu']
+                    
+                    if not bgd_list:
+                         st.warning("⚠️ Hệ thống chưa có tài khoản BGD Tân Phú (Role: bgd_tan_phu).")
+                    else:
+                        bgd_options = {u['username']: f"{u.get('full_name')} ({u['username']})" for u in bgd_list}
+                        selected_bgd_user = st.selectbox(
+                            "👤 Chỉ định BGD Tân Phú duyệt:",
+                            options=list(bgd_options.keys()),
+                            format_func=lambda x: bgd_options[x],
+                            key=f"sel_bgd_{so_phieu}"
+                        )
+                        director_assignee = selected_bgd_user
             # --- END QC MANAGER FLEXIBLE ROUTING ---
 
             # --- ACTION BUTTONS ---
