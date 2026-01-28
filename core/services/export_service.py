@@ -122,15 +122,23 @@ def generate_dnxl_docx(ncr_data, dnxl_data, details_df):
                             break
                 if start_row: break
         
-        if not start_row: start_row = 15 # Fallback
+        if not start_row: start_row = 15 # Fallback adjusted
         
-        # CLEAR existing rows below header to remove template artifacts (like {{i.ten_loi}})
-        # Let's clear next 10 rows to be safe
-        for r in range(start_row, start_row + 20):
+        # CLEAR existing placeholders (Smart Clear)
+        # Only clear rows that might contain template tags or are empty within a reasonable range
+        # Avoid clearing footer (Signature, Total check)
+        # Checking file images, footer starts around row 23-26. 
+        # If start_row is ~10, clearing 20 rows hits row 30 -> Wipes footer.
+        
+        # Safe clear: Only clear provided the cell value contains "{{" or is None
+        # And limit to max 12 rows (typical page size for this form)
+        for r in range(start_row, start_row + 12):
             for c in range(1, 10):
                 cell = ws.cell(row=r, column=c)
                 if not isinstance(cell, MergedCell):
-                    cell.value = None
+                    val = str(cell.value) if cell.value else ""
+                    if "{{" in val or val.strip() == "":
+                         cell.value = None
 
         if not details_df.empty:
             thin = Side(border_style="thin", color="000000")
@@ -139,7 +147,7 @@ def generate_dnxl_docx(ncr_data, dnxl_data, details_df):
             align_left = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
             c_idx = start_row
-            for i, row in details_df.iterrows():
+            for idx_enum, (_, row) in enumerate(details_df.iterrows()):
                 # Helper to safely set value
                 def safe_set(r, c, val, align):
                     cell = ws.cell(row=r, column=c)
@@ -149,7 +157,7 @@ def generate_dnxl_docx(ncr_data, dnxl_data, details_df):
                     cell.alignment = align
 
                 # 1. STT (Col 1)
-                safe_set(c_idx, 1, i + 1, align_center)
+                safe_set(c_idx, 1, idx_enum + 1, align_center)
                 
                 # 2. Ten Loi (Col 2)
                 safe_set(c_idx, 2, row.get('defect_name', ''), align_left)
