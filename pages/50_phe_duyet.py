@@ -191,20 +191,21 @@ if not df_grouped.empty and filter_col:
             key=filter_key,
             help="Chọn khâu để lọc danh sách"
         )
+    # Calculate default for reset
+    reset_to_default = []
+    if user_role == 'admin':
+        reset_to_default = available_depts
+    elif user_role == 'truong_ca' and user_dept and user_dept in available_depts:
+        reset_to_default = [user_dept]
+
+    # Callback function
+    def reset_filter_callback():
+        st.session_state[filter_key] = reset_to_default
+
     with f_col2:
         st.write("") # Spacer for alignment
         st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-        if st.button("🗑️ Xóa lọc", width="stretch", help="Reset về mặc định"):
-            # Reset logic matching initialization
-            default_selection = []
-            if user_role == 'admin':
-                default_selection = available_depts 
-            elif user_role == 'truong_ca' and user_dept:
-                 if user_dept in available_depts:
-                     default_selection = [user_dept]
-            
-            st.session_state[filter_key] = default_selection
-            st.rerun()
+        st.button("🗑️ Xóa lọc", width="stretch", help="Reset về mặc định", on_click=reset_filter_callback)
 
     # Apply in-memory filtering
     if selected_depts:
