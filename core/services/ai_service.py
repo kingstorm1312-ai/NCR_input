@@ -9,7 +9,9 @@ from core.services.ai_tools import (
     get_top_defects, 
     compare_periods, 
     get_department_ranking,
-    get_ncr_details
+    get_ncr_details,
+    get_contract_ranking,
+    get_contract_group_ranking
 )
 
 def format_tool_response(response_dict):
@@ -40,7 +42,9 @@ def get_agent_response(user_input, chat_history, api_key):
             get_top_defects, 
             compare_periods, 
             get_department_ranking, 
-            get_ncr_details
+            get_ncr_details,
+            get_contract_ranking,
+            get_contract_group_ranking
         ]
         
         # 2. Configure Model with Tools
