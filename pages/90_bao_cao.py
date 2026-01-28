@@ -21,8 +21,10 @@ from core.services.report_service import (
     prepare_trend_data,
     prepare_pareto_data,
     prepare_dept_breakdown,
+    prepare_dept_breakdown,
     prepare_severity_breakdown
 )
+from core.services.ai_service import analyze_ncr_data
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Báo Cáo Tổng Hợp", page_icon="📊", layout="wide")
@@ -133,6 +135,35 @@ if df_final.empty:
     st.stop()
 
 st.success(f"Đang hiển thị: {len(df_final)} dòng lỗi từ {df_final['so_phieu'].nunique()} phiếu.")
+
+# --- AI INSIGHT SECTION ---
+st.markdown("### 🤖 Trợ lý AI")
+api_key = st.secrets.get("GEMINI_API_KEY", "")
+
+if not api_key:
+    st.info("💡 Để kích hoạt tính năng phân tích AI, vui lòng thêm `GEMINI_API_KEY` vào `.streamlit/secrets.toml`.")
+else:
+    with st.expander("✨ Phân tích dữ liệu với Gemini AI", expanded=False):
+        if st.button("🚀 Chạy phân tích ngay"):
+            # 1. Prepare Summary Data
+            total_errors = len(df_final)
+            total_tickets = df_final['so_phieu'].nunique()
+            top_defects = df_final['ten_loi'].value_counts().head(5).to_dict()
+            top_depts = df_final['bo_phan'].value_counts().head(3).to_dict()
+            
+            # Context string
+            summary_text = f"""
+            - Tổng số lỗi: {total_errors}
+            - Tổng số phiếu NCR: {total_tickets}
+            - Top 5 lỗi thường gặp: {top_defects}
+            - Top 3 bộ phận gây lỗi: {top_depts}
+            """
+            
+            # 2. Call AI Service
+            result = analyze_ncr_data(summary_text, api_key)
+            
+            # 3. Display Result
+            st.markdown(result)
 
 # --- CHARTS ---
 
