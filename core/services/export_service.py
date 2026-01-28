@@ -175,20 +175,25 @@ def generate_dnxl_docx(ncr_data, dnxl_data, details_df):
                 c_idx += 1
 
         # --- 4. PAGE SETUP & PRINT OPTIONS ---
-        # User request: Center on page, fix margins
-        ws.page_setup.horizontalCentered = True
-        ws.page_setup.verticalCentered = False # Top align is standard for forms
-        
-        # Margins (Inches) - Narrow margins to maximize space
-        ws.page_margins.left = 0.25
-        ws.page_margins.right = 0.25
-        ws.page_margins.top = 0.5
-        ws.page_margins.bottom = 0.5
-        
-        # Fit to 1 page wide
-        ws.page_setup.fitToPage = True
-        ws.page_setup.fitToWidth = 1
-        ws.page_setup.fitToHeight = False # Allow multiple pages if many defects
+        try:
+            # User request: Center on page, fix margins
+            ws.page_setup.horizontalCentered = True
+            ws.page_setup.verticalCentered = False # Top align is standard for forms
+            
+            # Margins (Inches) - Narrow margins to maximize space
+            if ws.page_margins:
+                ws.page_margins.left = 0.25
+                ws.page_margins.right = 0.25
+                ws.page_margins.top = 0.5
+                ws.page_margins.bottom = 0.5
+            
+            # Fit to 1 page wide
+            ws.page_setup.fitToPage = True
+            ws.page_setup.fitToWidth = 1
+            ws.page_setup.fitToHeight = False # Allow multiple pages if many defects
+        except Exception:
+            # Non-critical: If print setup fails, just ignore and save file
+            pass
         
         # --- 5. SAVE ---
         output_buffer = io.BytesIO()
