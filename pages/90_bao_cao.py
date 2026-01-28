@@ -22,10 +22,6 @@ from core.services.report_service import (
     prepare_pareto_data,
     prepare_dept_breakdown,
     prepare_dept_breakdown,
-    prepare_dept_breakdown,
-    prepare_severity_breakdown
-)
-    prepare_dept_breakdown,
     prepare_severity_breakdown
 )
 from core.services.ai_service import get_agent_response
