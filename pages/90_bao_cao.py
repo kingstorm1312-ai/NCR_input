@@ -22,9 +22,10 @@ from core.services.report_service import (
     prepare_pareto_data,
     prepare_dept_breakdown,
     prepare_dept_breakdown,
+    prepare_dept_breakdown,
     prepare_severity_breakdown
 )
-from core.services.ai_service import analyze_ncr_data
+from core.services.ai_service import get_agent_response
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="Báo Cáo Tổng Hợp", page_icon="📊", layout="wide")
@@ -137,33 +138,53 @@ if df_final.empty:
 st.success(f"Đang hiển thị: {len(df_final)} dòng lỗi từ {df_final['so_phieu'].nunique()} phiếu.")
 
 # --- AI INSIGHT SECTION ---
-st.markdown("### 🤖 Trợ lý AI")
+# --- AI AGENT CHAT SECTION ---
+st.markdown("### 🤖 Trợ lý AI (Data Analyst)")
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 
 if not api_key:
     st.info("💡 Để kích hoạt tính năng phân tích AI, vui lòng thêm `GEMINI_API_KEY` vào `.streamlit/secrets.toml`.")
 else:
-    with st.expander("✨ Phân tích dữ liệu với Gemini AI", expanded=False):
-        if st.button("🚀 Chạy phân tích ngay"):
-            # 1. Prepare Summary Data
-            total_errors = len(df_final)
-            total_tickets = df_final['so_phieu'].nunique()
-            top_defects = df_final['ten_loi'].value_counts().head(5).to_dict()
-            top_depts = df_final['bo_phan'].value_counts().head(3).to_dict()
-            
-            # Context string
-            summary_text = f"""
-            - Tổng số lỗi: {total_errors}
-            - Tổng số phiếu NCR: {total_tickets}
-            - Top 5 lỗi thường gặp: {top_defects}
-            - Top 3 bộ phận gây lỗi: {top_depts}
-            """
-            
-            # 2. Call AI Service
-            result = analyze_ncr_data(summary_text, api_key)
-            
-            # 3. Display Result
-            st.markdown(result)
+    # Initialize chat history
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # Display chat messages
+    with st.expander("💬 Trò chuyện với dữ liệu", expanded=True):
+        # Container for chat history
+        chat_container = st.container()
+        
+        # Render history
+        with chat_container:
+            for message in st.session_state.chat_history:
+                role = "user" if message["role"] == "user" else "assistant"
+                with st.chat_message(role):
+                    st.markdown(message["parts"][0]) # Gemini format uses 'parts' list
+
+        # Chat Input
+        if prompt := st.chat_input("Hỏi gì đó (VD: 'Tháng này có bao nhiêu lỗi?')..."):
+            # 1. Add User Message to History & UI
+            st.session_state.chat_history.append({"role": "user", "parts": [prompt]})
+            with chat_container:
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+
+            # 2. Call Agent with Spinner
+            with chat_container:
+                with st.chat_message("assistant"):
+                    with st.status("🤖 AI đang suy nghĩ...", expanded=True) as status:
+                        try:
+                            status.write("🔍 Đang đọc câu hỏi...")
+                            response_text = get_agent_response(prompt, st.session_state.chat_history[:-1], api_key)
+                            
+                            status.update(label="✅ Đã trả lời!", state="complete", expanded=False)
+                            st.markdown(response_text)
+                            
+                            # 3. Add AI Response to History
+                            st.session_state.chat_history.append({"role": "model", "parts": [response_text]})
+                        except Exception as e:
+                            status.update(label="❌ Lỗi", state="error")
+                            st.error(f"Lỗi: {str(e)}")
 
 # --- CHARTS ---
 

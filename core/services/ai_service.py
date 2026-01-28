@@ -1,45 +1,82 @@
 import google.generativeai as genai
 import streamlit as st
-import pandas as pd
+import json
+from google.generativeai.types import FunctionDeclaration, Tool
 
-def analyze_ncr_data(summary_text, api_key):
+# Import Backend Tools
+from core.services.ai_tools import (
+    filter_data, 
+    get_top_defects, 
+    compare_periods, 
+    get_department_ranking,
+    get_ncr_details
+)
+
+def format_tool_response(response_dict):
+    """Converts tool output to clean string for AI context (saves tokens)"""
+    return json.dumps(response_dict, ensure_ascii=False)
+
+def get_agent_response(user_input, chat_history, api_key):
     """
-    Sends summary data to Gemini 1.5 Flash for analysis.
+    Handles Chat with Tool Calling (Function Calling).
     
     Args:
-        summary_text (str): Pre-formatted summary of the data.
+        user_input (str): Current user question.
+        chat_history (list): List of previous messages (Gemini format).
         api_key (str): Google AI Studio API Key.
-        
+    
     Returns:
-        str: AI generated insight or error message.
+        str: AI response text.
     """
     if not api_key:
-        return "⚠️ Chưa cấu hình API Key. Vui lòng thêm `GEMINI_API_KEY` vào `.streamlit/secrets.toml`."
+        return "⚠️ Chưa cấu hình API Key."
 
     try:
         genai.configure(api_key=api_key)
-        # Gemini 1.5 Flash is cost-effective and fast for this task
-        model = genai.GenerativeModel('gemini-2.5-flash')
-
-        prompt = f"""
-        Bạn là Trợ lý phân tích chất lượng (QC Analyst) chuyên nghiệp của nhà máy sản xuất bao bì.
-        Hãy phân tích dữ liệu tóm tắt NCR (Non-Conformance Report) dưới đây và đưa ra báo cáo ngắn gọn cho Giám đốc.
-
-        DỮ LIỆU ĐẦU VÀO:
-        {summary_text}
-
-        YÊU CẦU OUTPUT:
-        Hãy viết một báo cáo ngắn gọn (dưới 10 dòng) gồm các mục sau:
-        1. **Tổng quan**: Nhận xét nhanh về tình hình lỗi (Tăng/Giảm/Bất thường).
-        2. **Vấn đề trọng yếu**: Chỉ ra bộ phận hoặc loại lỗi cần quan tâm nhất (chiếm tỷ trọng cao).
-        3. **Khuyến nghị**: Đề xuất 1 hành động cụ thể để khắc phục ngay.
         
-        Phong cách: Chuyên nghiệp, súc tích, khách quan. Dùng tiếng Việt.
-        """
+        # 1. Define Tools
+        tools_list = [
+            filter_data, 
+            get_top_defects, 
+            compare_periods, 
+            get_department_ranking, 
+            get_ncr_details
+        ]
+        
+        # 2. Configure Model with Tools
+        model = genai.GenerativeModel(
+            model_name='gemini-2.5-flash',
+            tools=tools_list,
+            system_instruction="""
+            Bạn là Trợ lý Phân tích Dữ liệu (AI Data Analyst) của nhà máy sản xuất bao bì.
+            Nhiệm vụ: Trả lời câu hỏi của Giám đốc về dữ liệu chất lượng (NCR) dựa trên các công cụ (Tools) được cung cấp.
+            
+            ⚠️ ĐỊNH NGHĨA QUAN TRỌNG (DOMAIN KNOWLEDGE):
+            1. **Hợp đồng (Contract)**: Thường là các mã bắt đầu bằng chữ cái như **ADI, ABE, PO, T01, T02**... (Ví dụ: ADI-123, ABE-456).
+            2. **Bộ phận / Khâu (Department)**: Là các công đoạn sản xuất, bao gồm: **FI, PE, IN (In ấn), GHÉP, CẮT, TRÁNG, CUỘN (Chia cuộn), SEAL, LÀM TÚI (May),...**
+               -> LƯU Ý: **"FI" là tên bộ phận**, KHÔNG PHẢI là hợp đồng.
+            3. **Lỗi (Defect)**: Là các vấn đề chất lượng như: Bong keo, Lem màu, Hở seal, Sai kích thước...
 
-        with st.spinner("🤖 AI đang đọc dữ liệu và viết báo cáo..."):
-            response = model.generate_content(prompt)
-            return response.text
+            QUY TẮC TRẢ LỜI:
+            1. **Phân biệt rõ đối tượng**: Nếu User hỏi "Hợp đồng nào lỗi nhiều nhất?", hãy lọc theo Contract. Nếu hỏi "Khâu nào lỗi nhiều nhất?", hãy lọc theo Department.
+            2. **Luôn dùng Tool**: Luôn ưu tiên dùng Tool `filter_data` hoăc `get_department_ranking` để lấy số liệu thực tế. KHÔNG được bịa số liệu.
+            3. **Xử lý mơ hồ**: Nếu câu hỏi mơ hồ (VD: "Tình hình sao rồi?"), hãy mặc định lấy dữ liệu THÁNG HIỆN TẠI và báo cáo 3 chỉ số: Tổng lỗi, Bộ phận nhiều lỗi nhất, Top lỗi.
+            4. **Drill-down**: Nếu User hỏi về một Phiếu cụ thể (VD: "phiếu lỗi nặng nhất", "phiếu FI-01"), hãy dùng Tool `get_ncr_details`.
+            5. **Văn phong**: Trả lời ngắn gọn, súc tích, chuyên nghiệp bằng Tiếng Việt.
+            """
+        )
+        
+        # 3. Create Chat Session with History
+        # Transform streamlits chat history to gemini format if needed, 
+        # but for simplicity we can just start a chat and send the message history + new msg.
+        # Actually proper way is initializing chat with history.
+        
+        chat = model.start_chat(history=chat_history, enable_automatic_function_calling=True)
+        
+        # 4. Send Message (Auto-handles tool calls loop)
+        response = chat.send_message(user_input)
+        
+        return response.text
             
     except Exception as e:
-        return f"❌ Lỗi khi gọi AI: {str(e)}"
+        return f"❌ Lỗi Agent: {str(e)}"
