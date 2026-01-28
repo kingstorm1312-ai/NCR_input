@@ -145,52 +145,41 @@ def get_ncr_details(ncr_id):
     
     return json.dumps(info, ensure_ascii=False)
 
-def get_contract_ranking(top_n=5):
+def get_contract_ranking(top_n=5, department=None, year=None, month=None):
     """
     Xếp hạng các Hợp đồng (cụ thể) có nhiều lỗi nhất.
-    Returns: JSON {contract_code: error_count}
+    Có thể lọc theo bộ phận hoặc thời gian.
     """
     df = get_report_data()
     if df.empty: return "No data."
+    
+    # Apply Filters
+    if department:
+        col = 'bo_phan_full' if 'bo_phan_full' in df.columns else 'bo_phan'
+        df = df[df[col].astype(str).str.contains(department, case=False, na=False)]
+    if year: df = df[df['year'] == int(year)]
+    if month: df = df[df['month'] == int(month)]
     
     ranking = df['hop_dong'].value_counts().head(int(top_n)).to_dict()
     return json.dumps(ranking, ensure_ascii=False)
 
-def get_contract_group_ranking(top_n=5):
+def get_contract_group_ranking(top_n=5, department=None, year=None, month=None):
     """
-    Xếp hạng NHÓM Hợp đồng (dựa trên 3 ký tự cuối hoặc tiền tố) có nhiều lỗi nhất.
-    Dùng cho câu hỏi: "Nhóm hợp đồng nào nhiều lỗi nhất?"
+    Xếp hạng NHÓM Hợp đồng (dưới 3 ký tự cuối hoặc tiền tố) có nhiều lỗi nhất.
+    Có thể lọc theo bộ phận hoặc thời gian.
+    Dùng cho: "Nhóm hợp đồng nào nhiều lỗi nhất?" hoặc "Nhóm hợp đồng nào lỗi nhiều nhất ở khâu FI?"
     """
     df = get_report_data()
     if df.empty: return "No data."
     
-    # Logic: Group by last 3 chars (Suffix) as defined in Report Page
-    # Or use Prefix if user implies ADI/ABE are prefixes. 
-    # Let's try to detect if ADI/ABE are common.
-    # For now, stick to Suffix logic from Report Page to be consistent, unique_suffixes = sorted(df_final['contract_suffix'].unique())
+    # Apply Filters
+    if department:
+        col = 'bo_phan_full' if 'bo_phan_full' in df.columns else 'bo_phan'
+        df = df[df[col].astype(str).str.contains(department, case=False, na=False)]
+    if year: df = df[df['year'] == int(year)]
+    if month: df = df[df['month'] == int(month)]
     
-    def get_group(code):
-        s = str(code).strip()
-        # Logic 1: Suffix (Legacy)
-        # return s[-3:] if len(s) >= 3 else "Khác"
-        
-        # Logic 2: Prefix (More likely for "ADI", "ABE")
-        # If code is "ADI-123", prefix is ADI.
-        parts = s.split('-')
-        if len(parts) > 1:
-            return parts[0]
-        return s[:3] # Fallback to first 3 chars
-        
-    # Let's use the explicit logic requested by user? 
-    # User said "Hợp đồng là ADI ABE...". Let's try heuristic: Split by '-'.
-    
-    # We will use the Suffix logic from Report page for now to match UI, 
-    # BUT I'll actually return BOTH just in case.
-    # Wait, simple is better. Let's use the UI logic (Suffix) first since that's what the user sees in the filter.
-    # Actually, let's look at the UI code again.
-    # UI uses: return s[-3:] if len(s) >= 3 else "Khác"
-    # I will use that.
-    
+    # Group Logic (Suffix)
     df['group'] = df['hop_dong'].apply(lambda x: str(x).strip()[-3:] if len(str(x).strip()) >= 3 else "Khác")
     ranking = df['group'].value_counts().head(int(top_n)).to_dict()
     
