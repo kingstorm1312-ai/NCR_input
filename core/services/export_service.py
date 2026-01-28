@@ -17,19 +17,14 @@ def generate_dnxl_docx(ncr_data, dnxl_data, details_df):
     Returns:
         io.BytesIO: Buffer file XLSX
     """
-    # Template Path (Excel)
-    template_path = "templates/Template_DNXL.xlsx"
+    # Template Path (Excel) - Relative to project root
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    template_path = os.path.join(project_root, "templates", "Template_DNXL.xlsx")
     
-    # Check absolute path fallback if relative fails
     if not os.path.exists(template_path):
-         # Try absolute path from previous context if needed, or stick to relative
-         # Let's use the one User provided earlier if relative fails
-         abs_path = r"D:\Thành\Work\Antigravity\NCR_mobile_project\Template\Template_DNXL.xlsx"
-         if os.path.exists(abs_path):
-             template_path = abs_path
-         else:
-            st.error(f"Không tìm thấy file mẫu: {template_path}")
-            return None
+        st.error(f"❌ Không tìm thấy file mẫu: {template_path}")
+        st.info("💡 Đảm bảo folder `templates/` và file `Template_DNXL.xlsx` tồn tại trong project.")
+        return None
 
     try:
         wb = openpyxl.load_workbook(template_path)
