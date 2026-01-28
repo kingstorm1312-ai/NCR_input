@@ -65,7 +65,7 @@ st.caption(f"Xin chào **{user_name}** - Role: **{user_role.upper()}**")
 # Clear cache button
 col1, col2 = st.columns([6, 1])
 with col2:
-    if st.button("🔄 Làm mới", help="Clear cache và tải lại dữ liệu mới nhất"):
+    if st.button("🔄 Làm mới", help="Clear cache và tải lại dữ liệu mới nhất", key="btn_refresh_cache"):
         st.cache_data.clear()
         st.rerun()
 
@@ -270,43 +270,10 @@ else:
             
             entry_mode = st.radio("Cách nhập:", ["Chọn từ NCR", "Nhập mới"], horizontal=True, label_visibility="collapsed")
             
-            # Callback for adding defect
-            def add_defect_callback():
-                # Get latest values from session state if needed, or pass via args
-                # Since d_name is widget value, we need to ensure we capture it.
-                # However, st.button callback runs before script rerun.
-                pass # Logic handled in button arg
-            
-            # Since d_name is local var from text_input/selectbox, we can't easily pass it to callback 
-            # unless we use session state keys for inputs.
-            # Let's fix input keys first.
-            
-            # Define keys for inputs
-            name_key = f"dlg_name_{so_phieu}"
-            mode_key = f"dlg_mode_{so_phieu}"
-            
-            # NOTE: Dialog reruns its body when interacted.
-            # We can keep simple logic but remove st.rerun() if we trust st.dialog to handle it?
-            # User wants "Box does not appear" fixed. 
-            
-            # Let's try `if st.button(...)` -> `st.session_state...` -> `st.rerun()` IS STANDARD.
-            # The issue might be `df_original` access or `ticket_rows`.
-            
-            # Let's add a Safe Guard for df_original
+            # Safe Guard: Check if data available
             if df_original is None or df_original.empty:
                 st.warning("⚠️ Không tải được dữ liệu gốc. Vui lòng nhập thủ công.")
-                entry_mode = "Nhập mới" # Force manual
-            
-            # Button Logic with Callback is safer for "Values" 
-            def on_add():
-                # We need to read the input values from st.session_state
-                # But inputs below don't have keys (or have auto keys).
-                # Generating keys is better.
-                pass
-
-            # ... simpler fix: Just verify df access and use key for inputs.
-            
-            # Let's assign keys to inputs
+                entry_mode = "Nhập mới"
             
             if entry_mode == "Chọn từ NCR" and available_defects:
                  d_name = st.selectbox("Tên lỗi", available_defects, key=f"sel_defect_{so_phieu}")
