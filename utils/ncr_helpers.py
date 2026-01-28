@@ -1169,3 +1169,58 @@ def cancel_ncr(gc, so_phieu, reason):
         return False, "Không tìm thấy số phiếu"
     except Exception as e:
         return False, f"Lỗi hệ thống: {e}"
+
+def generate_next_ncr_id(dept_prefix):
+    """
+    Tạo/Gợi ý số đuôi phiếu NCR tiếp theo cho tháng hiện tại.
+    Format: [PREFIX]-[MM]-[XX] (Ví dụ: FI-01-01)
+    Trả về: (next_full_id, next_suffix)
+    """
+    try:
+        now = get_now_vn()
+        month_str = now.strftime("%m")
+        search_prefix = f"{dept_prefix}-{month_str}-"
+        
+        # Lấy dữ liệu cached
+        df_ncr = _get_ncr_data_cached()
+        
+        existing_suffixes = []
+        if not df_ncr.empty and 'so_phieu_ncr' in df_ncr.columns:
+            # Lọc phiếu bắt đầu bằng prefix
+            mask = df_ncr['so_phieu_ncr'].astype(str).str.startswith(search_prefix)
+            # Lấy list các suffix
+            ids = df_ncr.loc[mask, 'so_phieu_ncr'].tolist()
+            for pid in ids:
+                try:
+                    suffix = pid.replace(search_prefix, "")
+                    if suffix.isdigit():
+                        existing_suffixes.append(int(suffix))
+                except:
+                    continue
+        
+        # Tìm max
+        next_num = 1
+        if existing_suffixes:
+            next_num = max(existing_suffixes) + 1
+            
+        next_suffix = f"{next_num:02d}"
+        next_full_id = f"{search_prefix}{next_suffix}"
+        
+        return next_full_id, next_suffix
+        
+    except Exception as e:
+        # Fallback
+        return "", "01"
+
+def is_ncr_id_exists(id_to_check):
+    """Kiểm tra xem mã phiếu NCR đã tồn tại chưa"""
+    try:
+        df_ncr = _get_ncr_data_cached()
+        if df_ncr.empty or 'so_phieu_ncr' not in df_ncr.columns:
+            return False
+        
+        # Check stripping whitespace
+        all_ids = df_ncr['so_phieu_ncr'].astype(str).str.strip().tolist()
+        return str(id_to_check).strip() in all_ids
+    except:
+        return False

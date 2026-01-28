@@ -11,7 +11,9 @@ from utils.ncr_helpers import (
     upload_images_to_cloud,
     LIST_DON_VI_TINH,
     get_initial_status,
-    generate_next_pass_id
+    generate_next_pass_id,
+    generate_next_ncr_id,
+    is_ncr_id_exists
 )
 from utils.aql_manager import get_aql_standard, evaluate_lot_quality
 from utils.config import NCR_DEPARTMENT_PREFIXES
@@ -364,7 +366,20 @@ def run_inspection_page(profile: DeptProfile):
     if (not profile.has_aql) or (profile.has_aql and inspection_result == 'Fail'):
         curr_month = get_now_vn().strftime("%m")
         c_ncr1, c_ncr2 = st.columns([1, 2])
-        ncr_suffix = c_ncr1.text_input("Số đuôi NCR (xx)", help="Nhập 2 số cuối của phiếu", max_chars=3)
+        
+        # Auto-suggest ID
+        _, suggested_suffix = generate_next_ncr_id(dept_prefix)
+        
+        # Use dynamic key so it refreshes if prefix/month changes, but stable for typing
+        suffix_key = f"ncr_suffix_{dept_prefix}_{curr_month}"
+        
+        ncr_suffix = c_ncr1.text_input(
+            "Số đuôi NCR (xx)", 
+            value=suggested_suffix,
+            help=f"Gợi ý: {suggested_suffix}", 
+            max_chars=3,
+            key=suffix_key
+        )
         if ncr_suffix:
             final_ncr_num = f"{dept_prefix}-{curr_month}-{ncr_suffix}"
             c_ncr2.markdown(f"👉 Mã phiếu: **{final_ncr_num}**")
@@ -384,6 +399,12 @@ def run_inspection_page(profile: DeptProfile):
         if (not profile.has_aql or inspection_result == 'Fail') and not final_ncr_num:
             st.error("⚠️ Vui lòng nhập SỐ ĐUÔI NCR trước khi lưu!")
             st.stop()
+            
+        # Validate Duplicate ID
+        if (not profile.has_aql or inspection_result == 'Fail'):
+             if is_ncr_id_exists(final_ncr_num):
+                 st.error(f"⚠️ Mã phiếu {final_ncr_num} đã tồn tại! Vui lòng kiểm tra lại.")
+                 st.stop()
         
         # Auto-Generate ID for Pass
         if profile.has_aql and inspection_result == 'Pass':
