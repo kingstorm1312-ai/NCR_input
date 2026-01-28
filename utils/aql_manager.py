@@ -51,31 +51,41 @@ def get_aql_standard(lot_size):
     else: # > 500,000
         return {'code': 'Q', 'sample_size': 1250, 'ac_major': 21, 'ac_minor': 21}
 
-def evaluate_lot_quality(lot_size, total_major, total_minor):
+def evaluate_lot_quality(lot_size, total_major, total_minor, custom_limits=None):
     """
     Đánh giá kết quả kiểm tra lô hàng.
     Input: 
         lot_size: Số lượng lô
         total_major: Tổng lỗi nặng
         total_minor: Tổng lỗi nhẹ
+        custom_limits: dict {'ac_major': int, 'ac_minor': int} (Optional)
     Output:
         status: 'Pass' | 'Fail'
-        details: dict (std, passed_major, passed_minor)
+        details: dict (std, effective_limits, pass_major, pass_minor)
     """
     std = get_aql_standard(lot_size)
-    if not std:
+    
+    # Determine limits
+    if custom_limits:
+        limit_major = custom_limits.get('ac_major', 0)
+        limit_minor = custom_limits.get('ac_minor', 0)
+    elif std:
+        limit_major = std['ac_major']
+        limit_minor = std['ac_minor']
+    else:
         return 'N/A', {}
     
     # Check Major
-    pass_major = total_major <= std['ac_major']
+    pass_major = total_major <= limit_major
     
     # Check Minor
-    pass_minor = total_minor <= std['ac_minor']
+    pass_minor = total_minor <= limit_minor
     
     is_pass = pass_major and pass_minor
     
     return 'Pass' if is_pass else 'Fail', {
         'standard': std,
+        'effective_limits': {'ac_major': limit_major, 'ac_minor': limit_minor},
         'pass_major': pass_major,
         'pass_minor': pass_minor
     }

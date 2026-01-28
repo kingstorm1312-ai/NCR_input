@@ -111,14 +111,26 @@ def run_inspection_page(profile: DeptProfile):
             with col_tog:
                 st.write("")
                 st.write("") 
-                is_custom = st.checkbox("🔓", value=st.session_state.custom_sample_size, help="Mở khóa để sửa SL Mẫu", key="chk_custom_sample")
+                is_custom = st.checkbox("🔓", value=st.session_state.custom_sample_size, help="Mở khóa để sửa SL Mẫu & Giới hạn", key="chk_custom_sample")
                 st.session_state.custom_sample_size = is_custom
             
             with col_inp:
                 if st.session_state.custom_sample_size:
                      sl_kiem = st.number_input("SL Mẫu (Tùy chỉnh)", min_value=0, value=calc_sample_size, disabled=st.session_state.header_locked)
+                     
+                     # --- CUSTOM LIMITS INPUTS ---
+                     c_lim1, c_lim2 = st.columns(2)
+                     # Determine default values for limits (from AQL or 0)
+                     def_ac_major = aql_info['ac_major'] if aql_info else 0
+                     def_ac_minor = aql_info['ac_minor'] if aql_info else 0
+                     
+                     custom_major = c_lim1.number_input("Max Lỗi Nặng", value=def_ac_major, min_value=0, key="cust_ac_maj")
+                     custom_minor = c_lim2.number_input("Max Lỗi Nhẹ", value=def_ac_minor, min_value=0, key="cust_ac_min")
+                     
                 else:
                      sl_kiem = st.number_input("SL Mẫu (AQL)", value=calc_sample_size, disabled=True, help="Tự động tính theo AQL Level II")
+                     custom_major = None
+                     custom_minor = None
         
         # Hiển thị thông tin AQL
         if aql_info:
@@ -339,17 +351,36 @@ def run_inspection_page(profile: DeptProfile):
         # Tính toán kết quả AQL
         total_major = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] in ['Nặng', 'Nghiêm trọng']])
         total_minor = sum([e['sl_loi'] for e in st.session_state.buffer_errors if e['muc_do'] == 'Nhẹ'])
-        inspection_result, aql_details = evaluate_lot_quality(sl_lo, total_major, total_minor)
+        
+        # Prepare custom limits if enabled
+        custom_limits = None
+        if st.session_state.custom_sample_size:
+            # We access the widget keys directly or variables if in scope.
+            # Variables custom_major/custom_minor are in local scope from Top Section.
+            # Assuming 'custom_major' is defined in the block above (it is).
+             if 'custom_major' in locals() and 'custom_minor' in locals() and custom_major is not None:
+                custom_limits = {'ac_major': custom_major, 'ac_minor': custom_minor}
+
+        inspection_result, aql_details = evaluate_lot_quality(sl_lo, total_major, total_minor, custom_limits)
         
         if inspection_result == 'Pass':
             st.success("✅ **KẾT QUẢ: ĐẠT (PASS)** - Đủ điều kiện nhập kho!")
             if not st.session_state.buffer_errors: st.caption("ℹ️ Không phát hiện lỗi nào.")
+            
+            # Show used limits info
+            eff_limits = aql_details.get('effective_limits', {})
+            st.caption(f"Tiêu chuẩn: Major <= {eff_limits.get('ac_major')} | Minor <= {eff_limits.get('ac_minor')}")
+
             save_label = "💾 LƯU BIÊN BẢN KIỂM TRA (PASS)"
             save_btn_type = "primary"
         else:
             st.error("❌ **KẾT QUẢ: KHÔNG ĐẠT (FAIL)** - Cần lập phiếu NCR!")
-            limit_major = aql_details.get('standard', {}).get('ac_major', 0)
-            limit_minor = aql_details.get('standard', {}).get('ac_minor', 0)
+            
+            # Show diff
+            eff_limits = aql_details.get('effective_limits', {})
+            limit_major = eff_limits.get('ac_major', 0)
+            limit_minor = eff_limits.get('ac_minor', 0)
+            
             c_stat1, c_stat2 = st.columns(2)
             c_stat1.metric("Lỗi Nặng (Major)", f"{total_major}", delta=f"Giới hạn: {limit_major}", delta_color="inverse")
             c_stat2.metric("Lỗi Nhẹ (Minor)", f"{total_minor}", delta=f"Giới hạn: {limit_minor}", delta_color="inverse")
