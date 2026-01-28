@@ -34,7 +34,7 @@ st.markdown("""
 # --- AUTHENTICATION CHECK ---
 from core.auth import get_user_info
 user_info = get_user_info()
-render_sidebar(user_info)
+# render_sidebar handled in get_user_info
 hide_default_sidebar_nav()
 
 user_name = user_info.get("name")
@@ -194,10 +194,13 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"BBK_{so_phieu}")
                         
                         # Store in session state
+                        # Store in session state
                         st.session_state[bbk_key] = {
                             "pdf": pdf_path if pdf_path and os.path.exists(pdf_path) else None,
                             "docx": docx_path if docx_path and os.path.exists(docx_path) else None
                         }
+                        # KEEP EXPANDER OPEN
+                        st.session_state['last_expanded_ticket'] = so_phieu
                         st.rerun() # Rerun to show download button
                     except Exception as e:
                         st.error(f"Lỗi: {str(e)}")
@@ -291,10 +294,13 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         pdf_path, docx_path = generate_ncr_pdf(template_path, ticket_info, df_errs, f"NCR_{so_phieu}")
                         
                         # Store in session state
+                        # Store in session state
                         st.session_state[ncr_key] = {
                             "pdf": pdf_path if pdf_path and os.path.exists(pdf_path) else None,
                             "docx": docx_path if docx_path and os.path.exists(docx_path) else None
                         }
+                        # KEEP EXPANDER OPEN
+                        st.session_state['last_expanded_ticket'] = so_phieu
                         st.rerun()
                     except Exception as e:
                         st.error(f"Lỗi: {str(e)}")
@@ -1057,53 +1063,103 @@ with tab3:
 with tab4:
     st.subheader("✅ Phiếu đã hoàn thành")
     
-    df_completed = df_my_ncrs[df_my_ncrs['trang_thai'] == 'hoan_thanh']
+    # Filter loosely to catch 'Hoàn thành' (Display) or 'hoan_thanh' (Code)
+    if not df_my_ncrs.empty and 'trang_thai' in df_my_ncrs.columns:
+        df_completed = df_my_ncrs[df_my_ncrs['trang_thai'].astype(str).str.lower().isin(['hoan_thanh', 'hoàn thành'])]
+    else:
+        df_completed = pd.DataFrame()
     
     if df_completed.empty:
         st.info("ℹ️ Chưa có phiếu nào hoàn thành")
     else:
-        # Group by ticket
-        tickets_completed = df_completed.groupby('so_phieu').agg({
-            'ngay_lap': 'first',
-            'sl_loi': 'sum',
-            'ten_loi': lambda x: ', '.join(x.unique()),
-            'thoi_gian_cap_nhat': 'first'
-        }).reset_index()
-        
-        st.success(f"🎉 Đã hoàn thành {len(tickets_completed)} phiếu!")
-        
-        for _, ticket in tickets_completed.iterrows():
-            so_phieu = ticket['so_phieu']
-            ngay_lap = ticket['ngay_lap']
-            tong_loi = ticket['sl_loi']
+        # Detect Pass vs Fail based on Result or ID pattern (KD-)
+        # Note: 'ket_qua_kiem_tra' column might not exist in old data
+        if 'ket_qua_kiem_tra' not in df_completed.columns:
+            df_completed['ket_qua_kiem_tra'] = ''
             
-            with st.expander(f"📋 {so_phieu} - {int(tong_loi)} lỗi", expanded=(f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"📅 **Ngày tạo:** {ngay_lap}")
-                with col2:
-                    st.write(f"⚠️ **Tổng lỗi:** {int(tong_loi)}")
+        # Logic: Pass if result is Pass OR ID contains "KD-"
+        mask_pass = (
+            (df_completed['ket_qua_kiem_tra'].astype(str) == 'Pass') | 
+            (df_completed['so_phieu'].astype(str).str.contains("KD-"))
+        )
+        
+        df_pass = df_completed[mask_pass]
+        df_ncr_done = df_completed[~mask_pass]
+        
+        # --- SUB TAB SELECTION (Radio for persistence) ---
+        # Use session state to remember active subtab
+        if "completed_subtab" not in st.session_state:
+            st.session_state.completed_subtab = "🚫 NCR (Lỗi)"
+
+        selected_sub = st.radio(
+            "Loại phiếu:", 
+            ["🚫 NCR (Lỗi)", "✅ BBK Đạt"],
+            horizontal=True,
+            key="completed_subtab",
+            label_visibility="collapsed"
+        )
+        
+        # --- HELPER RENDER ---
+        def render_completed_list(df_source, label_type):
+            grouped = df_source.groupby('so_phieu').agg({
+                'ngay_lap': 'first',
+                'sl_loi': 'sum',
+                'ten_loi': lambda x: ', '.join(x.unique()),
+                'thoi_gian_cap_nhat': 'first'
+            }).reset_index()
+            
+            st.success(f"🎉 Đã hoàn thành {len(grouped)} phiếu {label_type}!")
+            
+            for _, ticket in grouped.iterrows():
+                so_phieu = ticket['so_phieu']
+                ngay_lap = ticket['ngay_lap']
+                tong_loi = ticket['sl_loi']
                 
-                # Error details
-                ticket_rows = df_completed[df_completed['so_phieu'] == so_phieu]
-                if not ticket_rows.empty:
-                    display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
-                    column_config = {
-                        "ten_loi": "Tên lỗi",
-                        "vi_tri_loi": "Vị trí",
-                        "sl_loi": "SL",
-                        "don_vi_tinh": "ĐVT",
-                        "muc_do": "Mức độ"
-                    }
-                    available_cols = [col for col in display_cols if col in ticket_rows.columns]
-                    st.dataframe(
-                        ticket_rows[available_cols].rename(columns=column_config),
-                        use_container_width=True,
-                        hide_index=True
-                    )
+                # Check for cached export path OR explicit user interaction state
+                # is_ready = (f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)
+                # Keep expander open if we just interacted with THIS ticket
+                is_expanded = (st.session_state.get('last_expanded_ticket') == so_phieu)
                 
-                # --- EXPORT BUTTONS (COMPLETED) ---
-                render_export_buttons(so_phieu, ticket_rows)
+                with st.expander(f"📋 {so_phieu} - {int(tong_loi)} lỗi", expanded=is_expanded):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"📅 **Ngày tạo:** {ngay_lap}")
+                    with col2:
+                        st.write(f"⚠️ **Tổng lỗi:** {int(tong_loi)}")
+                    
+                    # Error details
+                    ticket_rows = df_source[df_source['so_phieu'] == so_phieu]
+                    if not ticket_rows.empty:
+                        # Use cached render if possible
+                        display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'muc_do']
+                        column_config = {
+                            "ten_loi": "Tên lỗi",
+                            "vi_tri_loi": "Vị trí",
+                            "sl_loi": "SL",
+                            "don_vi_tinh": "ĐVT",
+                            "muc_do": "Mức độ"
+                        }
+                        available_cols = [col for col in display_cols if col in ticket_rows.columns]
+                        st.dataframe(
+                            ticket_rows[available_cols].rename(columns=column_config),
+                            use_container_width=True,
+                            hide_index=True
+                        )
+                    
+                    # --- EXPORT BUTTONS ---
+                    render_export_buttons(so_phieu, ticket_rows)
+
+        # --- CONTENT RENDER ---
+        if selected_sub == "🚫 NCR (Lỗi)":
+            if df_ncr_done.empty:
+                st.info("Không có phiếu NCR hoàn thành.")
+            else:
+                render_completed_list(df_ncr_done, "NCR")
+        else:
+            if df_pass.empty:
+                st.info("Không có phiếu BBK Đạt.")
+            else:
+                render_completed_list(df_pass, "BBK Đạt")
 
 # --- FOOTER ---
 st.divider()

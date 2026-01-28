@@ -41,6 +41,7 @@ def _get_current_status_from_sheet(so_phieu):
     except Exception:
         return None
 
+@st.cache_data(ttl=60)
 def get_pending_approvals(user_role, user_dept, admin_selected_role=None):
     """
     Tải danh sách các phiếu NCR đang chờ phê duyệt dựa trên role và bộ phận.
@@ -103,6 +104,8 @@ def approve_ncr(so_phieu, role, user_name, next_status, solutions=None):
         solution=solutions.get('qc_solution'),
         director_solution=solutions.get('director_solution')
     )
+    if success:
+        st.cache_data.clear()  # Clear cache to refresh data after approval
     return success, msg
 
 def reject_ncr(so_phieu, role, user_name, current_status_ui, reason):
@@ -137,4 +140,6 @@ def reject_ncr(so_phieu, role, user_name, current_status_ui, reason):
         approver_role=role,
         reject_reason=reason
     )
+    if success:
+        st.cache_data.clear()  # Clear cache to refresh data after rejection
     return success, msg

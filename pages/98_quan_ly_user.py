@@ -29,7 +29,8 @@ ROLE_OPTIONS = {
     'qc_manager': 'QC Manager',
     'director': 'Giám đốc',
     'bgd_tan_phu': 'BGĐ Tân Phú',
-    'admin': 'Admin (Quản trị)'
+    'admin': 'Admin (Quản trị)',
+    'to_xu_ly': 'Tổ Xử Lý'
 }
 
 DEPT_OPTIONS = {

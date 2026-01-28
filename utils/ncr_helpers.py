@@ -403,6 +403,37 @@ def get_status_color(status):
     return colors.get(status, 'gray')
 
 
+def upload_images_to_cloud(uploaded_files, prefix="DNXL"):
+    """
+    Mock function to simulate image upload.
+    Returns a newline-separated string of fake URL placeholders (as requested to avoid crash).
+    In production, uncomment the Cloudinary logic below.
+    """
+    if not uploaded_files:
+        return ""
+        
+    # --- REAL CLOUDINARY LOGIC (COMMENTED OUT FOR SAFETY IF ENV MISSING) ---
+    # try:
+    #     if 'cloudinary' in st.secrets:
+    #         cloudinary.config(
+    #             cloud_name=st.secrets["cloudinary"]["cloud_name"],
+    #             api_key=st.secrets["cloudinary"]["api_key"],
+    #             api_secret=st.secrets["cloudinary"]["api_secret"]
+    #         )
+    #     uploaded_urls = []
+    #     for file in uploaded_files:
+    #         res = cloudinary.uploader.upload(file, folder=f"NCR/{prefix}", resource_type="auto")
+    #         uploaded_urls.append(res.get('secure_url', res.get('url', '')))
+    #     return "\n".join(uploaded_urls)
+    # except Exception as e:
+    #     st.error(f"Cloudinary Error: {e}")
+    #     return ""
+    
+    # --- MOCK LOGIC (AS REQUESTED) ---
+    urls = [f"https://placeholder.com/mock_img_{f.name.replace(' ', '_')}" for f in uploaded_files]
+    return "\n".join(urls)
+
+
 def format_contract_code(raw_input):
     if not raw_input:
         return ""
@@ -638,6 +669,52 @@ def restart_ncr(gc, so_phieu, target_status, user_name, note=""):
         return False, "Không tìm thấy phiếu"
     except Exception as e:
         return False, f"Lỗi: {str(e)}"
+
+def generate_next_pass_id(dept_prefix):
+    """
+    Tạo mã phiếu tự động cho trường hợp Kiểm Đạt (Pass).
+    Format: [PREFIX]KD-[MM]-[ID] (Ví dụ: FIKD-01-01)
+    """
+    try:
+        # 1. Xác định Prefix tìm kiếm
+        now = get_now_vn()
+        month_str = now.strftime("%m")
+        search_prefix = f"{dept_prefix}KD-{month_str}-"
+        
+        # 2. Lấy danh sách ID hiện có từ Sheet
+        # (Dùng cache function có sẵn để giảm quota read)
+        df_ncr = _get_ncr_data_cached()
+        
+        existing_ids = []
+        if not df_ncr.empty and 'so_phieu_ncr' in df_ncr.columns:
+            # Lọc các phiếu bắt đầu bằng search_prefix
+            mask = df_ncr['so_phieu_ncr'].astype(str).str.startswith(search_prefix)
+            existing_ids = df_ncr.loc[mask, 'so_phieu_ncr'].tolist()
+            
+        # 3. Tìm số lớn nhất
+        max_id = 0
+        for pid in existing_ids:
+            try:
+                # Tách phần đuôi số: FIKD-01-05 -> 05
+                suffix = pid.replace(search_prefix, "")
+                val = int(suffix)
+                if val > max_id:
+                    max_id = val
+            except:
+                continue
+                
+        # 4. Sinh mã mới
+        next_id = max_id + 1
+        final_id = f"{search_prefix}{next_id:02d}"
+        
+        return final_id
+        
+    except Exception as e:
+        print(f"Error generating pass ID: {e}")
+        # Fallback an toàn: Dùng timestamp để không bị trùng
+        fallback_suffix = now.strftime("%d%H%M")
+        return f"{dept_prefix}KD-{month_str}-{fallback_suffix}"
+
 def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline, target_department=None, target_person=None):
     """
     Giao hành động khắc phục cho cấp dưới.

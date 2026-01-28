@@ -76,7 +76,8 @@ if user_role == 'admin':
     st.info("🔑 Admin Mode: Chọn role để xem NCR cần phê duyệt")
     selected_role = st.selectbox(
         "Xem với quyền:",
-        ['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu']
+        ['truong_ca', 'truong_bp', 'qc_manager', 'director', 'bgd_tan_phu'],
+        key="admin_role_selector"
     )
 else:
     selected_role = user_role
@@ -193,7 +194,7 @@ if not df_grouped.empty and filter_col:
     with f_col2:
         st.write("") # Spacer for alignment
         st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-        if st.button("🗑️ Xóa lọc", use_container_width=True, help="Reset về mặc định"):
+        if st.button("🗑️ Xóa lọc", width="stretch", help="Reset về mặc định"):
             # Reset logic matching initialization
             default_selection = []
             if user_role == 'admin':
@@ -222,6 +223,135 @@ else:
     count = len(df_grouped)
     st.markdown(f"**Tìm thấy {count} phiếu cần xử lý**")
     
+    # --- FRAGMENT DEFINITION (OUTSIDE LOOP) ---
+    if hasattr(st, "fragment"):
+        fragment_decorator = st.fragment
+    else:
+        fragment_decorator = lambda func: func
+
+    @fragment_decorator
+    def render_dnxl_form_fragment(so_phieu, row, df_original, user_name, dnxl_service):
+        """
+        Render the DNXL creation form as a fragment to isolate reruns.
+        """
+        # --- MASTER INPUTS ---
+        c_m1, c_m2 = st.columns(2)
+        with c_m1:
+            target_scope = st.text_input("Số lượng yêu cầu (Total Qty)*", placeholder="VD: 5000, 100 cuộn...", key=f"target_scope_{so_phieu}")
+        with c_m2:
+            deadline_date = st.date_input("Hạn xử lý (Deadline)", key=f"deadline_{so_phieu}")
+        
+        handling_instruction = st.text_area("Hướng dẫn xử lý chung (Instruction)*", placeholder="Hướng dẫn quy cách xử lý...", height=80, key=f"instruction_{so_phieu}")
+        
+        # --- DNXL BUFFER INIT ---
+        buffer_key = f"dnxl_buffer_{so_phieu}"
+        if buffer_key not in st.session_state:
+            default_defect = row.get('ten_loi', '') or row.get('mo_ta_loi', '')
+            # Default Quantity Logic: If user says "don't need input", we default to 0 or 1.
+            default_qty = row.get('sl_loi', 0)
+            
+            if default_defect:
+                st.session_state[buffer_key] = [{
+                    "Tên Lỗi": str(default_defect),
+                    "SL Cần Xử Lý": int(default_qty) if pd.notna(default_qty) else 0
+                }]
+            else:
+                st.session_state[buffer_key] = []
+
+        # --- DIALOG DEFINITION ---
+        @st.dialog("➕ Thêm lỗi xử lý")
+        def open_add_dnxl_dialog():
+            available_defects = []
+            # Use passed df_original
+            ticket_rows = df_original[df_original['so_phieu'] == so_phieu]
+            if not ticket_rows.empty:
+                available_defects = ticket_rows['ten_loi'].unique().tolist()
+            
+            entry_mode = st.radio("Cách nhập:", ["Chọn từ NCR", "Nhập mới"], horizontal=True, label_visibility="collapsed")
+            
+            d_name = ""
+            if entry_mode == "Chọn từ NCR" and available_defects:
+                d_name = st.selectbox("Tên lỗi", available_defects)
+            else:
+                d_name = st.text_input("Tên lỗi", placeholder="Nhập tên lỗi...")
+                
+            # REMOVED QTY INPUT
+            d_qty = 0 # Default to 0 as requested "no qty needed"
+            
+            if st.button("Thêm vào danh sách", type="primary", width="stretch"):
+                if not d_name:
+                    st.error("Vui lòng nhập tên lỗi!")
+                    return
+                
+                st.session_state[buffer_key].append({
+                    "Tên Lỗi": d_name,
+                    "SL Cần Xử Lý": d_qty
+                })
+                st.rerun()
+
+        # --- DISPLAY LIST ---
+        if st.session_state[buffer_key]:
+            for idx, item in enumerate(st.session_state[buffer_key]):
+                c_l1, c_l2 = st.columns([8, 1])
+                with c_l1:
+                    st.markdown(f"**{item['Tên Lỗi']}**")
+                    # Hide Qty display
+                with c_l2:
+                    if st.button("🗑️", key=f"del_dnxl_{so_phieu}_{idx}", help="Xóa dòng này"):
+                        st.session_state[buffer_key].pop(idx)
+                        st.rerun()
+            st.divider()
+        else:
+            st.info("Danh sách lỗi đang trống. Vui lòng thêm lỗi!")
+
+        # --- ADD BUTTON ---
+        if st.button("➕ THÊM LỖI", key=f"btn_add_dnxl_{so_phieu}", width="stretch"):
+            open_add_dnxl_dialog()
+        
+        st.write("") # Spacer
+
+        # --- SUBMIT BUTTON ---
+        submit_val = st.button("💾 LƯU PHIẾU DNXL", type="primary", key=f"submit_dnxl_{so_phieu}")
+
+        if submit_val:
+            # Validation
+            if not target_scope.strip():
+                st.error("⚠️ Vui lòng nhập Phạm vi xử lý!")
+                return 
+                
+            if not handling_instruction.strip():
+                st.error("⚠️ Vui lòng nhập Hướng dẫn xử lý!")
+                return
+                
+            current_buffer = st.session_state.get(buffer_key, [])
+            if not current_buffer:
+                 st.error("⚠️ Vui lòng nhập ít nhất 1 dòng lỗi chi tiết!")
+                 return
+            
+            valid_details = pd.DataFrame(current_buffer)
+            
+            # Ensure SL column exists even if 0
+            if "SL Cần Xử Lý" not in valid_details.columns:
+                valid_details["SL Cần Xử Lý"] = 0
+                
+            form_header = {
+                "target_scope": target_scope,
+                "deadline": deadline_date,
+                "handling_instruction": handling_instruction
+            }
+            
+            with st.spinner("Đang tạo phiếu DNXL..."):
+                success_dnxl, res_dnxl = dnxl_service.create_dnxl(row, form_header, valid_details, user_name)
+                
+                if success_dnxl:
+                    st.success(f"✅ Đã tạo DNXL thành công! ID: {res_dnxl}")
+                    st.session_state.pop(buffer_key, None)
+                    import time
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error(f"Lỗi tạo DNXL: {res_dnxl}")
+
     # --- RENDER TICKETS ---
     for _, row in df_grouped.iterrows():
         # EXTRACT DATA SAFELY
@@ -265,8 +395,8 @@ else:
                             for j in range(cols_per_row):
                                 if i + j < len(img_list):
                                     img_url = img_list[i+j]
-                                    img_cols[j].image(img_url, use_container_width=True)
-                                    img_cols[j].link_button("🔍 Phóng to", img_url, use_container_width=True)
+                                    img_cols[j].image(img_url, width="stretch")
+                                    img_cols[j].link_button("🔍 Phóng to", img_url, width="stretch")
                         st.markdown("**🔗 Link ảnh trực tiếp:**")
                         for idx, url in enumerate(img_list):
                             st.markdown(f"- [Chi tiết ảnh {idx+1}]({url})")
@@ -365,7 +495,7 @@ else:
                     available_cols = [col for col in display_cols if col in ticket_rows.columns]
                     st.dataframe(
                         ticket_rows[available_cols].rename(columns=column_config),
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True
                     )
             
@@ -456,7 +586,7 @@ else:
                 if selected_role == 'qc_manager' and next_status == 'hoan_thanh':
                      confirm_label = "✅ KẾT THÚC PHIẾU"
                 
-                if st.button(confirm_label, key=f"btn_approve_{so_phieu}", type="primary", use_container_width=True):
+                if st.button(confirm_label, key=f"btn_approve_{so_phieu}", type="primary", width="stretch"):
                     # Validation
                     if selected_role == 'truong_bp' and not str(bp_solution).strip():
                         st.error("⚠️ Vui lòng nhập 'Biện pháp xử lý tức thời'!")
@@ -496,7 +626,7 @@ else:
                                 st.error(f"Lỗi: {msg}")
 
             with col_b2:
-                if st.button("❌ TỪ CHỐI / TRẢ VỀ", key=f"btn_reject_{so_phieu}", type="secondary", use_container_width=True):
+                if st.button("❌ TỪ CHỐI / TRẢ VỀ", key=f"btn_reject_{so_phieu}", type="secondary", width="stretch"):
                     # Ask for reason (Simplest way: use the text area if available or new dialog)
                     # For rejection, we usually require a reason.
                     # Since we can't pop up input easily in Streamlit loop without rerun, 
@@ -531,3 +661,146 @@ else:
                                     st.rerun()
                                 else:
                                     st.error(msg)
+
+            # --- DNXL SECTION INTEGRATION (MASTER-DETAIL UPGRADE) ---
+            from core.services import dnxl_service
+            
+            st.write("")
+            st.divider()
+            st.markdown("#### 📋 Quản Lý Đề Nghị Xử Lý (DNXL)")
+            
+            # 1. Display list of created DNXLs
+            df_dnxl = dnxl_service.get_dnxl_by_ncr(so_phieu)
+            if not df_dnxl.empty:
+                # Add Download Button for each DNXL
+                from core.services import export_service
+                
+                # Show main table
+                st.dataframe(
+                    df_dnxl[["dnxl_id", "target_scope", "status", "deadline", "created_by"]],
+                    width="stretch",
+                    hide_index=True
+                )
+                
+                # Export Buttons
+                st.markdown("⬇️ **Tải phiếu DNXL:**")
+                
+                # --- OPTIMIZATION START: Batch Fetch Details (If not already fetched) ---
+                if 'all_details_map' not in locals():
+                    with st.spinner("Đang chuẩn bị dữ liệu tải xuống..."):
+                         all_details_map = dnxl_service.get_all_dnxl_details_map()
+                # --- OPTIMIZATION END ---
+                
+                cols_dl = st.columns(min(len(df_dnxl), 4))
+                for idx, (i, d_row) in enumerate(df_dnxl.iterrows()):
+                    with cols_dl[idx % 4]:
+                        dnxl_val = d_row.to_dict()
+                        
+                        # Get Details from MAP (Fast)
+                        details_val = all_details_map.get(str(d_row['dnxl_id']), pd.DataFrame())
+                        
+                        # Generate EXCEL (Updated)
+                        # Optimization Note: Generating Excel bytes for ALL buttons is still heavy if list is long.
+                        # But with details cached, it's just local processing.
+                        excel_file = export_service.generate_dnxl_docx(row, dnxl_val, details_val)
+                        
+                        if excel_file:
+                            st.download_button(
+                                label=f"📊 Tải Excel {d_row['dnxl_id']}",
+                                data=excel_file,
+                                file_name=f"{d_row['dnxl_id']}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key=f"dl_xlsx_{d_row['dnxl_id']}"
+                            )
+                        
+                        # MANUAL COMPLETE BUTTON (OFFLINE PROCESS)
+                        # Only for QC Manager and if not already completed/waiting review
+                        if selected_role == 'qc_manager' and d_row['status'] not in ['hoan_thanh', 'cho_duyet_ket_qua']:
+                            if st.button("✅ Hoàn tất", key=f"force_done_{d_row['dnxl_id']}", help="Bấm vào đây nếu phiếu đã xử lý offline", width="stretch"):
+                                ok, msg = dnxl_service.force_complete_dnxl(d_row['dnxl_id'], user_name)
+                                if ok:
+                                    st.success("Đã hoàn tất!"); st.rerun()
+                                else:
+                                    st.error(msg)
+            else:
+                st.caption("Chưa có phiếu DNXL nào cho NCR này.")
+            
+            # 2. Create New DNXL Form (Master-Detail)
+            # ONLY FOR QC MANAGER
+            if selected_role == 'qc_manager':
+                with st.expander("➕ Tạo Phiếu Đề Nghị Xử Lý Mới"):
+                    st.info("💡 Nhập thông tin chung và danh sách lỗi chi tiết cần xử lý.")
+                    render_dnxl_form_fragment(so_phieu, row, df_original, user_name, dnxl_service)
+
+            # --- [SECTION: QC REVIEW WORKER RESULTS] ---
+            # ONLY FOR QC MANAGER
+            if selected_role == 'qc_manager':
+                # Filter for tickets waiting for review
+                pending_review_df = df_dnxl[df_dnxl['status'] == 'cho_duyet_ket_qua'] if not df_dnxl.empty else pd.DataFrame()
+                
+                if not pending_review_df.empty:
+                    st.write("")
+                    st.info(f"🔔 Cần duyệt: {len(pending_review_df)} phiếu đã xử lý xong.")
+                    
+                    # --- OPTIMIZATION START: Batch Fetch Details ---
+                    with st.spinner("Đang tải chi tiết các phiếu..."):
+                         all_details_map = dnxl_service.get_all_dnxl_details_map()
+                    # --- OPTIMIZATION END ---
+
+                    for i, p_row in pending_review_df.iterrows():
+                        with st.container(border=True):
+                            st.markdown(f"##### 🛡️ Duyệt KQ: `{p_row['dnxl_id']}`")
+                            
+                            # 1. Show Worker Report
+                            w_c1, w_c2 = st.columns([2, 1])
+                            with w_c1:
+                                st.write(f"👷 **Người làm:** {p_row.get('claimed_by', 'N/A')}")
+                                st.success(f"💬 **Phản hồi:** {p_row.get('worker_response', '(Không có)')}")
+                            with w_c2:
+                                imgs = str(p_row.get('worker_images', ''))
+                                if imgs:
+                                    st.markdown(f"📸 **Có ảnh báo cáo**")
+                                    with st.expander("Xem ảnh"):
+                                        for url in imgs.split('\n'):
+                                            if url.strip(): st.write(f"- {url}")
+
+                            # 2. Show Detail Quantities (Lookup from Map)
+                            dnxl_id_str = str(p_row['dnxl_id'])
+                            details_rev = all_details_map.get(dnxl_id_str, pd.DataFrame())
+                            
+                            if not details_rev.empty:
+                                st.dataframe(
+                                    details_rev[["defect_name", "qty_assigned", "qty_fixed", "qty_fail", "worker_note"]],
+                                    column_config={
+                                        "defect_name": "Lỗi",
+                                        "qty_assigned": "Giao",
+                                        "qty_fixed": "Đã sửa",
+                                        "qty_fail": "Hỏng",
+                                        "worker_note": "Ghi chú xưởng"
+                                    },
+                                    hide_index=True,
+                                    width="stretch"
+                                )
+                            
+                            # 3. Approve/Reject Actions
+                            btn_c1, btn_c2 = st.columns(2)
+                            with btn_c1:
+                                if st.button("✅ DUYỆT OK", key=f"appr_{p_row['dnxl_id']}", type="primary", width="stretch"):
+                                    ok, msg = dnxl_service.qc_review_dnxl(p_row['dnxl_id'], 'approve', "QC Accepted")
+                                    if ok:
+                                        st.success("Đã duyệt!"); st.rerun()
+                                    else:
+                                        st.error(msg)
+                            with btn_c2:
+                                with st.popover("❌ TRẢ LẠI", width="stretch"):
+                                    reason = st.text_area("Lý do trả lại:", key=f"rej_rs_{p_row['dnxl_id']}")
+                                    if st.button("Xác nhận Trả", key=f"cf_rej_{p_row['dnxl_id']}"):
+                                        if reason:
+                                            ok, msg = dnxl_service.qc_review_dnxl(p_row['dnxl_id'], 'reject', reason)
+                                            if ok: st.rerun()
+                                            else: st.error(msg)
+                                        else:
+                                            st.error("Cần nhập lý do!")
+
+
+

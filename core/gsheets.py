@@ -39,6 +39,13 @@ def smart_append_batch(worksheet, rows_data):
     if not rows_data: return 0
     
     try:
+        if not rows_data: return 0
+        
+        # Check if input is list of lists (Raw Data)
+        if isinstance(rows_data[0], list):
+             worksheet.append_rows(rows_data, value_input_option="USER_ENTERED")
+             return len(rows_data)
+
         # 1. Get header row
         header_row = worksheet.row_values(1)
         if not header_row:
@@ -51,7 +58,7 @@ def smart_append_batch(worksheet, rows_data):
             ordered_row = []
             for col_name in header_row:
                 val = row_dict.get(col_name, "")
-                # Convert basic types to string if needed, or keep as is for gspread to handle (numbers)
+                # Convert basic types to string if needed
                 ordered_row.append(val)
             rows_to_append.append(ordered_row)
             

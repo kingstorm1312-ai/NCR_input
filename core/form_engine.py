@@ -10,7 +10,8 @@ from utils.ncr_helpers import (
     render_input_buffer_mobile, 
     upload_images_to_cloud,
     LIST_DON_VI_TINH,
-    get_initial_status
+    get_initial_status,
+    generate_next_pass_id
 )
 from utils.aql_manager import get_aql_standard, evaluate_lot_quality
 from utils.config import NCR_DEPARTMENT_PREFIXES
@@ -360,7 +361,6 @@ def run_inspection_page(profile: DeptProfile):
         save_btn_type = "primary"
     
     # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
-    # Input chung cho các trường hợp cần NCR hoặc lưu lỗi
     if (not profile.has_aql) or (profile.has_aql and inspection_result == 'Fail'):
         curr_month = get_now_vn().strftime("%m")
         c_ncr1, c_ncr2 = st.columns([1, 2])
@@ -372,6 +372,8 @@ def run_inspection_page(profile: DeptProfile):
             c_ncr2.warning("⬅️ Vui lòng nhập số đuôi phiếu NCR")
             
         mo_ta_loi = st.text_area("Mô tả lỗi chi tiết / Nguyên nhân", height=80)
+    elif profile.has_aql and inspection_result == 'Pass':
+        st.info("ℹ️ Mã phiếu Kiểm Đạt sẽ được hệ thống tự động tạo (VD: FIKD-01-XX).")
     
     # --- IMAGE UPLOAD (ALWAYS VISIBLE) ---
     st.markdown("##### 📷 Hình ảnh bằng chứng")
@@ -382,6 +384,10 @@ def run_inspection_page(profile: DeptProfile):
         if (not profile.has_aql or inspection_result == 'Fail') and not final_ncr_num:
             st.error("⚠️ Vui lòng nhập SỐ ĐUÔI NCR trước khi lưu!")
             st.stop()
+        
+        # Auto-Generate ID for Pass
+        if profile.has_aql and inspection_result == 'Pass':
+            final_ncr_num = generate_next_pass_id(dept_prefix)
         
         if not st.session_state.buffer_errors and not profile.has_aql:
             st.error("⚠️ Danh sách lỗi trống!")
@@ -407,7 +413,7 @@ def run_inspection_page(profile: DeptProfile):
                 if profile.has_aql and inspection_result == 'Pass' and not records_to_save:
                     records_to_save = [{"ten_loi": "Không có lỗi", "vi_tri": "", "muc_do": "", "sl_loi": 0}]
                     
-                current_status = "Hoàn thành" if inspection_result == 'Pass' else get_initial_status(profile.code)
+                current_status = "hoan_thanh" if inspection_result == 'Pass' else get_initial_status(profile.code)
                 
                 batch_data = []
                 for err in records_to_save:
@@ -445,7 +451,10 @@ def run_inspection_page(profile: DeptProfile):
                 success_count = smart_append_batch(ws, batch_data)
                 if success_count > 0:
                     st.balloons()
-                    st.success(f"✅ Đã lưu thành công {success_count} dòng! ({inspection_result})")
+                    if inspection_result == 'Pass':
+                        st.success(f"✅ Đã lưu thành công! Mã phiếu Kiểm Đạt của bạn là: **{final_ncr_num}**")
+                    else:
+                        st.success(f"✅ Đã lưu thành công {success_count} dòng! ({inspection_result})")
                     st.session_state.buffer_errors = []
                     st.session_state.header_locked = False
                 else:
