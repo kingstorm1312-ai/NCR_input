@@ -19,7 +19,7 @@ def analyze_ncr_data(summary_text, api_key):
     try:
         genai.configure(api_key=api_key)
         # Gemini 1.5 Flash is cost-effective and fast for this task
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         prompt = f"""
         Bạn là Trợ lý phân tích chất lượng (QC Analyst) chuyên nghiệp của nhà máy sản xuất bao bì.
