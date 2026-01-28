@@ -352,6 +352,14 @@ else:
                 else:
                     st.error(f"Lỗi tạo DNXL: {res_dnxl}")
 
+    # --- OPTIMIZATION: PRE-GROUP DETAILS ---
+    # Group df_original by so_phieu once to avoid filtering in loop
+    details_map = {}
+    if not df_original.empty and 'so_phieu' in df_original.columns:
+        # Create a dictionary of DataFrames for O(1) access
+        # Note: groupby is faster than filtering N times
+        details_map = {k: v for k, v in df_original.groupby('so_phieu')}
+
     # --- RENDER TICKETS ---
     for _, row in df_grouped.iterrows():
         # EXTRACT DATA SAFELY
@@ -481,8 +489,8 @@ else:
                 
                 st.markdown("---")
                 st.markdown("#### ❌ Mô tả sự không phù hợp")
-                # Get original rows for this ticket
-                ticket_rows = df_original[df_original['so_phieu'] == so_phieu]
+                # Get original rows for this ticket using optimized map
+                ticket_rows = details_map.get(so_phieu, pd.DataFrame())
                 if not ticket_rows.empty:
                     display_cols = ['ten_loi', 'vi_tri_loi', 'sl_loi', 'don_vi_tinh', 'md_loi']
                     column_config = {
