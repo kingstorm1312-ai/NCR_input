@@ -63,10 +63,34 @@ def filter_data(contract=None, department=None, year=None, month=None, defect_na
         "top_3_departments": top_depts
     }, ensure_ascii=False)
 
-def get_top_defects(top_n=5):
-    """Returns top N most common defects from ALL data."""
+def get_top_defects(top_n=5, contract=None, department=None, year=None, month=None):
+    """
+    Returns top N most common defects, optionally filtered by criteria.
+    Args:
+        top_n (int): Number of top defects to return.
+        contract (str): Filter by contract code.
+        department (str): Filter by department.
+        year (int): Filter by year.
+        month (int): Filter by month.
+    """
     df = get_report_data()
     if df.empty: return "No data."
+    
+    # Apply Filters
+    if contract:
+        df = df[df['hop_dong'].astype(str).str.contains(contract, case=False, na=False)]
+    
+    if department:
+        col = 'bo_phan_full' if 'bo_phan_full' in df.columns else 'bo_phan'
+        df = df[df[col].astype(str).str.contains(department, case=False, na=False)]
+        
+    if year:
+        df = df[df['year'] == int(year)]
+        
+    if month:
+        df = df[df['month'] == int(month)]
+        
+    if df.empty: return "No data matching filters."
     
     counts = df['ten_loi'].value_counts().head(int(top_n)).to_dict()
     return json.dumps(counts, ensure_ascii=False)
