@@ -7,6 +7,8 @@ cloudinary>=1.36.0
 docxtpl>=0.16.0
 docx2pdf>=0.1.8
 bcrypt>=4.1.0
+audio-recorder-streamlit==0.0.10
+altair<5
 
 openpyxl>=3.1.0
 google-generativeai>=0.3.0

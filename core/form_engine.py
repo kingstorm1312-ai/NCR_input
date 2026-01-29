@@ -17,6 +17,8 @@ from utils.ncr_helpers import (
 )
 from utils.aql_manager import get_aql_standard, evaluate_lot_quality
 from utils.config import NCR_DEPARTMENT_PREFIXES
+from audio_recorder_streamlit import audio_recorder
+from core.voice_input_service import process_audio_defect
 
 # --- PHÂN LOẠI ĐẶC THÙ (Dynamic Prefixes) ---
 DYNAMIC_PREFIX_BY_CODE = {
@@ -279,7 +281,7 @@ def run_inspection_page(profile: DeptProfile):
                     st.session_state["success_msg"] = "" # Clear after showing
 
                 # 1. Tên lỗi
-                mode_input = st.radio("Nguồn tên lỗi:", ["Chọn danh sách", "Nhập tay"], horizontal=True, label_visibility="collapsed")
+                mode_input = st.radio("Nguồn tên lỗi:", ["Chọn danh sách", "Nhập tay"], horizontal=True, label_visibility="collapsed", key="rd_mode_input_source")
                 col_name = st.container()
                 if mode_input == "Chọn danh sách":
                     s_loi = col_name.selectbox("Tên lỗi", [""] + LIST_LOI, key="dlg_ten_loi", help="Chọn tên lỗi từ danh sách")
@@ -349,9 +351,102 @@ def run_inspection_page(profile: DeptProfile):
             # Execute the fragment
             inner_defect_form()
 
-        # --- MAIN UI: ADD BUTTON ---
-        if st.button("➕ THÊM LỖI (Mở Form)", type="primary", use_container_width=True):
-            open_add_defect_dialog()
+            # Execute the fragment
+            inner_defect_form()
+            
+        # --- VOICE INPUT DIALOG ---
+        @st.dialog("🎤 Nhập lỗi bằng giọng nói")
+        def open_voice_input_dialog():
+            st.info("💡 Hướng dẫn: Nhấn vào icon Micro để Bắt đầu nói. Nhấn lại lần nữa để Dừng.")
+            
+            # 1. RECORDER
+            audio_bytes = audio_recorder(
+                text="Nhấn để Ghi / Dừng",
+                recording_color="#e8b62c", 
+                neutral_color="#6aa36f",
+                icon_name="microphone",
+                icon_size="3x", # Tăng kích thước icon
+                pause_threshold=2.0
+            )
+            
+            if audio_bytes:
+                st.audio(audio_bytes, format="audio/wav")
+                
+                # 2. ANALYZE BUTTON
+                if st.button("✨ PHÂN TÍCH GIỌNG NÓI", type="primary", use_container_width=True):
+                    with st.spinner("🤖 AI đang phân tích..."):
+                        # Call service
+                        ai_results = process_audio_defect(audio_bytes, LIST_LOI, LIST_VI_TRI)
+                        
+                        if not ai_results:
+                            st.warning("⚠️ Không tìm thấy lỗi nào hoặc không nghe rõ. Vui lòng thử lại.")
+                        else:
+                            st.session_state.voice_results = ai_results
+                            # st.rerun() bỏ rerun để tránh đóng dialog
+                            st.success("✅ Đã phân tích xong! Vui lòng kiểm tra kết quả bên dưới.")
+            
+            # 3. SHOW RESULTS & CONFIRM
+            if "voice_results" in st.session_state and st.session_state.voice_results:
+                st.divider()
+                st.markdown("##### 📋 Kết quả phân tích:")
+                
+                valid_items = []
+                has_unknown = False
+                
+                # Render list for review
+                for idx, item in enumerate(st.session_state.voice_results):
+                    is_unknown = item.get("ten_loi") == "UNKNOWN_DEFECT"
+                    if is_unknown: has_unknown = True
+                    
+                    with st.container(border=True):
+                        c1, c2 = st.columns([3, 1])
+                        
+                        # Defect Name Edit
+                        if is_unknown:
+                            c1.error(f"❓ Lỗi lạ: {item.get('raw_input', '')}")
+                            new_name = c1.selectbox(f"Chọn tên lỗi đúng (Mục #{idx+1})", [""] + LIST_LOI, key=f"v_fix_{idx}")
+                            if new_name:
+                                item["ten_loi"] = new_name
+                                item["raw_input"] = "" # Clear flag
+                        else:
+                            c1.markdown(f"**{item.get('ten_loi')}**")
+                            
+                        # Details
+                        c1.caption(f"Vị trí: {item.get('vi_tri')} | Mức độ: {item.get('muc_do')}")
+                        
+                        # Quantity Edit
+                        new_qty = c2.number_input("SL", value=float(item.get('sl_loi', 1)), key=f"v_qty_{idx}", min_value=0.1)
+                        item['sl_loi'] = new_qty
+                        
+                        valid_items.append(item)
+
+                if has_unknown:
+                    st.warning("⚠️ Có lỗi chưa xác định (UNKNOWN). Vui lòng chọn tên lỗi chuẩn trong danh sách sổ xuống.")
+                
+                # CONFIRM BUTTON
+                btn_disabled = any(x["ten_loi"] == "UNKNOWN_DEFECT" for x in st.session_state.voice_results)
+                
+                if st.button("✅ XÁC NHẬN THÊM VÀO LIST", type="primary", use_container_width=True, disabled=btn_disabled):
+                    count = 0
+                    for valid_item in valid_items:
+                        if valid_item["ten_loi"] != "UNKNOWN_DEFECT":
+                            st.session_state.buffer_errors.append(valid_item)
+                            count += 1
+                    
+                    if count > 0:
+                        st.session_state["success_msg"] = f"Đã thêm thành công {count} lỗi từ giọng nói!"
+                        del st.session_state.voice_results # Clear buffer
+                        st.rerun()
+
+        # --- MAIN UI: ADD BUTTONS ---
+        col_manual, col_voice = st.columns([1, 1])
+        with col_manual:
+             if st.button("➕ NHẬP TAY", type="secondary", use_container_width=True):
+                open_add_defect_dialog()
+        
+        with col_voice:
+             if st.button("🎤 NHẬP GIỌNG NÓI", type="primary", use_container_width=True):
+                open_voice_input_dialog()
 
         # --- FEEDBACK DISPLAY ---
         if st.session_state.get("success_msg"):
