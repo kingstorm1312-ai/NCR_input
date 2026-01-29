@@ -1,7 +1,10 @@
 import pandas as pd
 import streamlit as st
 from utils.ncr_helpers import load_ncr_dataframe_v2
+import streamlit as st
 
+# FORCE CACHE UPDATE 2026-01-29
+# FORCE CACHE UPDATE 2026-01-29
 @st.cache_data(ttl=300)
 def get_report_data():
     """

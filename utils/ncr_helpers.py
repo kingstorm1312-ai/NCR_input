@@ -328,7 +328,14 @@ def load_ncr_dataframe_v2():
         df.rename(columns=inv_map, inplace=True)
         
         if 'ngay_lap' in df.columns:
+            # FORCE CACHE UPDATE 2026-01-29
+            # Handle mixed formats: ISO (YYYY-MM-DD) and Vietnamese (DD/MM/YYYY)
             df['date_obj'] = pd.to_datetime(df['ngay_lap'], dayfirst=True, errors='coerce')
+            
+            # Debug: Check which rows failed parsing
+            # if df['date_obj'].isna().sum() > 0:
+            #     st.toast(f"⚠️ Cảnh báo: Có {df['date_obj'].isna().sum()} dòng ngày tháng không đọc được.", icon="📅")
+            
             df['year'] = df['date_obj'].dt.year
             df['month'] = df['date_obj'].dt.month
             df['week'] = df['date_obj'].dt.isocalendar().week

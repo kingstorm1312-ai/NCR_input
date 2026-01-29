@@ -92,7 +92,14 @@ def get_top_defects(top_n=5, contract=None, department=None, year=None, month=No
         
     if df.empty: return "No data matching filters."
     
-    counts = df['ten_loi'].value_counts().head(int(top_n)).to_dict()
+    # Sum quantities by defect type instead of counting rows
+    if 'sl_loi' in df.columns:
+        df['sl_loi_val'] = pd.to_numeric(df['sl_loi'], errors='coerce').fillna(0)
+        counts = df.groupby('ten_loi')['sl_loi_val'].sum().sort_values(ascending=False).head(int(top_n)).astype(int).to_dict()
+    else:
+        # Fallback to count if sl_loi not available
+        counts = df['ten_loi'].value_counts().head(int(top_n)).to_dict()
+    
     return json.dumps(counts, ensure_ascii=False)
 
 def compare_periods(period1, period2):
@@ -152,7 +159,7 @@ def get_ncr_details(ncr_id):
         return f"Không tìm thấy phiếu có mã {ncr_id}"
         
     # Aggregate errors in this ticket
-    errors = ticket[['ten_loi', 'sl_loi', 'muc_do', 'vi_tri_loi']].to_dict('records')
+    errors = ticket[['ten_loi', 'sl_loi', 'md_loi', 'vi_tri_loi']].to_dict('records')
     
     # Get metadata from first row
     first_row = ticket.iloc[0]
@@ -184,7 +191,8 @@ def get_contract_ranking(top_n=5, department=None, year=None, month=None):
     if year: df = df[df['year'] == int(year)]
     if month: df = df[df['month'] == int(month)]
     
-    ranking = df['hop_dong'].value_counts().head(int(top_n)).to_dict()
+    # Count unique tickets per contract
+    ranking = df.groupby('hop_dong')['so_phieu'].nunique().sort_values(ascending=False).head(int(top_n)).to_dict()
     return json.dumps(ranking, ensure_ascii=False)
 
 def get_contract_group_ranking(top_n=5, department=None, year=None, month=None):
@@ -204,7 +212,201 @@ def get_contract_group_ranking(top_n=5, department=None, year=None, month=None):
     if month: df = df[df['month'] == int(month)]
     
     # Group Logic (Suffix)
+    # Group Logic (Suffix)
     df['group'] = df['hop_dong'].apply(lambda x: str(x).strip()[-3:] if len(str(x).strip()) >= 3 else "Khác")
-    ranking = df['group'].value_counts().head(int(top_n)).to_dict()
-    
+    # Count unique tickets per group
+    ranking = df.groupby('group')['so_phieu'].nunique().sort_values(ascending=False).head(int(top_n)).to_dict()
     return json.dumps(ranking, ensure_ascii=False)
+
+def general_data_query(filter_conditions: dict) -> str:
+    """
+    Lọc dữ liệu NCR theo bất kỳ cột nào.
+    
+    Args:
+        filter_conditions (dict): Dictionary các điều kiện lọc.
+            Keys: Tên cột (vd: 'ma_vat_tu', 'nguon_goc', 'vi_tri_loi')
+            Values: Giá trị cần tìm (hỗ trợ partial match)
+    
+    Returns:
+        str: JSON summary của kết quả lọc.
+    
+    Example:
+        filter_conditions = {
+            'ma_vat_tu': 'VT001',
+            'nguon_goc': 'NCC ABC',
+            'vi_tri_loi': 'Mép túi'
+        }
+    """
+    with st.spinner("Đang truy vấn dữ liệu theo yêu cầu..."):
+        df = get_report_data()
+        if df.empty:
+            return json.dumps({"status": "error", "message": "No data available"})
+    
+        applied_filters = {}
+        
+        # Make a copy to avoid SettingWithCopyWarning if any
+        df = df.copy()
+        
+        for col, val in filter_conditions.items():
+            # Validate input
+            if not val: continue
+            val_str = str(val).strip()
+            if not val_str: continue
+
+            if col in df.columns:
+                # Dynamic Filter: Case-insensitive contains
+                try:
+                    df = df[df[col].astype(str).str.contains(val_str, case=False, na=False)]
+                    applied_filters[col] = val_str
+                except Exception as e:
+                    # Fallback if regex fails (e.g. invalid regex chars)
+                    # Try literal string match if contains fails, or ignore
+                    try:
+                        df = df[df[col].astype(str).str.lower() == val_str.lower()]
+                        applied_filters[col] = val_str
+                    except:
+                        pass
+        
+        if df.empty:
+            return json.dumps({
+                "status": "success",
+                "filters_applied": applied_filters,
+                "total_errors": 0,
+                "message": "Không tìm thấy dữ liệu khớp với điều kiện lọc."
+            }, ensure_ascii=False)
+        
+        # Aggregate insights
+        total_count = len(df)
+        unique_tickets = df['so_phieu'].nunique() if 'so_phieu' in df.columns else 0
+        
+        # Calculate Defect Quantities and Error Rate
+        total_defect_qty = 0
+        total_inspected_qty = 0
+        error_rate = 0.0
+        
+        # NOTE: Column names after mapping: sl_loi (so_luong_loi), sl_kiem (so_luong_kiem)
+        if 'sl_loi' in df.columns:
+            total_defect_qty = pd.to_numeric(df['sl_loi'], errors='coerce').fillna(0).sum()
+            
+        if 'sl_kiem' in df.columns:
+            # FIX: Only sum sl_kiem for unique tickets, avoiding duplicates from multiple defect rows
+            # Assuming same sl_kiem for all rows in same ticket
+            df_unique_tickets = df.drop_duplicates('so_phieu')
+            total_inspected_qty = pd.to_numeric(df_unique_tickets['sl_kiem'], errors='coerce').fillna(0).sum()
+            
+        if total_inspected_qty > 0:
+            error_rate = (total_defect_qty / total_inspected_qty) * 100
+        
+        # Helper to calculate stats per group
+        def get_group_stats(dataframe, group_col):
+             if group_col not in dataframe.columns: return {}
+             
+             stats = {}
+             # Group by unique values
+             groups = dataframe[group_col].dropna().unique()
+             
+             for g in groups:
+                 sub_df = dataframe[dataframe[group_col] == g]
+                 
+                 # Qty
+                 qty = 0
+                 if 'sl_loi' in sub_df.columns:
+                     qty = pd.to_numeric(sub_df['sl_loi'], errors='coerce').fillna(0).sum()
+                 
+                 # Insp (dedup so_phieu)
+                 insp = 0
+                 if 'so_phieu' in sub_df.columns and 'sl_kiem' in sub_df.columns:
+                     sub_df_unique = sub_df.drop_duplicates('so_phieu')
+                     insp = pd.to_numeric(sub_df_unique['sl_kiem'], errors='coerce').fillna(0).sum()
+                 
+                 rate = (qty / insp * 100) if insp > 0 else 0.0
+                 stats[str(g)] = {
+                     "qty": int(qty),
+                     "inspected": int(insp),
+                     "rate_pct": round(rate, 2)
+                 }
+            
+             # Sort by qty desc and take top 5
+             sorted_stats = dict(sorted(stats.items(), key=lambda item: item[1]['qty'], reverse=True)[:5])
+             return sorted_stats
+
+        # Top Defects (Keep simple for now or update? User asked for formulas)
+        # For Defects, Rate is usually vs Global Inspected, not "Inspected of Ticket containing defect"
+        # Let's keep Top Defects simple (Qty) but add Rate vs Global
+        top_defects = {}
+        if 'ten_loi' in df.columns and 'sl_loi' in df.columns:
+            # Ensure numeric val
+            df_temp = df.copy()
+            df_temp['sl_loi_val'] = pd.to_numeric(df_temp['sl_loi'], errors='coerce').fillna(0)
+            
+            # Group sum
+            defect_sums = df_temp.groupby('ten_loi')['sl_loi_val'].sum().sort_values(ascending=False).head(5)
+            
+            for name, val in defect_sums.items():
+                rate = (val / total_inspected_qty * 100) if total_inspected_qty > 0 else 0.0
+                top_defects[name] = {
+                    "qty": int(val),
+                    "rate_global_pct": round(rate, 2)
+                }
+
+        # Top Sources (Detailed Rate)
+        top_sources = get_group_stats(df, 'nguon_goc')
+
+        # Top Departments
+        target_col = 'bo_phan_full' if 'bo_phan_full' in df.columns else 'bo_phan'
+        top_depts = get_group_stats(df, target_col)
+        
+        # Top Contracts (Keep ticket count)
+        top_contracts = {}
+        top_contract_groups = {}
+        if 'hop_dong' in df.columns and 'so_phieu' in df.columns:
+            # Count unique tickets
+            unique_counts = df.groupby('hop_dong')['so_phieu'].nunique().sort_values(ascending=False).head(10)
+            top_contracts = unique_counts.to_dict()
+            
+            # Calculate groups (Suffix last 3 chars)
+            groups = df['hop_dong'].apply(lambda x: str(x).strip()[-3:] if len(str(x).strip()) >= 3 else "Khác")
+            # Create temp df for grouping
+            df_temp = df.copy()
+            df_temp['group'] = groups
+            top_contract_groups = df_temp.groupby('group')['so_phieu'].nunique().sort_values(ascending=False).head(5).to_dict()
+
+        return json.dumps({
+            "status": "success",
+            "filters_applied": applied_filters,
+            "total_errors": total_count,
+            "total_tickets": unique_tickets,
+            "total_defect_qty": int(total_defect_qty),
+            "total_inspected_qty": int(total_inspected_qty),
+            "error_rate_percent": round(error_rate, 2),
+            "top_5_defects": top_defects,
+            "top_5_sources": top_sources,
+            "top_3_departments": top_depts,
+            "top_10_contracts": top_contracts,
+            "top_5_contract_groups": top_contract_groups
+        }, ensure_ascii=False)
+
+def get_top_ticket_by_defects(top_n=5, department=None, year=None, month=None):
+    """
+    Tìm các PHIẾU NCR có tổng số lượng lỗi cao nhất.
+    Dùng cho câu hỏi: "Phiếu nào nhiều lỗi nhất?", "Top phiếu lỗi cao nhất"
+    """
+    df = get_report_data()
+    if df.empty: return "No data."
+    
+    # Filter logic
+    if department:
+        col = 'bo_phan_full' if 'bo_phan_full' in df.columns else 'bo_phan'
+        df = df[df[col].astype(str).str.contains(department, case=False, na=False)]
+    if year: df = df[df['year'] == int(year)]
+    if month: df = df[df['month'] == int(month)]
+    
+    if df.empty: return "No data matching filters."
+    
+    # Group by Ticket (so_phieu) and Sum defect quantity (sl_loi)
+    if 'so_phieu' in df.columns and 'sl_loi' in df.columns:
+         df['sl_loi_val'] = pd.to_numeric(df['sl_loi'], errors='coerce').fillna(0)
+         ranking = df.groupby('so_phieu')['sl_loi_val'].sum().sort_values(ascending=False).head(int(top_n)).to_dict()
+         return json.dumps(ranking, ensure_ascii=False)
+         
+    return json.dumps({"error": "Missing columns"}, ensure_ascii=False)
