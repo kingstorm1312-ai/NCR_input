@@ -113,13 +113,14 @@ def resubmit_ncr(so_phieu):
         return False, f"Lỗi: {str(e)}"
 
 # --- HELPER: RENDER EXPORT BUTTONS ---
-def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
+def render_export_buttons(so_phieu, ticket_rows, df_raw=None, context="default"):
     """
     Hiển thị nút xuất PDF cho một phiếu.
     Args:
         so_phieu: Mã phiếu
         ticket_rows: Dòng Grouped (df_draft...) dùng để lấy thông tin chung
         df_raw: (Optional) DataFrame chứa Rows chi tiết (df_all) dùng để lấy list lỗi
+        context: Context để phân biệt keys (vd: 'draft', 'pass', 'fail')
     """
     st.write("")
     st.markdown("##### 🖨️ Xuất báo cáo:")
@@ -128,9 +129,9 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
     
     # --- EXPORT BBK ---
     with xc1:
-        bbk_key = f"bbk_ready_{so_phieu}"
+        bbk_key = f"bbk_ready_{so_phieu}_{context}"
         if bbk_key not in st.session_state:
-            if st.button(f"🔄 Tạo BBK (PDF)", key=f"gen_bbk_{so_phieu}"):
+            if st.button(f"🔄 Tạo BBK (PDF)", key=f"gen_bbk_{so_phieu}_{context}"):
                 with st.spinner("Đang tạo file BBK..."):
                     try:
                         from utils.export_helper import generate_ncr_pdf
@@ -217,7 +218,7 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         data=f,
                         file_name=os.path.basename(paths["pdf"]),
                         mime="application/pdf",
-                        key=f"dl_bbk_{so_phieu}"
+                        key=f"dl_bbk_{so_phieu}_{context}"
                     )
             elif paths["docx"]:
                 st.warning("⚠️ Không thể tạo PDF (Server thiếu font/lib), hãy tải Word:")
@@ -227,19 +228,19 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         data=f,
                         file_name=os.path.basename(paths["docx"]),
                         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        key=f"dl_bbk_{so_phieu}"
+                        key=f"dl_bbk_{so_phieu}_{context}"
                     )
             
             # Reset button
-            if st.button("❌ Hủy / Tạo lại", key=f"reset_bbk_{so_phieu}"):
+            if st.button("❌ Hủy / Tạo lại", key=f"reset_bbk_{so_phieu}_{context}"):
                 del st.session_state[bbk_key]
                 st.rerun()
 
     # --- EXPORT NCR ---
     with xc2:
-        ncr_key = f"ncr_ready_{so_phieu}"
+        ncr_key = f"ncr_ready_{so_phieu}_{context}"
         if ncr_key not in st.session_state:
-            if st.button(f"🔄 Tạo NCR (PDF)", key=f"gen_ncr_{so_phieu}"):
+            if st.button(f"🔄 Tạo NCR (PDF)", key=f"gen_ncr_{so_phieu}_{context}"):
                 with st.spinner("Đang tạo file NCR..."):
                     try:
                         from utils.export_helper import generate_ncr_pdf
@@ -319,7 +320,7 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         data=f,
                         file_name=os.path.basename(paths["pdf"]),
                         mime="application/pdf",
-                        key=f"dl_ncr_{so_phieu}"
+                        key=f"dl_ncr_{so_phieu}_{context}"
                     )
             elif paths["docx"]:
                 st.warning("⚠️ Không thể tạo PDF (Server thiếu font/lib), hãy tải Word:")
@@ -329,11 +330,11 @@ def render_export_buttons(so_phieu, ticket_rows, df_raw=None):
                         data=f,
                         file_name=os.path.basename(paths["docx"]),
                         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        key=f"dl_ncr_{so_phieu}"
+                        key=f"dl_ncr_{so_phieu}_{context}"
                     )
             
             # Reset button
-            if st.button("❌ Hủy / Tạo lại", key=f"reset_ncr_{so_phieu}"):
+            if st.button("❌ Hủy / Tạo lại", key=f"reset_ncr_{so_phieu}_{context}"):
                 del st.session_state[ncr_key]
                 st.rerun()
 
@@ -524,7 +525,7 @@ with tab1:
                         # --- EXPORT BUTTONS ---
                         # Pass raw rows for accurate error listing
                         raw_rows = df_all[df_all['so_phieu'] == so_phieu]
-                        render_export_buttons(so_phieu, ticket_rows, raw_rows)
+                        render_export_buttons(so_phieu, ticket_rows, raw_rows, context="draft")
                 
                 
                 # --- STATE MANAGEMENT ---
@@ -818,7 +819,7 @@ with tab2:
                         
                         # --- EXPORT BUTTONS ---
                         raw_rows = df_all[df_all['so_phieu'] == so_phieu]
-                        render_export_buttons(so_phieu, ticket_rows, raw_rows)
+                        render_export_buttons(so_phieu, ticket_rows, raw_rows, context="pass")
 
                 # --- EDIT FUNCTIONALITY (Only for 'cho_truong_ca') ---
                 if status == 'cho_truong_ca':
@@ -1039,7 +1040,7 @@ with tab3:
 
                         # --- EXPORT BUTTONS ---
                         raw_rows = df_all[df_all['so_phieu'] == so_phieu]
-                        render_export_buttons(so_phieu, tk_rows, raw_rows)
+                        render_export_buttons(so_phieu, tk_rows, raw_rows, context="fail")
                 
                 # Deadline warning
                 try:
@@ -1245,7 +1246,7 @@ with tab4:
                         )
                     
                     # --- EXPORT BUTTONS ---
-                    render_export_buttons(so_phieu, ticket_rows)
+                    render_export_buttons(so_phieu, ticket_rows, context="complete")
 
         # --- CONTENT RENDER ---
         if selected_sub == "🚫 NCR (Lỗi)":
