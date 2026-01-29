@@ -913,32 +913,15 @@ else:
                                     if selected_dept == "Tất cả":
                                         filtered_users = users_with_role
                                     else:
-                                        # Use regex for exact word/token matching
-                                        import re
-                                        
-                                        # Map department to specific regex patterns
-                                        dept_patterns = {
-                                            "may i": r"(^may[_\s]?i\b|^may1\b)",
-                                            "may ii": r"(^may[_\s]?ii\b|^may2\b)",
-                                            "cuộn": r"(cuon|cuộn)",
-                                            "fi": r"(^fi[_\s]|\bfi$|[_\s]fi[_\s])",
-                                            "npl": r"\bnpl\b",
-                                            "nhuộm": r"(nhuom|nhuộm)",
-                                            "tráng cắt": r"(trang[_\s]?cat|tráng[_\s]?cắt)",
-                                            "in siêu âm": r"(in[_\s]?sieu[_\s]?am|in[_\s]?siêu[_\s]?âm)"
-                                        }
-                                        
-                                        dept_keyword = selected_dept.lower()
-                                        pattern_str = dept_patterns.get(dept_keyword, rf"\b{re.escape(dept_keyword)}\b")
+                                        # Filter by department field from user data
+                                        dept_keyword = selected_dept.lower().strip()
                                         
                                         filtered_users = []
                                         for u in users_with_role:
-                                            username_lower = str(u.get('username', '')).lower()
-                                            fullname_lower = str(u.get('full_name', '')).lower()
+                                            user_dept = str(u.get('department', '')).lower().strip()
                                             
-                                            # Check if pattern matches (case-insensitive)
-                                            if (re.search(pattern_str, username_lower, re.IGNORECASE) or 
-                                                re.search(pattern_str, fullname_lower, re.IGNORECASE)):
+                                            # Match department exactly or if user has 'all' department
+                                            if user_dept == dept_keyword or user_dept == 'all':
                                                 filtered_users.append(u)
                                     
                                     if not filtered_users:
