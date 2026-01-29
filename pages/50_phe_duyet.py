@@ -905,8 +905,8 @@ else:
                                         format_func=lambda code: dept_display_map.get(code, code),
                                         key=f"dept_filter_{so_phieu}"
                                     )
-                                     
-                                     # Filter users by department (search in full_name and username)
+                                    
+                                    # Filter users by department
                                     if selected_dept_code == "all":
                                         filtered_users = users_with_role
                                     else:
