@@ -1054,8 +1054,8 @@ with tab3:
                 
                 # Form to respond
                 with st.expander("📝 Phản hồi khắc phục", expanded=True):
-                    response = st.text_area("Nội dung phản hồi:", key=f"res_msg_{so_phieu}", placeholder="Nhập kết quả xử lý...")
-                    if st.button("✅ Gửi hoàn thành", key=f"send_res_{so_phieu}", use_container_width=True):
+                    response = st.text_area("Nội dung phản hồi:", key=f"res_msg_{so_phieu}_{task_idx}", placeholder="Nhập kết quả xử lý...")
+                    if st.button("✅ Gửi hoàn thành", key=f"send_res_{so_phieu}_{task_idx}", use_container_width=True):
                         if not response.strip():
                             st.error("Vui lòng nhập nội dung phản hồi!")
                         else:
