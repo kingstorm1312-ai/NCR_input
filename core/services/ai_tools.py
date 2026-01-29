@@ -298,6 +298,11 @@ def general_data_query(filter_conditions: dict) -> str:
             error_rate = (total_defect_qty / total_inspected_qty) * 100
         
         # Helper to calculate stats per group
+        data_warnings = []
+        
+        if total_inspected_qty > 0 and total_defect_qty > total_inspected_qty:
+             data_warnings.append(f"CẢNH BÁO: Tổng số lỗi ({total_defect_qty}) lớn hơn tổng kiểm ({total_inspected_qty}). Tỷ lệ lỗi > 100%. Vui lòng kiểm tra lại dữ liệu nguồn.")
+
         def get_group_stats(dataframe, group_col):
              if group_col not in dataframe.columns: return {}
              
@@ -320,6 +325,11 @@ def general_data_query(filter_conditions: dict) -> str:
                      insp = pd.to_numeric(sub_df_unique['sl_kiem'], errors='coerce').fillna(0).sum()
                  
                  rate = (qty / insp * 100) if insp > 0 else 0.0
+                 
+                 # Check anomaly
+                 if insp > 0 and qty > insp:
+                      data_warnings.append(f"Cảnh báo: '{g}' có số lỗi ({qty}) > số kiểm ({insp}). Tỷ lệ: {rate:.2f}%")
+                 
                  stats[str(g)] = {
                      "qty": int(qty),
                      "inspected": int(insp),
@@ -374,6 +384,7 @@ def general_data_query(filter_conditions: dict) -> str:
         return json.dumps({
             "status": "success",
             "filters_applied": applied_filters,
+            "data_warnings": data_warnings,
             "total_errors": total_count,
             "total_tickets": unique_tickets,
             "total_defect_qty": int(total_defect_qty),
