@@ -43,7 +43,7 @@ user_name = user_info.get("name")
 user_dept = user_info.get("department")
 
 # --- GOOGLE SHEETS CONNECTION ---
-
+gc = init_gspread()
 
 # --- FLASH MESSAGE CHECK (Must be early) ---
 if 'flash_msg' in st.session_state and st.session_state.flash_msg:
