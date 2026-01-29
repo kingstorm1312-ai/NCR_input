@@ -909,45 +909,36 @@ else:
                                         key=f"dept_filter_{so_phieu}"
                                     )
                                     
-                                    # Filter users by department (search in full_name and username)
+                                     # Filter users by department (search in full_name and username)
                                     if selected_dept == "Tất cả":
                                         filtered_users = users_with_role
                                     else:
-                                        # Search for department keyword as word boundary in full_name or username
+                                        # Use regex for exact word/token matching
                                         import re
-                                        dept_keyword = selected_dept.lower()
-                                        # Create pattern for word boundary matching (e.g., "may i" should match "may_i" or "may i" but not "mayi")
-                                        # Also handle Vietnamese-style keywords
-                                        dept_variations = {
-                                            "may i": ["may_i", "may1", "mayi", "may i"],
-                                            "may ii": ["may_ii", "may2", "mayii", "may ii"],
-                                            "cuộn": ["cuon", "cuộn"],
-                                            "fi": ["_fi", "fi_", " fi ", "^fi"],
-                                            "npl": ["npl"],
-                                            "nhuộm": ["nhuom", "nhuộm"],
-                                            "tráng cắt": ["trang_cat", "trangcat", "tráng cắt"],
-                                            "in siêu âm": ["in_sieu_am", "insieu", "in siêu âm"]
+                                        
+                                        # Map department to specific regex patterns
+                                        dept_patterns = {
+                                            "may i": r"(^may[_\s]?i\b|^may1\b)",
+                                            "may ii": r"(^may[_\s]?ii\b|^may2\b)",
+                                            "cuộn": r"(cuon|cuộn)",
+                                            "fi": r"(^fi[_\s]|\bfi$|[_\s]fi[_\s])",
+                                            "npl": r"\bnpl\b",
+                                            "nhuộm": r"(nhuom|nhuộm)",
+                                            "tráng cắt": r"(trang[_\s]?cat|tráng[_\s]?cắt)",
+                                            "in siêu âm": r"(in[_\s]?sieu[_\s]?am|in[_\s]?siêu[_\s]?âm)"
                                         }
                                         
-                                        # Get search patterns for selected department
-                                        search_patterns = dept_variations.get(dept_keyword, [dept_keyword])
+                                        dept_keyword = selected_dept.lower()
+                                        pattern_str = dept_patterns.get(dept_keyword, rf"\b{re.escape(dept_keyword)}\b")
                                         
                                         filtered_users = []
                                         for u in users_with_role:
                                             username_lower = str(u.get('username', '')).lower()
                                             fullname_lower = str(u.get('full_name', '')).lower()
                                             
-                                            # Check if any pattern matches
-                                            match_found = False
-                                            for pattern in search_patterns:
-                                                # Use word boundary or underscore boundary
-                                                if (pattern in username_lower or 
-                                                    pattern in fullname_lower or
-                                                    username_lower.startswith(pattern)):
-                                                    match_found = True
-                                                    break
-                                            
-                                            if match_found:
+                                            # Check if pattern matches (case-insensitive)
+                                            if (re.search(pattern_str, username_lower, re.IGNORECASE) or 
+                                                re.search(pattern_str, fullname_lower, re.IGNORECASE)):
                                                 filtered_users.append(u)
                                     
                                     if not filtered_users:
