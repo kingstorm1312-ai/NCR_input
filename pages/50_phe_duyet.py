@@ -864,67 +864,57 @@ else:
                         if not assign_to_roles:
                             st.warning("Role hiện tại không có quyền giao task.")
                         else:
-                            with st.form(key=f"assign_task_form_{so_phieu}"):
-                                st.markdown("**1. Chọn người nhận:**")
-                                assign_to_role = st.selectbox(
-                                    "Vai trò người nhận:",
-                                    options=list(assign_to_roles.keys()),
-                                    format_func=lambda x: assign_to_roles[x],
-                                    key=f"assign_to_{so_phieu}"
+                            # MOVED OUTSIDE FORM: Role and Department Selection (for reactive filtering)
+                            st.markdown("**1. Chọn người nhận:**")
+                            assign_to_role = st.selectbox(
+                                "Vai trò người nhận:",
+                                options=list(assign_to_roles.keys()),
+                                format_func=lambda x: assign_to_roles[x],
+                                key=f"assign_to_{so_phieu}"
+                            )
+                            
+                            # Fetch and filter users by role
+                            all_users = get_all_users()
+                            users_with_role = [
+                                u for u in all_users 
+                                if str(u.get('role', '')).lower() == assign_to_role.lower()
+                            ]
+                            
+                            st.info(f"🔍 Debug: Tổng {len(all_users)} users → {len(users_with_role)} users có role '{assign_to_role}'")
+                            
+                            if not users_with_role:
+                                st.warning(f"⚠️ Không tìm thấy user nào có role '{assign_to_roles[assign_to_role]}'")
+                            else:
+                                # Department filter (OUTSIDE FORM)
+                                st.markdown("**Chọn bộ phận/khâu (Để lọc người dùng):**")
+                                
+                                from depts.registry import DEPTS
+                                dept_display_map = {code: prof.name for code, prof in DEPTS.items()}
+                                dept_display_map["all"] = "Tất cả"
+                                dept_codes = ["all"] + sorted(DEPTS.keys())
+                                
+                                selected_dept_code = st.selectbox(
+                                    "Bộ phận:",
+                                    options=dept_codes,
+                                    format_func=lambda code: dept_display_map.get(code, code),
+                                    key=f"dept_filter_{so_phieu}"
                                 )
                                 
-                                # Fetch users with selected role
-                                all_users = get_all_users()
-                                # Filter by selected role
-                                users_with_role = [
-                                    u for u in all_users 
-                                    if str(u.get('role', '')).lower() == assign_to_role.lower()
-                                ]
-                                
-                                if not users_with_role:
-                                    st.warning(f"⚠️ Không tìm thấy user nào có role '{assign_to_roles[assign_to_role]}'")
-                                    target_username = None
-                                    target_dept = ""
+                                # Filter users by department
+                                if selected_dept_code == "all":
+                                    filtered_users = users_with_role
                                 else:
-                                    # Create user selection dropdown
-                                    st.markdown("**Chọn bộ phận/khâu (Để lọc người dùng):**")
-                                    
-                                    # Get department codes from registry
-                                    from depts.registry import DEPTS
-                                    
-                                    # Create mapping: code -> name for display
-                                    dept_display_map = {code: prof.name for code, prof in DEPTS.items()}
-                                    dept_display_map["all"] = "Tất cả"
-                                    
-                                    # Department options: use codes as values
-                                    dept_codes = ["all"] + sorted(DEPTS.keys())
-                                    
-                                    selected_dept_code = st.selectbox(
-                                        "Bộ phận:",
-                                        options=dept_codes,
-                                        format_func=lambda code: dept_display_map.get(code, code),
-                                        key=f"dept_filter_{so_phieu}"
-                                    )
-                                    
-                                    # Filter users by department
-                                    if selected_dept_code == "all":
-                                        filtered_users = users_with_role
-                                    else:
-                                        # Filter by department field from user data
-                                        filtered_users = []
-                                        for u in users_with_role:
-                                            user_dept = str(u.get('department', '')).lower().strip()
-                                            
-                                            # Match department code exactly (strict)
-                                            if user_dept == selected_dept_code:
-                                                filtered_users.append(u)
-                                    
-                                    if not filtered_users:
-                                        st.warning(f"⚠️ Không tìm thấy user nào thuộc bộ phận '{dept_display_map.get(selected_dept_code, selected_dept_code)}'")
-                                        st.info("💡 Tip: Chọn 'Tất cả' để xem toàn bộ danh sách")
-                                        target_username = None
-                                        target_dept = dept_display_map.get(selected_dept_code, selected_dept_code)
-                                    else:
+                                    filtered_users = []
+                                    for u in users_with_role:
+                                        user_dept = str(u.get('department', '')).lower().strip()
+                                        if user_dept == selected_dept_code:
+                                            filtered_users.append(u)
+                                
+                                st.info(f"🔍 Debug Dept Filter: {len(users_with_role)} users (role) → {len(filtered_users)} users (dept='{selected_dept_code}')")
+                                
+                                if filtered_users:
+                                    # NOW START FORM: Only user selection, message, deadline, submit
+                                    with st.form(key=f"assign_task_form_{so_phieu}"):
                                         st.markdown(f"**Chỉ định người cụ thể:** ({len(filtered_users)} người)")
                                         user_options = {
                                             u['username']: f"{u.get('full_name', u['username'])} ({u['username']})" 
@@ -938,7 +928,6 @@ else:
                                             key=f"target_user_{so_phieu}"
                                         )
                                         
-                                        # Save department for note
                                         target_dept = dept_display_map.get(selected_dept_code, selected_dept_code) if selected_dept_code != "all" else ""
                                 
                                 st.markdown("**2. Nội dung yêu cầu:**")
