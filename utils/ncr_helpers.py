@@ -728,6 +728,8 @@ def generate_next_pass_id(dept_prefix):
 def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, message, deadline, target_department=None, target_person=None):
     """
     Giao hành động khắc phục cho cấp dưới.
+    Nếu có target_person (username), sẽ ghi username vào kp_assigned_to.
+    Nếu không, ghi role vào kp_assigned_to (legacy behavior).
     """
     try:
         sh = gc.open_by_key(st.secrets["connections"]["gsheets"]["spreadsheet"])
@@ -746,6 +748,9 @@ def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, mes
         idx_kp_dl = headers.index("kp_deadline")
         idx_kp_res = headers.index("kp_response")
         
+        # Xác định ai được giao task (username hoặc role)
+        assignee = target_person if target_person else assign_to_role
+        
         # Xác định trạng thái mới
         new_status = f"khac_phuc_{assign_to_role}"
         now = get_now_vn_str()
@@ -761,21 +766,23 @@ def assign_corrective_action(gc, so_phieu, assigned_by_role, assign_to_role, mes
                 if target_department:
                     prefix_info.append(f"BP: {target_department}")
                 if target_person:
-                     prefix_info.append(f"Chỉ định: {target_person}")
+                     prefix_info.append(f"Người nhận: {target_person}")
                 
                 if prefix_info:
                     final_message = f"[{' | '.join(prefix_info)}] {final_message}"
 
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_status + 1), 'values': [['active']]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_by + 1), 'values': [[assigned_by_role]]})
-                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_to + 1), 'values': [[assign_to_role]]})
+                # CRITICAL: Write username if provided, else write role
+                range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_to + 1), 'values': [[assignee]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_msg + 1), 'values': [[final_message]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_dl + 1), 'values': [[str(deadline)]]})
                 range_updates.append({'range': gspread.utils.rowcol_to_a1(i, idx_kp_res + 1), 'values': [['']]}) # Reset response
         
         if range_updates:
             ws.batch_update(range_updates)
-            return True, f"Đã giao hành động khắc phục cho {assign_to_role.upper()}"
+            recipient_display = f"user {target_person}" if target_person else f"role {assign_to_role.upper()}"
+            return True, f"Đã giao hành động khắc phục cho {recipient_display}"
         return False, "Không tìm thấy số phiếu"
     except Exception as e:
         return False, f"Lỗi hệ thống: {e}"

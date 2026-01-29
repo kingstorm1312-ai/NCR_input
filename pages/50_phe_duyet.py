@@ -844,49 +844,67 @@ else:
                 
                 else:
                     with st.expander("➕ Giao Task Khắc Phục Mới"):
-                        st.info("💡 Giao nhiệm vụ khắc phục cho cấp dưới (Trưởng BP, v.v.)")
+                        st.info("💡 Giao nhiệm vụ khắc phục cho người dùng cụ thể")
                         
                         # Role Selection (Dynamic based on current role)
                         if selected_role == 'qc_manager':
-                            assign_to_options = {
+                            assign_to_roles = {
                                 'truong_bp': 'Trưởng Bộ Phận',
                                 'truong_ca': 'Trưởng Ca'
                             }
                         elif selected_role == 'director':
-                            assign_to_options = {
+                            assign_to_roles = {
                                 'qc_manager': 'QC Manager',
                                 'truong_bp': 'Trưởng Bộ Phận',
                                 'truong_ca': 'Trưởng Ca'
                             }
                         else:
-                            assign_to_options = {}
+                            assign_to_roles = {}
                         
-                        if not assign_to_options:
+                        if not assign_to_roles:
                             st.warning("Role hiện tại không có quyền giao task.")
                         else:
                             with st.form(key=f"assign_task_form_{so_phieu}"):
                                 st.markdown("**1. Chọn người nhận:**")
                                 assign_to_role = st.selectbox(
                                     "Vai trò người nhận:",
-                                    options=list(assign_to_options.keys()),
-                                    format_func=lambda x: assign_to_options[x],
+                                    options=list(assign_to_roles.keys()),
+                                    format_func=lambda x: assign_to_roles[x],
                                     key=f"assign_to_{so_phieu}"
                                 )
                                 
-                                # Optional: Specific department/person
-                                col_dept, col_person = st.columns(2)
-                                with col_dept:
-                                    target_dept = st.text_input(
-                                        "Bộ phận cụ thể (tùy chọn):",
-                                        key=f"target_dept_{so_phieu}",
-                                        placeholder="VD: May I, Cuộn..."
+                                # Fetch users with selected role
+                                all_users = get_all_users()
+                                # Filter by selected role
+                                users_with_role = [
+                                    u for u in all_users 
+                                    if str(u.get('role', '')).lower() == assign_to_role.lower()
+                                ]
+                                
+                                if not users_with_role:
+                                    st.warning(f"⚠️ Không tìm thấy user nào có role '{assign_to_roles[assign_to_role]}'")
+                                    target_username = None
+                                else:
+                                    # Create user selection dropdown
+                                    st.markdown("**Chỉ định người cụ thể:**")
+                                    user_options = {
+                                        u['username']: f"{u.get('full_name', u['username'])} ({u['username']})" 
+                                        for u in users_with_role
+                                    }
+                                    
+                                    target_username = st.selectbox(
+                                        "Chọn người dùng:",
+                                        options=list(user_options.keys()),
+                                        format_func=lambda x: user_options[x],
+                                        key=f"target_user_{so_phieu}"
                                     )
-                                with col_person:
-                                    target_person = st.text_input(
-                                        "Chỉ định người (tùy chọn):",
-                                        key=f"target_person_{so_phieu}",
-                                        placeholder="VD: Nguyễn Văn A"
-                                    )
+                                
+                                # Optional: Department filter (for display only)
+                                target_dept = st.text_input(
+                                    "Bộ phận (tùy chọn, để ghi chú):",
+                                    key=f"target_dept_{so_phieu}",
+                                    placeholder="VD: May I, Cuộn..."
+                                )
                                 
                                 st.markdown("**2. Nội dung yêu cầu:**")
                                 task_message = st.text_area(
@@ -908,6 +926,8 @@ else:
                                 if submit_task:
                                     if not task_message.strip():
                                         st.error("⚠️ Vui lòng nhập nội dung yêu cầu!")
+                                    elif not target_username:
+                                        st.error("⚠️ Vui lòng chọn người nhận task!")
                                     else:
                                         with st.spinner("Đang giao task..."):
                                             from utils.ncr_helpers import assign_corrective_action
@@ -920,7 +940,7 @@ else:
                                                 message=task_message,
                                                 deadline=str(task_deadline),
                                                 target_department=target_dept if target_dept else None,
-                                                target_person=target_person if target_person else None
+                                                target_person=target_username  # Pass username
                                             )
                                             
                                             if success:

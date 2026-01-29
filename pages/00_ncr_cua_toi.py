@@ -414,8 +414,11 @@ if not df_all.empty:
     if user_role == 'admin' and current_view_user == "all":
         df_my_tasks = df_all[df_all['kp_status'] == 'active'].copy()
     else:
+        # Filter tasks where kp_assigned_to matches EITHER username OR user_role
+        # This supports both new username-based assignment and legacy role-based assignment
         df_my_tasks = df_all[
-            (df_all['kp_assigned_to'] == user_role) & 
+            ((df_all['kp_assigned_to'] == user_name) |  # Username match (new)
+             (df_all['kp_assigned_to'] == user_role)) &  # Role match (legacy)
             (df_all['kp_status'] == 'active')
         ].copy()
 else:
