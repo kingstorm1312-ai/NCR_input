@@ -884,27 +884,64 @@ else:
                                 if not users_with_role:
                                     st.warning(f"⚠️ Không tìm thấy user nào có role '{assign_to_roles[assign_to_role]}'")
                                     target_username = None
+                                    target_dept = ""
                                 else:
                                     # Create user selection dropdown
-                                    st.markdown("**Chỉ định người cụ thể:**")
-                                    user_options = {
-                                        u['username']: f"{u.get('full_name', u['username'])} ({u['username']})" 
-                                        for u in users_with_role
-                                    }
+                                    st.markdown("**Chọn bộ phận/khâu (Để lọc người dùng):**")
                                     
-                                    target_username = st.selectbox(
-                                        "Chọn người dùng:",
-                                        options=list(user_options.keys()),
-                                        format_func=lambda x: user_options[x],
-                                        key=f"target_user_{so_phieu}"
+                                    # Hardcoded department list (based on your NCR system)
+                                    dept_options = [
+                                        "Tất cả",
+                                        "May I",
+                                        "May II", 
+                                        "Cuộn",
+                                        "FI",
+                                        "NPL",
+                                        "Nhuộm",
+                                        "Tráng Cắt",
+                                        "In Siêu Âm",
+                                        "Khác"
+                                    ]
+                                    
+                                    selected_dept = st.selectbox(
+                                        "Bộ phận:",
+                                        options=dept_options,
+                                        key=f"dept_filter_{so_phieu}"
                                     )
-                                
-                                # Optional: Department filter (for display only)
-                                target_dept = st.text_input(
-                                    "Bộ phận (tùy chọn, để ghi chú):",
-                                    key=f"target_dept_{so_phieu}",
-                                    placeholder="VD: May I, Cuộn..."
-                                )
+                                    
+                                    # Filter users by department (search in full_name and username)
+                                    if selected_dept == "Tất cả":
+                                        filtered_users = users_with_role
+                                    else:
+                                        # Search for department keyword in full_name or username
+                                        dept_keyword = selected_dept.lower()
+                                        filtered_users = [
+                                            u for u in users_with_role
+                                            if (dept_keyword in str(u.get('full_name', '')).lower() or
+                                                dept_keyword in str(u.get('username', '')).lower())
+                                        ]
+                                    
+                                    if not filtered_users:
+                                        st.warning(f"⚠️ Không tìm thấy user nào thuộc bộ phận '{selected_dept}'")
+                                        st.info("💡 Tip: Chọn 'Tất cả' để xem toàn bộ danh sách")
+                                        target_username = None
+                                        target_dept = selected_dept if selected_dept != "Tất cả" else ""
+                                    else:
+                                        st.markdown(f"**Chỉ định người cụ thể:** ({len(filtered_users)} người)")
+                                        user_options = {
+                                            u['username']: f"{u.get('full_name', u['username'])} ({u['username']})" 
+                                            for u in filtered_users
+                                        }
+                                        
+                                        target_username = st.selectbox(
+                                            "Chọn người dùng:",
+                                            options=list(user_options.keys()),
+                                            format_func=lambda x: user_options[x],
+                                            key=f"target_user_{so_phieu}"
+                                        )
+                                        
+                                        # Save department for note
+                                        target_dept = selected_dept if selected_dept != "Tất cả" else ""
                                 
                                 st.markdown("**2. Nội dung yêu cầu:**")
                                 task_message = st.text_area(
