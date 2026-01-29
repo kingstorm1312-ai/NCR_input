@@ -913,13 +913,42 @@ else:
                                     if selected_dept == "Tất cả":
                                         filtered_users = users_with_role
                                     else:
-                                        # Search for department keyword in full_name or username
+                                        # Search for department keyword as word boundary in full_name or username
+                                        import re
                                         dept_keyword = selected_dept.lower()
-                                        filtered_users = [
-                                            u for u in users_with_role
-                                            if (dept_keyword in str(u.get('full_name', '')).lower() or
-                                                dept_keyword in str(u.get('username', '')).lower())
-                                        ]
+                                        # Create pattern for word boundary matching (e.g., "may i" should match "may_i" or "may i" but not "mayi")
+                                        # Also handle Vietnamese-style keywords
+                                        dept_variations = {
+                                            "may i": ["may_i", "may1", "mayi", "may i"],
+                                            "may ii": ["may_ii", "may2", "mayii", "may ii"],
+                                            "cuộn": ["cuon", "cuộn"],
+                                            "fi": ["_fi", "fi_", " fi ", "^fi"],
+                                            "npl": ["npl"],
+                                            "nhuộm": ["nhuom", "nhuộm"],
+                                            "tráng cắt": ["trang_cat", "trangcat", "tráng cắt"],
+                                            "in siêu âm": ["in_sieu_am", "insieu", "in siêu âm"]
+                                        }
+                                        
+                                        # Get search patterns for selected department
+                                        search_patterns = dept_variations.get(dept_keyword, [dept_keyword])
+                                        
+                                        filtered_users = []
+                                        for u in users_with_role:
+                                            username_lower = str(u.get('username', '')).lower()
+                                            fullname_lower = str(u.get('full_name', '')).lower()
+                                            
+                                            # Check if any pattern matches
+                                            match_found = False
+                                            for pattern in search_patterns:
+                                                # Use word boundary or underscore boundary
+                                                if (pattern in username_lower or 
+                                                    pattern in fullname_lower or
+                                                    username_lower.startswith(pattern)):
+                                                    match_found = True
+                                                    break
+                                            
+                                            if match_found:
+                                                filtered_users.append(u)
                                     
                                     if not filtered_users:
                                         st.warning(f"⚠️ Không tìm thấy user nào thuộc bộ phận '{selected_dept}'")
