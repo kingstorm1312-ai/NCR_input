@@ -929,43 +929,43 @@ else:
                                         )
                                         
                                         target_dept = dept_display_map.get(selected_dept_code, selected_dept_code) if selected_dept_code != "all" else ""
-                                
-                                st.markdown("**2. Nội dung yêu cầu:**")
-                                task_message = st.text_area(
-                                    "Mô tả nhiệm vụ khắc phục:",
-                                    key=f"task_msg_{so_phieu}",
-                                    placeholder="VD: Kiểm tra lại nguyên nhân và báo cáo trong 3 ngày...",
-                                    height=100
-                                )
-                                
-                                st.markdown("**3. Thời hạn:**")
-                                task_deadline = st.date_input(
-                                    "Hạn chót:",
-                                    key=f"task_dl_{so_phieu}",
-                                    min_value=datetime.now().date()
-                                )
-                                
-                                submit_task = st.form_submit_button("✅ Giao Nhiệm Vụ", type="primary", use_container_width=True)
-                                
-                                if submit_task:
-                                    if not task_message.strip():
-                                        st.error("⚠️ Vui lòng nhập nội dung yêu cầu!")
-                                    elif not target_username:
-                                        st.error("⚠️ Vui lòng chọn người nhận task!")
-                                    else:
-                                        with st.spinner("Đang giao task..."):
-                                            from utils.ncr_helpers import assign_corrective_action
-                                            
-                                            success, msg = assign_corrective_action(
-                                                gc=gc,
-                                                so_phieu=so_phieu,
-                                                assigned_by_role=selected_role,
-                                                assign_to_role=assign_to_role,
-                                                message=task_message,
-                                                deadline=str(task_deadline),
-                                                target_department=target_dept if target_dept else None,
-                                                target_person=target_username  # Pass username
-                                            )
+                                        
+                                        st.markdown("**2. Nội dung yêu cầu:**")
+                                        task_message = st.text_area(
+                                            "Mô tả nhiệm vụ khắc phục:",
+                                            key=f"task_msg_{so_phieu}",
+                                            placeholder="VD: Kiểm tra lại nguyên nhân và báo cáo trong 3 ngày...",
+                                            height=100
+                                        )
+                                        
+                                        st.markdown("**3. Thời hạn:**")
+                                        task_deadline = st.date_input(
+                                            "Hạn chót:",
+                                            key=f"task_dl_{so_phieu}",
+                                            min_value=datetime.now().date()
+                                        )
+                                        
+                                        submit_task = st.form_submit_button("✅ Giao Nhiệm Vụ", type="primary", use_container_width=True)
+                                        
+                                        if submit_task:
+                                            if not task_message.strip():
+                                                st.error("⚠️ Vui lòng nhập nội dung yêu cầu!")
+                                            elif not target_username:
+                                                st.error("⚠️ Vui lòng chọn người nhận task!")
+                                            else:
+                                                with st.spinner("Đang giao task..."):
+                                                    from utils.ncr_helpers import assign_corrective_action
+                                                    
+                                                    success, msg = assign_corrective_action(
+                                                        gc=gc,
+                                                        so_phieu=so_phieu,
+                                                        assigned_by_role=selected_role,
+                                                        assign_to_role=assign_to_role,
+                                                        message=task_message,
+                                                        deadline=str(task_deadline),
+                                                        target_department=target_dept if target_dept else None,
+                                                        target_person=target_username  # Pass username
+                                                    )
                                             
                                             if success:
                                                 st.session_state.flash_msg = {
