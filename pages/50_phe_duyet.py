@@ -915,8 +915,8 @@ else:
                                         for u in users_with_role:
                                             user_dept = str(u.get('department', '')).lower().strip()
                                             
-                                            # Match department code exactly
-                                            if user_dept == selected_dept_code or user_dept == 'all':
+                                            # Match department code exactly (strict)
+                                            if user_dept == selected_dept_code:
                                                 filtered_users.append(u)
                                     
                                     if not filtered_users:
