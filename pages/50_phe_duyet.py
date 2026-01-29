@@ -889,46 +889,41 @@ else:
                                     # Create user selection dropdown
                                     st.markdown("**Chọn bộ phận/khâu (Để lọc người dùng):**")
                                     
-                                    # Hardcoded department list (based on your NCR system)
-                                    dept_options = [
-                                        "Tất cả",
-                                        "May I",
-                                        "May II", 
-                                        "Cuộn",
-                                        "FI",
-                                        "NPL",
-                                        "Nhuộm",
-                                        "Tráng Cắt",
-                                        "In Siêu Âm",
-                                        "Khác"
-                                    ]
+                                    # Get department codes from registry
+                                    from depts.registry import DEPTS
                                     
-                                    selected_dept = st.selectbox(
+                                    # Create mapping: code -> name for display
+                                    dept_display_map = {code: prof.name for code, prof in DEPTS.items()}
+                                    dept_display_map["all"] = "Tất cả"
+                                    
+                                    # Department options: use codes as values
+                                    dept_codes = ["all"] + sorted(DEPTS.keys())
+                                    
+                                    selected_dept_code = st.selectbox(
                                         "Bộ phận:",
-                                        options=dept_options,
+                                        options=dept_codes,
+                                        format_func=lambda code: dept_display_map.get(code, code),
                                         key=f"dept_filter_{so_phieu}"
                                     )
-                                    
+                                     
                                      # Filter users by department (search in full_name and username)
-                                    if selected_dept == "Tất cả":
+                                    if selected_dept_code == "all":
                                         filtered_users = users_with_role
                                     else:
                                         # Filter by department field from user data
-                                        dept_keyword = selected_dept.lower().strip()
-                                        
                                         filtered_users = []
                                         for u in users_with_role:
                                             user_dept = str(u.get('department', '')).lower().strip()
                                             
-                                            # Match department exactly or if user has 'all' department
-                                            if user_dept == dept_keyword or user_dept == 'all':
+                                            # Match department code exactly
+                                            if user_dept == selected_dept_code or user_dept == 'all':
                                                 filtered_users.append(u)
                                     
                                     if not filtered_users:
-                                        st.warning(f"⚠️ Không tìm thấy user nào thuộc bộ phận '{selected_dept}'")
+                                        st.warning(f"⚠️ Không tìm thấy user nào thuộc bộ phận '{dept_display_map.get(selected_dept_code, selected_dept_code)}'")
                                         st.info("💡 Tip: Chọn 'Tất cả' để xem toàn bộ danh sách")
                                         target_username = None
-                                        target_dept = selected_dept if selected_dept != "Tất cả" else ""
+                                        target_dept = dept_display_map.get(selected_dept_code, selected_dept_code)
                                     else:
                                         st.markdown(f"**Chỉ định người cụ thể:** ({len(filtered_users)} người)")
                                         user_options = {
@@ -944,7 +939,7 @@ else:
                                         )
                                         
                                         # Save department for note
-                                        target_dept = selected_dept if selected_dept != "Tất cả" else ""
+                                        target_dept = dept_display_map.get(selected_dept_code, selected_dept_code) if selected_dept_code != "all" else ""
                                 
                                 st.markdown("**2. Nội dung yêu cầu:**")
                                 task_message = st.text_area(
