@@ -945,7 +945,7 @@ with tab3:
     else:
         st.info(f"Bạn có {len(df_my_tasks)} yêu cầu khắc phục từ quy trình NCR.")
         # Legacy tasks rendering...
-        for _, task in df_my_tasks.iterrows():
+        for task_idx, (_, task) in enumerate(df_my_tasks.iterrows()):
             so_phieu = task['so_phieu']
             msg = task['kp_message']
             deadline = task['kp_deadline']
@@ -957,7 +957,7 @@ with tab3:
                 st.markdown(f"📅 **Hạn chót:** :red[**{deadline}**]")
                 
                 # --- CHI TIẾT PHIẾU (Full Info like Approval Page) ---
-                with st.expander("🔍 Xem chi tiết phiếu & Hình ảnh", expanded=(f"bbk_ready_{so_phieu}" in st.session_state or f"ncr_ready_{so_phieu}" in st.session_state)):
+                with st.expander("🔍 Xem chi tiết phiếu & Hình ảnh", expanded=(f"bbk_ready_{so_phieu}_fail_{task_idx}" in st.session_state or f"ncr_ready_{so_phieu}_fail_{task_idx}" in st.session_state)):
                     # --- HÌNH ẢNH ---
                     st.markdown("#### 📷 Hình ảnh minh họa")
                     hinh_anh_val = task.get('hinh_anh', "")
@@ -1040,7 +1040,7 @@ with tab3:
 
                         # --- EXPORT BUTTONS ---
                         raw_rows = df_all[df_all['so_phieu'] == so_phieu]
-                        render_export_buttons(so_phieu, tk_rows, raw_rows, context="fail")
+                        render_export_buttons(so_phieu, tk_rows, raw_rows, context=f"fail_{task_idx}")
                 
                 # Deadline warning
                 try:
