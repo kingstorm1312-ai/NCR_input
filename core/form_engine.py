@@ -302,8 +302,8 @@ def run_inspection_page(profile: DeptProfile):
             
             with c_sev:
                 final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
-                # Use selectbox or radio for compactness in dialog
-                s_sev = st.selectbox("Mức độ", final_md_options, index=0, key="dlg_sev")
+                # Use radio for toggle-like experience (horizontal)
+                s_sev = st.radio("Mức độ", final_md_options, index=0, key="dlg_sev", horizontal=True)
 
             st.write("")
             st.markdown("---")
