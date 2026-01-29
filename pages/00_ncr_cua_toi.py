@@ -945,7 +945,8 @@ with tab3:
     else:
         st.info(f"Bạn có {len(df_my_tasks)} yêu cầu khắc phục từ quy trình NCR.")
         # Legacy tasks rendering...
-        for task_idx, (_, task) in enumerate(df_my_tasks.iterrows()):
+        for task_idx, row_item in enumerate(df_my_tasks.iterrows()):
+            task = row_item[1]
             so_phieu = task['so_phieu']
             msg = task['kp_message']
             deadline = task['kp_deadline']
