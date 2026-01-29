@@ -262,6 +262,11 @@ def run_inspection_page(profile: DeptProfile):
         # --- DIALOG DEFINITION (Mobile Optimized) ---
         @st.dialog("📝 Thêm lỗi mới")
         def open_add_defect_dialog():
+            # SHOW TOAST INSIDE DIALOG (Because rerun only refreshes dialog)
+            if st.session_state.get("success_msg"):
+                st.toast(st.session_state["success_msg"], icon="✅")
+                st.session_state["success_msg"] = "" # Clear after showing
+
             # 1. Tên lỗi
             mode_input = st.radio("Nguồn tên lỗi:", ["Chọn danh sách", "Nhập tay"], horizontal=True, label_visibility="collapsed")
             col_name = st.container()
@@ -307,7 +312,7 @@ def run_inspection_page(profile: DeptProfile):
             if st.button("✅ THÊM VÀO DANH SÁCH", type="primary", use_container_width=True):
                 # Basic Validation
                 if not final_name:
-                    st.error("⚠️ Vui lòng nhập/chọn Tên lỗi!")
+                    st.warning("⚠️ Vui lòng nhập/chọn Tên lỗi!")
                     return
                 
                 # Add to buffer
@@ -318,8 +323,16 @@ def run_inspection_page(profile: DeptProfile):
                     "sl_loi": s_qty # Will be float or int based on input
                 })
                 
-                # Feedback & Close
+                # Feedback 
                 st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+                
+                # RESET FORM fields by deleting keys
+                keys_to_clear = ["dlg_ten_loi", "dlg_ten_loi_new", "dlg_vi_tri_sel", "dlg_vi_tri_txt", "dlg_qty_float", "dlg_qty_int", "dlg_sev"]
+                for k in keys_to_clear:
+                    if k in st.session_state:
+                         del st.session_state[k]
+                
+                # Rerun dialog to show empty specific fields
                 st.rerun()
 
         # --- MAIN UI: ADD BUTTON ---
