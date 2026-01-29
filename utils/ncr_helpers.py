@@ -329,8 +329,11 @@ def load_ncr_dataframe_v2():
         
         if 'ngay_lap' in df.columns:
             # FORCE CACHE UPDATE 2026-01-29
-            # Handle mixed formats: ISO (YYYY-MM-DD) and Vietnamese (DD/MM/YYYY)
-            df['date_obj'] = pd.to_datetime(df['ngay_lap'], dayfirst=True, errors='coerce')
+            # Handle mixed formats. 
+            # Google Sheets often returns MM/DD/YYYY or YYYY-MM-DD depending on locale.
+            # dayfirst=True causes issues if input is 04/12/2025 (Apr 12) -> Parsed as Dec 4.
+            # Changing to dayfirst=False to prioritize MM/DD format which seems to match GSheets output.
+            df['date_obj'] = pd.to_datetime(df['ngay_lap'], dayfirst=False, errors='coerce')
             
             # Debug: Check which rows failed parsing
             # if df['date_obj'].isna().sum() > 0:
