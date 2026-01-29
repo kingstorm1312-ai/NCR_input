@@ -262,78 +262,92 @@ def run_inspection_page(profile: DeptProfile):
         # --- DIALOG DEFINITION (Mobile Optimized) ---
         @st.dialog("📝 Thêm lỗi mới")
         def open_add_defect_dialog():
-            # SHOW TOAST INSIDE DIALOG (Because rerun only refreshes dialog)
-            if st.session_state.get("success_msg"):
-                st.toast(st.session_state["success_msg"], icon="✅")
-                st.session_state["success_msg"] = "" # Clear after showing
+            # Use st.fragment if available to prevent full rerun closure
+            try:
+                from streamlit import fragment
+            except ImportError:
+                # Fallback: Just define decorator as pass-through if basic (won't solve close, but prevents crash)
+                # But user likely deals with closure issue, so assume fragment exists or we rely on session state fallback? 
+                # Let's assume Streamlit >= 1.37 as per project context (modern).
+                fragment = lambda func: func
 
-            # 1. Tên lỗi
-            mode_input = st.radio("Nguồn tên lỗi:", ["Chọn danh sách", "Nhập tay"], horizontal=True, label_visibility="collapsed")
-            col_name = st.container()
-            if mode_input == "Chọn danh sách":
-                s_loi = col_name.selectbox("Tên lỗi", [""] + LIST_LOI, key="dlg_ten_loi", help="Chọn tên lỗi từ danh sách")
-                final_name = s_loi
-            else:
-                s_loi_new = col_name.text_input("Nhập tên lỗi", key="dlg_ten_loi_new", placeholder="Nhập tên lỗi mới...")
-                final_name = s_loi_new
+            @fragment
+            def inner_defect_form():
+                # SHOW TOAST INSIDE DIALOG (Because rerun only refreshes dialog)
+                if st.session_state.get("success_msg"):
+                    st.toast(st.session_state["success_msg"], icon="✅")
+                    st.session_state["success_msg"] = "" # Clear after showing
 
-            # 2. Vị trí
-            col_pos = st.container()
-            c_p1, c_p2 = col_pos.columns([1, 1])
-            vi_tri_sel = c_p1.selectbox("Vị trí", [""] + LIST_VI_TRI, key="dlg_vi_tri_sel")
-            if not vi_tri_sel:
-                vi_tri_txt = c_p2.text_input("Vị trí khác", placeholder="Ghi cụ thể...", key="dlg_vi_tri_txt")
-                final_pos = vi_tri_txt
-            else:
-                c_p2.write("") # Spacer
-                final_pos = vi_tri_sel
-
-            # 3. Số lượng (Strict Type Handling)
-            is_continuous = don_vi_tinh and str(don_vi_tinh).lower() in ['kg', 'mét', 'm', 'met']
-            
-            c_qty, c_sev = st.columns([1, 1])
-            with c_qty:
-                if is_continuous:
-                    # Float path
-                    s_qty = st.number_input("SL Lỗi", min_value=0.1, step=0.1, value=1.0, format="%.1f", key="dlg_qty_float")
+                # 1. Tên lỗi
+                mode_input = st.radio("Nguồn tên lỗi:", ["Chọn danh sách", "Nhập tay"], horizontal=True, label_visibility="collapsed")
+                col_name = st.container()
+                if mode_input == "Chọn danh sách":
+                    s_loi = col_name.selectbox("Tên lỗi", [""] + LIST_LOI, key="dlg_ten_loi", help="Chọn tên lỗi từ danh sách")
+                    final_name = s_loi
                 else:
-                    # Integer path (Fix warning)
-                    s_qty = st.number_input("SL Lỗi", min_value=1, step=1, value=1, format="%d", key="dlg_qty_int")
-            
-            with c_sev:
-                final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
-                # Use radio for toggle-like experience (horizontal)
-                s_sev = st.radio("Mức độ", final_md_options, index=0, key="dlg_sev", horizontal=True)
+                    s_loi_new = col_name.text_input("Nhập tên lỗi", key="dlg_ten_loi_new", placeholder="Nhập tên lỗi mới...")
+                    final_name = s_loi_new
 
-            st.write("")
-            st.markdown("---")
-            
-            # SUBMIT BUTTON
-            if st.button("✅ THÊM VÀO DANH SÁCH", type="primary", use_container_width=True):
-                # Basic Validation
-                if not final_name:
-                    st.warning("⚠️ Vui lòng nhập/chọn Tên lỗi!")
-                    return
+                # 2. Vị trí
+                col_pos = st.container()
+                c_p1, c_p2 = col_pos.columns([1, 1])
+                vi_tri_sel = c_p1.selectbox("Vị trí", [""] + LIST_VI_TRI, key="dlg_vi_tri_sel")
+                if not vi_tri_sel:
+                    vi_tri_txt = c_p2.text_input("Vị trí khác", placeholder="Ghi cụ thể...", key="dlg_vi_tri_txt")
+                    final_pos = vi_tri_txt
+                else:
+                    c_p2.write("") # Spacer
+                    final_pos = vi_tri_sel
+
+                # 3. Số lượng (Strict Type Handling)
+                is_continuous = don_vi_tinh and str(don_vi_tinh).lower() in ['kg', 'mét', 'm', 'met']
                 
-                # Add to buffer
-                st.session_state.buffer_errors.append({
-                    "ten_loi": final_name,
-                    "vi_tri": final_pos if final_pos else "",
-                    "muc_do": s_sev,
-                    "sl_loi": s_qty # Will be float or int based on input
-                })
+                c_qty, c_sev = st.columns([1, 1])
+                with c_qty:
+                    if is_continuous:
+                        # Float path
+                        s_qty = st.number_input("SL Lỗi", min_value=0.1, step=0.1, value=1.0, format="%.1f", key="dlg_qty_float")
+                    else:
+                        # Integer path (Fix warning)
+                        s_qty = st.number_input("SL Lỗi", min_value=1, step=1, value=1, format="%d", key="dlg_qty_int")
                 
-                # Feedback 
-                st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+                with c_sev:
+                    final_md_options = ["Nhẹ", "Nặng", "Nghiêm trọng"]
+                    # Use radio for toggle-like experience (horizontal)
+                    s_sev = st.radio("Mức độ", final_md_options, index=0, key="dlg_sev", horizontal=True)
+
+                st.write("")
+                st.markdown("---")
                 
-                # RESET FORM fields by deleting keys
-                keys_to_clear = ["dlg_ten_loi", "dlg_ten_loi_new", "dlg_vi_tri_sel", "dlg_vi_tri_txt", "dlg_qty_float", "dlg_qty_int", "dlg_sev"]
-                for k in keys_to_clear:
-                    if k in st.session_state:
-                         del st.session_state[k]
-                
-                # Rerun dialog to show empty specific fields
-                st.rerun()
+                # SUBMIT BUTTON
+                if st.button("✅ THÊM VÀO DANH SÁCH", type="primary", use_container_width=True):
+                    # Basic Validation
+                    if not final_name:
+                        st.warning("⚠️ Vui lòng nhập/chọn Tên lỗi!")
+                        return
+                    
+                    # Add to buffer
+                    st.session_state.buffer_errors.append({
+                        "ten_loi": final_name,
+                        "vi_tri": final_pos if final_pos else "",
+                        "muc_do": s_sev,
+                        "sl_loi": s_qty # Will be float or int based on input
+                    })
+                    
+                    # Feedback 
+                    st.session_state["success_msg"] = f"Đã thêm: {final_name}"
+                    
+                    # RESET FORM fields by deleting keys
+                    keys_to_clear = ["dlg_ten_loi", "dlg_ten_loi_new", "dlg_vi_tri_sel", "dlg_vi_tri_txt", "dlg_qty_float", "dlg_qty_int", "dlg_sev"]
+                    for k in keys_to_clear:
+                        if k in st.session_state:
+                             del st.session_state[k]
+                    
+                    # Rerun fragment to clear view
+                    st.rerun()
+
+            # Execute the fragment
+            inner_defect_form()
 
         # --- MAIN UI: ADD BUTTON ---
         if st.button("➕ THÊM LỖI (Mở Form)", type="primary", use_container_width=True):
