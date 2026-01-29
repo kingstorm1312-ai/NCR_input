@@ -826,5 +826,114 @@ else:
                                         else:
                                             st.error("Cần nhập lý do!")
 
+            # --- [SECTION: LEGACY TASK ASSIGNMENT] ---
+            # Allow QC Manager/Director to assign corrective action tasks
+            if selected_role in ['qc_manager', 'director']:
+                st.write("")
+                st.divider()
+                st.markdown("#### 🛠️ Giao Hành Động Khắc Phục (Legacy)")
+                
+                # Check if task already assigned
+                current_kp_status = row.get('kp_status', 'none')
+                
+                if current_kp_status == 'active':
+                    st.info(f"ℹ️ Task đã được giao cho **{row.get('kp_assigned_to', 'N/A').upper()}**")
+                    st.caption(f"Yêu cầu: {row.get('kp_message', '')}")
+                    st.caption(f"Deadline: {row.get('kp_deadline', '')}")
+                    st.warning("⚠️ Để giao lại task mới, cần đợi task hiện tại hoàn thành hoặc hủy thủ công.")
+                
+                else:
+                    with st.expander("➕ Giao Task Khắc Phục Mới"):
+                        st.info("💡 Giao nhiệm vụ khắc phục cho cấp dưới (Trưởng BP, v.v.)")
+                        
+                        # Role Selection (Dynamic based on current role)
+                        if selected_role == 'qc_manager':
+                            assign_to_options = {
+                                'truong_bp': 'Trưởng Bộ Phận',
+                                'truong_ca': 'Trưởng Ca'
+                            }
+                        elif selected_role == 'director':
+                            assign_to_options = {
+                                'qc_manager': 'QC Manager',
+                                'truong_bp': 'Trưởng Bộ Phận',
+                                'truong_ca': 'Trưởng Ca'
+                            }
+                        else:
+                            assign_to_options = {}
+                        
+                        if not assign_to_options:
+                            st.warning("Role hiện tại không có quyền giao task.")
+                        else:
+                            with st.form(key=f"assign_task_form_{so_phieu}"):
+                                st.markdown("**1. Chọn người nhận:**")
+                                assign_to_role = st.selectbox(
+                                    "Vai trò người nhận:",
+                                    options=list(assign_to_options.keys()),
+                                    format_func=lambda x: assign_to_options[x],
+                                    key=f"assign_to_{so_phieu}"
+                                )
+                                
+                                # Optional: Specific department/person
+                                col_dept, col_person = st.columns(2)
+                                with col_dept:
+                                    target_dept = st.text_input(
+                                        "Bộ phận cụ thể (tùy chọn):",
+                                        key=f"target_dept_{so_phieu}",
+                                        placeholder="VD: May I, Cuộn..."
+                                    )
+                                with col_person:
+                                    target_person = st.text_input(
+                                        "Chỉ định người (tùy chọn):",
+                                        key=f"target_person_{so_phieu}",
+                                        placeholder="VD: Nguyễn Văn A"
+                                    )
+                                
+                                st.markdown("**2. Nội dung yêu cầu:**")
+                                task_message = st.text_area(
+                                    "Mô tả nhiệm vụ khắc phục:",
+                                    key=f"task_msg_{so_phieu}",
+                                    placeholder="VD: Kiểm tra lại nguyên nhân và báo cáo trong 3 ngày...",
+                                    height=100
+                                )
+                                
+                                st.markdown("**3. Thời hạn:**")
+                                task_deadline = st.date_input(
+                                    "Hạn chót:",
+                                    key=f"task_dl_{so_phieu}",
+                                    min_value=datetime.now().date()
+                                )
+                                
+                                submit_task = st.form_submit_button("✅ Giao Nhiệm Vụ", type="primary", use_container_width=True)
+                                
+                                if submit_task:
+                                    if not task_message.strip():
+                                        st.error("⚠️ Vui lòng nhập nội dung yêu cầu!")
+                                    else:
+                                        with st.spinner("Đang giao task..."):
+                                            from utils.ncr_helpers import assign_corrective_action
+                                            
+                                            success, msg = assign_corrective_action(
+                                                gc=gc,
+                                                so_phieu=so_phieu,
+                                                assigned_by_role=selected_role,
+                                                assign_to_role=assign_to_role,
+                                                message=task_message,
+                                                deadline=str(task_deadline),
+                                                target_department=target_dept if target_dept else None,
+                                                target_person=target_person if target_person else None
+                                            )
+                                            
+                                            if success:
+                                                st.session_state.flash_msg = {
+                                                    'type': 'success', 
+                                                    'content': f"✅ {msg}"
+                                                }
+                                                st.cache_data.clear()
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ {msg}")
+
+
+
 
 
