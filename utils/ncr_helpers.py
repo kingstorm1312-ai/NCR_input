@@ -527,7 +527,13 @@ def upload_images_to_cloud(file_list, filename_prefix):
                     uploaded_file, 
                     folder="ncr_images",
                     public_id=f"{filename_prefix}_{timestamp}_{idx}",
-                    resource_type="image"
+                    resource_type="image",
+                    transformation={
+                        "quality": "auto",
+                        "fetch_format": "auto",
+                        "width": 1200,
+                        "crop": "limit"
+                    }
                 )
                 urls.append(res.get("secure_url"))
             except Exception as e:
