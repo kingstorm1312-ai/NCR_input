@@ -445,6 +445,7 @@ def run_inspection_page(profile: DeptProfile):
                 has_unknown = False
                 
                 # Render list for review
+                v_len = len(st.session_state.voice_results)
                 for idx, item in enumerate(st.session_state.voice_results):
                     # STRICT CHECK: Must be in LIST_LOI
                     name_check = item.get("ten_loi")
@@ -462,25 +463,30 @@ def run_inspection_page(profile: DeptProfile):
                             item["ten_loi"] = "UNKNOWN_DEFECT" # Normalize status
                     
                     with st.container(border=True):
-                        c1, c2 = st.columns([3, 1])
+                        c1, c2, c3 = st.columns([3, 1.2, 0.8])
                         
                         # Defect Name Edit
                         if is_unknown:
                             c1.error(f"❓ Lỗi lạ: {item.get('raw_input', '')}")
-                            new_name = c1.selectbox(f"Chọn tên lỗi đúng (Mục #{idx+1})", [""] + LIST_LOI, key=f"v_fix_{idx}")
+                            new_name = c1.selectbox(f"Chọn tên lỗi (Mục #{idx+1})", [""] + LIST_LOI, key=f"v_fix_{idx}_{v_len}")
                             if new_name:
                                 item["ten_loi"] = new_name
                                 item["raw_input"] = "" # Clear flag
                         else:
                             c1.markdown(f"**{item.get('ten_loi')}**")
+                            c1.caption(f"Vị trí: {item.get('vi_tri')} | Mức độ: {item.get('muc_do')}")
                             
-                        # Details
-                        c1.caption(f"Vị trí: {item.get('vi_tri')} | Mức độ: {item.get('muc_do')}")
-                        
-                        # Quantity Edit
-                        new_qty = c2.number_input("SL", value=float(item.get('sl_loi', 1)), key=f"v_qty_{idx}", min_value=0.1)
+                        # Quantity Edit (Integer enforced)
+                        # Ensure value is treated as int
+                        curr_qty = int(item.get('sl_loi', 1))
+                        new_qty = c2.number_input("SL", value=curr_qty, key=f"v_qty_{idx}_{v_len}", min_value=1, step=1)
                         item['sl_loi'] = new_qty
                         
+                        # Delete Button
+                        if c3.button("🗑️", key=f"v_del_{idx}_{v_len}", help="Xóa lỗi này"):
+                            st.session_state.voice_results.pop(idx)
+                            st.rerun()
+
                         valid_items.append(item)
 
                 if has_unknown:
