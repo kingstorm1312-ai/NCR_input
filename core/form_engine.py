@@ -19,6 +19,17 @@ from utils.aql_manager import get_aql_standard, evaluate_lot_quality
 from utils.config import NCR_DEPARTMENT_PREFIXES
 from audio_recorder_streamlit import audio_recorder
 from core.voice_input_service import process_audio_defect
+from utils.measurement_utils import generate_random_measurement
+
+def auto_gen_measurement_callback(key, spec, tol):
+    """Callback xử lý sự kiện bấm nút 🎲"""
+    new_val = generate_random_measurement(spec, tol)
+    if new_val:
+        current_val = st.session_state.get(key, "")
+        if current_val:
+             st.session_state[key] = f"{current_val} - {new_val}"
+        else:
+             st.session_state[key] = new_val
 
 # --- PHÂN LOẠI ĐẶC THÙ (Dynamic Prefixes) ---
 DYNAMIC_PREFIX_BY_CODE = {
@@ -237,13 +248,30 @@ def run_inspection_page(profile: DeptProfile):
                 c_sz1, c_sz2, c_sz3 = st.columns(3)
                 spec_size = c_sz1.text_input("Tiêu chuẩn (Size)", placeholder="VD: 20x30", disabled=st.session_state.header_locked)
                 tol_size = c_sz2.text_input("Dung sai (Size)", placeholder="VD: +/- 1cm", disabled=st.session_state.header_locked)
-                meas_size = c_sz3.text_area("Thực tế (Size)", placeholder="VD: 20, 21...", height=68, disabled=st.session_state.header_locked)
-            
+                meas_size_val = c_sz3.text_area("Thực tế (Size)", placeholder="VD: 20, 21...", height=68, disabled=st.session_state.header_locked, key="txt_meas_size_input")
+                # Auto-Generate Button for Size
+                if not st.session_state.header_locked:
+                    c_sz3.button("🎲", key="btn_gen_size", help="Tự động tạo số liệu đo đạc (Size)", 
+                                 on_click=auto_gen_measurement_callback, 
+                                 args=("txt_meas_size_input", spec_size, tol_size))
+
+                # Sync variable for save logic
+                meas_size = st.session_state.get("txt_meas_size_input", "")
+
                 st.markdown("**2. Trọng lượng (Weight)**")
                 c_w1, c_w2, c_w3 = st.columns(3)
                 spec_weight = c_w1.text_input("Tiêu chuẩn (Weight)", placeholder="VD: 500g", disabled=st.session_state.header_locked)
                 tol_weight = c_w2.text_input("Dung sai (Weight)", placeholder="VD: +/- 5g", disabled=st.session_state.header_locked)
-                meas_weight = c_w3.text_area("Thực tế (Weight)", placeholder="VD: 501, 499...", height=68, disabled=st.session_state.header_locked)
+                
+                # Manual or Auto Input for Weight
+                meas_weight_val = c_w3.text_area("Thực tế (Weight)", placeholder="VD: 501, 499...", height=68, disabled=st.session_state.header_locked, key="txt_meas_weight_input")
+                 # Auto-Generate Button for Weight
+                if not st.session_state.header_locked:
+                    c_w3.button("🎲", key="btn_gen_weight", help="Tự động tạo số liệu đo đạc (Weight)",
+                                on_click=auto_gen_measurement_callback,
+                                args=("txt_meas_weight_input", spec_weight, tol_weight))
+                
+                meas_weight = st.session_state.get("txt_meas_weight_input", "")
             
             if profile.has_checklist:
                 st.markdown("**3. Checklist**")
