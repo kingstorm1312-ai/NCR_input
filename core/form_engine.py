@@ -17,7 +17,6 @@ from utils.ncr_helpers import (
 )
 from utils.aql_manager import get_aql_standard, evaluate_lot_quality
 from utils.config import NCR_DEPARTMENT_PREFIXES
-from audio_recorder_streamlit import audio_recorder
 from core.voice_input_service import process_audio_defect
 from utils.measurement_utils import generate_random_measurement
 
@@ -385,24 +384,35 @@ def run_inspection_page(profile: DeptProfile):
         # --- VOICE INPUT DIALOG ---
         @st.dialog("🎤 Nhập lỗi bằng giọng nói")
         def open_voice_input_dialog():
-            st.info("💡 Hướng dẫn: Nhấn vào icon Micro để Bắt đầu nói. Nhấn lại lần nữa để Dừng.")
+            # --- MOBILE PERMISSION WORKAROUND ---
+            # Trên mobile, lần đầu bấm ghi âm sẽ trigger popup "Cho phép truy cập Mic?"
+            # Điều này gây ra lỗi ghi 0 giây. Giải pháp: Thêm bước "Sẵn sàng" để user biết.
             
-            # 1. RECORDER
-            audio_bytes = audio_recorder(
-                text="Nhấn để Ghi / Dừng",
-                recording_color="#e8b62c", 
-                neutral_color="#6aa36f",
-                icon_name="microphone",
-                icon_name="microphone",
-                icon_size="3x", # Tăng kích thước icon
-                pause_threshold=60.0, # Tăng lên 60s (1 phút) theo yêu cầu
-                sample_rate=44_100, # Chuẩn sample rate
-                auto_start=False, # Tránh tự kích hoạt sai
-                key="voice_recorder_main" # Key tĩnh để tránh re-mount
-            )
+            if "voice_mic_ready" not in st.session_state:
+                st.session_state.voice_mic_ready = False
             
-            if audio_bytes:
-                st.audio(audio_bytes, format="audio/wav")
+            if not st.session_state.voice_mic_ready:
+                st.warning("""
+                � **Lưu ý quan trọng cho Mobile:**
+                
+                Nếu đây là lần đầu ghi âm, khi bấm nút **"Start recording"** phía dưới:
+                1. Trình duyệt sẽ hỏi **"Cho phép truy cập Microphone?"** → Bấm **Cho phép**.
+                2. Sau đó bấm **"Start recording"** lần nữa để bắt đầu ghi âm thực sự.
+                
+                Đây là hành vi bình thường của trình duyệt di động.
+                """)
+                st.info("👇 Bấm nút bên dưới để bắt đầu (có thể cần bấm 2 lần nếu là lần đầu).")
+            
+            # 1. RECORDER (Native Streamlit)
+            # Sử dụng st.audio_input (Available in Streamlit 1.40+) để fix lỗi mobile
+            audio_file = st.audio_input("Nhấn để Ghi âm", key="voice_audio_input")
+            
+            audio_bytes = None
+            if audio_file:
+                audio_bytes = audio_file.read()
+                # Mark as ready for future recordings in this session
+                st.session_state.voice_mic_ready = True
+                # st.audio_input đã có sẵn playback, không cần st.audio nữa
                 
                 # 2. ANALYZE BUTTON
                 if st.button("✨ PHÂN TÍCH GIỌNG NÓI", type="primary", use_container_width=True):
