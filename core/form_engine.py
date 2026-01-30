@@ -393,8 +393,12 @@ def run_inspection_page(profile: DeptProfile):
                 recording_color="#e8b62c", 
                 neutral_color="#6aa36f",
                 icon_name="microphone",
+                icon_name="microphone",
                 icon_size="3x", # Tăng kích thước icon
-                pause_threshold=60.0 # Tăng thời gian chờ im lặng để tránh tự ngắt
+                pause_threshold=60.0, # Tăng lên 60s (1 phút) theo yêu cầu
+                sample_rate=44_100, # Chuẩn sample rate
+                auto_start=False, # Tránh tự kích hoạt sai
+                key="voice_recorder_main" # Key tĩnh để tránh re-mount
             )
             
             if audio_bytes:
