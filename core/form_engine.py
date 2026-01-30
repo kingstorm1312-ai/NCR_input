@@ -366,7 +366,7 @@ def run_inspection_page(profile: DeptProfile):
                 neutral_color="#6aa36f",
                 icon_name="microphone",
                 icon_size="3x", # Tăng kích thước icon
-                pause_threshold=2.0
+                pause_threshold=60.0 # Tăng thời gian chờ im lặng để tránh tự ngắt
             )
             
             if audio_bytes:
@@ -376,7 +376,7 @@ def run_inspection_page(profile: DeptProfile):
                 if st.button("✨ PHÂN TÍCH GIỌNG NÓI", type="primary", use_container_width=True):
                     with st.spinner("🤖 AI đang phân tích..."):
                         # Call service
-                        ai_results = process_audio_defect(audio_bytes, LIST_LOI, LIST_VI_TRI)
+                        ai_results, usage_info = process_audio_defect(audio_bytes, LIST_LOI, LIST_VI_TRI)
                         
                         if not ai_results:
                             st.warning("⚠️ Không tìm thấy lỗi nào hoặc không nghe rõ. Vui lòng thử lại.")
@@ -384,12 +384,21 @@ def run_inspection_page(profile: DeptProfile):
                             st.session_state.voice_results = ai_results
                             # st.rerun() bỏ rerun để tránh đóng dialog
                             st.success("✅ Đã phân tích xong! Vui lòng kiểm tra kết quả bên dưới.")
+                            
+                            # Save usage info to persistent state
+                            if usage_info:
+                                st.session_state.voice_usage = usage_info
             
             # 3. SHOW RESULTS & CONFIRM
             if "voice_results" in st.session_state and st.session_state.voice_results:
                 st.divider()
                 st.markdown("##### 📋 Kết quả phân tích:")
                 
+                # Show Persistent Cost Info
+                if "voice_usage" in st.session_state:
+                     u = st.session_state.voice_usage
+                     st.caption(f"💰 Chi phí: **{u.get('cost_vnd',0):.0f} VNĐ** | Tokens: {u.get('total_tokens',0)}")
+
                 valid_items = []
                 has_unknown = False
                 
@@ -434,7 +443,16 @@ def run_inspection_page(profile: DeptProfile):
                             count += 1
                     
                     if count > 0:
-                        st.session_state["success_msg"] = f"Đã thêm thành công {count} lỗi từ giọng nói!"
+                        count_msg = f"Đã thêm thành công {count} lỗi!"
+                        cost_msg = ""
+                        
+                        # Add Cost Info to success message
+                        if "voice_usage" in st.session_state:
+                             u = st.session_state.voice_usage
+                             cost_msg = f" (Chi phí: {u.get('cost_vnd',0):.0f} VNĐ)"
+                             del st.session_state.voice_usage # Cleanup
+
+                        st.session_state["success_msg"] = count_msg + cost_msg
                         del st.session_state.voice_results # Clear buffer
                         st.rerun()
 

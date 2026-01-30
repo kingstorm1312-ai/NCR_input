@@ -44,16 +44,16 @@ def process_audio_defect(audio_bytes: bytes, list_loi: list, list_vi_tri: list) 
         - list_loi: Danh sách tên lỗi chuẩn để matching
         - list_vi_tri: Danh sách vị trí chuẩn
     Output:
-        - List of dict: [{"ten_loi": "...", "vi_tri": "...", "sl_loi": 1, "muc_do": "..."}]
+        - Tuple: (List of dict results, dict usage_info)
     """
     if not audio_bytes:
         return []
 
     configure_genai()
     
-    # Sử dụng model Flash cho tốc độ và native audio support
-    # Updated to 2.5-flash based on available models
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    # Sử dụng model Flash Lite cho chi phí thấp nhất (Cost optimization)
+    # Available in list: models/gemini-2.5-flash-lite
+    model = genai.GenerativeModel('gemini-2.5-flash-lite')
     
     # Chuẩn bị prompt context
     str_list_loi = ", ".join(list_loi) if list_loi else "Không có danh sách chuẩn"
@@ -105,9 +105,28 @@ def process_audio_defect(audio_bytes: bytes, list_loi: list, list_vi_tri: list) 
             {"mime_type": "audio/wav", "data": audio_bytes}
         ])
         
-        return extract_json(response.text)
+        # --- COST CALCULATION (Estimate) ---
+        usage = response.usage_metadata
+        prompt_tokens = usage.prompt_token_count
+        comp_tokens = usage.candidates_token_count
+        total_tokens = usage.total_token_count
+        
+        # Pricing Gemini 2.5 Flash Lite (Estimate): ~50% of Flash ticket?
+        # Assuming extremely cheap: Input ~$0.0375/1M, Output ~$0.15/1M (Hypothetical for now)
+        cost_usd = (prompt_tokens / 1_000_000 * 0.0375) + (comp_tokens / 1_000_000 * 0.15)
+        cost_vnd = cost_usd * 25400
+        
+        usage_info = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": comp_tokens,
+            "total_tokens": total_tokens,
+            "cost_vnd": cost_vnd
+        }
+
+        results = extract_json(response.text)
+        return results, usage_info
         
     except Exception as e:
         # Log error
         print(f"Gemini API Error: {e}")
-        return []
+        return [], None
