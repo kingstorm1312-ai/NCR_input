@@ -51,9 +51,9 @@ def process_audio_defect(audio_bytes: bytes, list_loi: list, list_vi_tri: list) 
 
     configure_genai()
     
-    # Sử dụng model Flash Lite cho chi phí thấp nhất (Cost optimization)
-    # Available in list: models/gemini-2.5-flash-lite
-    model = genai.GenerativeModel('gemini-2.5-flash-lite')
+    # Sử dụng model Gemini 2.0 Flash (Reverted from 2.5 due to freeze/timeout issues)
+    # Available in list: models/gemini-2.0-flash
+    model = genai.GenerativeModel('gemini-2.0-flash')
     
     # Chuẩn bị prompt context
     str_list_loi = ", ".join(list_loi) if list_loi else "Không có danh sách chuẩn"
@@ -69,14 +69,13 @@ def process_audio_defect(audio_bytes: bytes, list_loi: list, list_vi_tri: list) 
     Dưới đây là danh sách tham chiếu chuẩn (Reference Data):
     - Tên lỗi chuẩn (Standard Defects): {str_list_loi}
     - Các vị trí lỗi thường gặp: {str_list_vi_tri}
-    - Mức độ lỗi (Severity): "Nhẹ", "Nặng", "Nghiêm trọng". Mặc định là "Nhẹ".
+    - Mức độ lỗi (Severity): "Nhẹ", "Nặng". Mặc định là "Nặng".
 
     QUY TẮC XỬ LÝ QUAN TRỌNG:
     1. **Matching (So khớp)**:
        - Nếu nghe được tên lỗi, hãy tìm tên tương ứng gần đúng nhất trong "Tên lỗi chuẩn".
-       - Nếu khớp được (kể cả từ đồng nghĩa hoặc phát âm gần giống), hãy dùng tên chuẩn đó.
-       - Nếu nghe rõ ràng là một lỗi nhưng KHÔNG có trong danh sách chuẩn, và cũng không giống lỗi nào -> Hãy gán tên lỗi là "UNKNOWN_DEFECT" và ghi lại nội dung gốc vào field "raw_input".
-       - Nếu lời nói không liên quan đến báo cáo lỗi -> Bỏ qua.
+       - Nếu người dùng nói "lỗi dệt", hãy tìm tên lỗi chứa từ "dệt" phù hợp nhất trong danh sách.
+       - Chỉ trả về "UNKNOWN_DEFECT" nếu thực sự không thể map được với bất kỳ lỗi nào.
 
     2. **Default Values (Giá trị mặc định)**:
        - Số lượng: Nếu không nói rõ số lượng, mặc định là 1.
@@ -84,15 +83,20 @@ def process_audio_defect(audio_bytes: bytes, list_loi: list, list_vi_tri: list) 
        - Vị trí: Nếu không nghe thấy, để chuỗi rỗng "".
 
     3. **Output Format**:
-       - Bắt buộc trả về một JSON Array.
+       - Bắt buộc trả về một JSON Array thuần túy, không markdown.
        - Mỗi phần tử có cấu trúc:
          {{
            "ten_loi": "Tên chuẩn hoặc UNKNOWN_DEFECT",
            "raw_input": "Từ user nói (chỉ khi UNKNOWN)",
            "vi_tri": "Vị trí nghe được",
-           "sl_loi": số_lượng_int,
-           "muc_do": "Nhẹ/Nặng/Nghiêm trọng"
+           "sl_loi": <số nguyên>,
+           "muc_do": "Nhẹ/Nặng"
          }}
+       
+       Example output:
+       [
+          {{ "ten_loi": "Rách", "vi_tri": "Thân sau", "sl_loi": 2, "muc_do": "Nhẹ" }}
+       ]
 
     Hãy xử lý âm thanh cung cấp và trả về JSON kết quả.
     """
@@ -111,9 +115,17 @@ def process_audio_defect(audio_bytes: bytes, list_loi: list, list_vi_tri: list) 
         comp_tokens = usage.candidates_token_count
         total_tokens = usage.total_token_count
         
-        # Pricing Gemini 2.5 Flash Lite (Estimate): ~50% of Flash ticket?
-        # Assuming extremely cheap: Input ~$0.0375/1M, Output ~$0.15/1M (Hypothetical for now)
-        cost_usd = (prompt_tokens / 1_000_000 * 0.0375) + (comp_tokens / 1_000_000 * 0.15)
+        # Pricing Gemini 2.5 Flash (Updated 2026-01-30)
+        # Input (Text/Image/Video): $0.10 / 1M
+        # Input (Audio): $1.00 / 1M (Per user provided table)
+        # Output: $0.40 / 1M
+        
+        # Note: Since this is Voice Input, prompt is dominated by Audio tokens.
+        # We use the Audio rate ($1.00/1M) for the entire prompt to be safe.
+        price_input = 1.00
+        price_output = 0.40
+        
+        cost_usd = (prompt_tokens / 1_000_000 * price_input) + (comp_tokens / 1_000_000 * price_output)
         cost_vnd = cost_usd * 25400
         
         usage_info = {
