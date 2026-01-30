@@ -446,8 +446,20 @@ def run_inspection_page(profile: DeptProfile):
                 
                 # Render list for review
                 for idx, item in enumerate(st.session_state.voice_results):
-                    is_unknown = item.get("ten_loi") == "UNKNOWN_DEFECT"
-                    if is_unknown: has_unknown = True
+                    # STRICT CHECK: Must be in LIST_LOI
+                    name_check = item.get("ten_loi")
+                    is_not_in_list = name_check not in LIST_LOI
+                    is_marked_unknown = name_check == "UNKNOWN_DEFECT"
+                    
+                    # Treating as unknown if explicitly marked OR not found in standard list
+                    is_unknown = is_marked_unknown or is_not_in_list
+                    
+                    if is_unknown: 
+                        has_unknown = True
+                        # Preserve raw input reference if it was not already set
+                        if is_not_in_list and not is_marked_unknown:
+                            item["raw_input"] = name_check
+                            item["ten_loi"] = "UNKNOWN_DEFECT" # Normalize status
                     
                     with st.container(border=True):
                         c1, c2 = st.columns([3, 1])
